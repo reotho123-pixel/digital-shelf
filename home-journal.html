@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>电子收纳 · 手账版样板（方案 A）</title>
+<style>
+/* ============ 手写 / 手账字体（自托管子集） ============ */
+@font-face{font-family:'ZCOOLKuaiLe';src:url('./fonts/zcoolkuaile.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'ZCOOLQingKe';src:url('./fonts/zcoolqingke.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'NotoSansSC';src:url('./fonts/notosans700.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'MaShanZheng';src:url('./fonts/mashanzheng.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'ZhiMangXing';src:url('./fonts/zhimangxing.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'LongCang';src:url('./fonts/longcang.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Caveat';src:url('./fonts/caveat700.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'GochiHand';src:url('./fonts/gochihand.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'PatrickHand';src:url('./fonts/patrickhand.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Kalam';src:url('./fonts/kalam700.woff2') format('woff2');font-weight:700;font-display:swap}
+
+:root{
+  --paper:#ecebe4;
+  --screen:#fdfcf7;
+  --ink:#16171b;
+  --ink2:#3b3d45;
+  --sub:#8b8c94;
+  --pink:#ea8bbc;
+  --pink-deep:#d55f9b;
+  --blue:#a8cce9;
+  --blue-deep:#5b98c8;
+  --green:#2f9e58;
+  --warn:#d9861f;
+  --r-lg:20px;
+  --r-md:15px;
+  --hr:2.3px;
+  /* 手账字体族：中文用圆润手写，数字用粗手写 */
+  --f-cn:'ZCOOLKuaiLe','MaShanZheng',sans-serif;
+  --f-num:'Kalam','PatrickHand',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  position:relative;background:var(--paper);color:var(--ink);
+  font-family:'PatrickHand','ZCOOLKuaiLe',-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.42;padding:44px 26px 70px;-webkit-font-smoothing:antialiased;
+}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.42;
+  background-image:radial-gradient(circle, rgba(22,23,27,.17) 1.05px, transparent 1.05px);
+  background-size:18px 18px}
+
+.gallery{position:relative;z-index:1;max-width:1010px;margin:0 auto}
+.head{text-align:center;margin-bottom:32px}
+.head h1{margin:0 0 9px;font-family:var(--f-cn);font-size:29px;font-weight:400;letter-spacing:.02em}
+.head p{margin:0;color:#5f6068;font-size:14.5px}
+.head code{background:rgba(22,23,27,.07);border-radius:6px;padding:2px 7px;font-size:13px;font-family:'PatrickHand',monospace}
+
+/* ============ 字体对比 ============ */
+.fontbar{background:#fff;border:var(--hr) solid var(--ink);border-radius:var(--r-lg);
+  box-shadow:5px 6px 0 rgba(22,23,27,.13);padding:19px 22px 15px;margin-bottom:36px}
+.fontbar h3{margin:0 0 4px;font-family:var(--f-cn);font-size:19px;font-weight:400}
+.fontbar .tip{margin:0 0 14px;font-size:13.5px;color:var(--sub)}
+.frow{display:flex;align-items:center;gap:15px;padding:9px 0;border-bottom:1.6px dashed rgba(22,23,27,.2)}
+.frow:last-child{border-bottom:none;padding-bottom:2px}
+.frow .fname{width:150px;flex:0 0 auto;font-size:12.5px;color:var(--sub);line-height:1.3}
+.frow .fname b{display:block;color:var(--ink);font-size:14px;font-family:'PatrickHand',sans-serif}
+.frow .num{font-size:38px;line-height:1;flex:0 0 auto;min-width:100px}
+.frow .cn{font-size:22px;line-height:1.25;flex:1}
+.f-kuaile{font-family:'ZCOOLKuaiLe',sans-serif}
+.f-qingke{font-family:'ZCOOLQingKe',sans-serif}
+.f-mashan{font-family:'MaShanZheng',sans-serif}
+.f-zhimang{font-family:'ZhiMangXing',sans-serif}
+.f-gochi{font-family:'GochiHand',sans-serif}
+.f-patrick{font-family:'PatrickHand',sans-serif}
+.f-kalam{font-family:'Kalam',sans-serif;font-weight:700}
+.f-caveat{font-family:'Caveat',sans-serif;font-weight:700}
+
+/* ============ 并排 ============ */
+.row{display:flex;flex-wrap:wrap;gap:38px;justify-content:center;align-items:flex-start}
+.sample{margin:0;width:378px;max-width:100%}
+.sample figcaption{margin:0 0 14px;text-align:center}
+.sample figcaption b{display:block;font-family:var(--f-cn);font-size:19px;font-weight:400;margin-bottom:5px}
+.sample figcaption span{display:block;font-size:13px;color:#5f6068;line-height:1.55}
+
+/* ============ 手机框 ============ */
+.phone{position:relative;width:378px;height:812px;border-radius:42px;background:var(--screen);
+  border:2.8px solid var(--ink);box-shadow:7px 9px 0 rgba(22,23,27,.13);overflow:hidden}
+.scr{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:22px 20px 15px;scrollbar-width:none;
+  background-image:radial-gradient(circle, rgba(22,23,27,.075) 1px, transparent 1px);background-size:16px 16px}
+.scr::-webkit-scrollbar{display:none}
+
+/* ============ 顶栏 ============ */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.topbar .grp{display:flex;gap:10px}
+.avatar{width:46px;height:46px;display:grid;place-items:center;
+  background:var(--pink);border:2.3px solid var(--ink);font-family:var(--f-cn);font-size:19px;
+  border-radius:50% 46% 52% 48%/48% 52% 46% 50%;transform:rotate(-3deg);box-shadow:2px 3px 0 rgba(22,23,27,.15)}
+.circ{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;position:relative;flex:0 0 auto;
+  box-shadow:2px 3px 0 rgba(22,23,27,.14)}
+.circ svg{width:20px;height:20px}
+.circ .dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;
+  background:var(--pink-deep);border:1.5px solid var(--ink)}
+.c1{border-radius:50% 44% 50% 46%/46% 50% 44% 50%}
+.c2{border-radius:45% 50% 46% 50%/50% 46% 50% 45%}
+
+/* ============ 主卡 ============ */
+.hero{position:relative;margin-bottom:19px}
+.hero svg{display:block;width:100%;height:auto}
+.hero .over{position:absolute;inset:0;padding:14px 19px 13px;display:flex;flex-direction:column;justify-content:space-between}
+.hero .ttl{font-family:var(--f-cn);font-size:21px;line-height:1.1;
+  text-shadow:0 1px 0 rgba(255,255,255,.42)}
+.hero .mid{display:flex;align-items:flex-end;justify-content:space-between;margin-top:2px}
+.hero .split{font-size:13px;line-height:1.6;opacity:.85;font-family:'PatrickHand',sans-serif;
+  text-shadow:0 1px 0 rgba(255,255,255,.38)}
+.hero .big{font-family:var(--f-num);font-weight:700;font-size:52px;line-height:.84;
+  text-shadow:0 1px 0 rgba(255,255,255,.42)}
+.hero .foot{display:flex;justify-content:space-between;font-size:13.5px;font-family:'PatrickHand',sans-serif;
+  text-shadow:0 1px 0 rgba(255,255,255,.4)}
+
+/* ============ 区块标题（荧光笔高亮） ============ */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 11px}
+.sec-head b{position:relative;display:inline-block;font-family:var(--f-cn);font-size:18px;font-weight:400}
+.sec-head b::after{content:'';position:absolute;left:-6px;right:-7px;bottom:2px;height:9px;z-index:-1;
+  background:rgba(234,139,188,.52);border-radius:3px 10px 4px 11px;transform:rotate(-.8deg)}
+.sec-head a{font-size:13px;color:var(--sub);text-decoration:none;font-family:'PatrickHand',sans-serif}
+
+/* ============ 目标卡 ============ */
+.goal{background:#fff;border:var(--hr) solid var(--ink);border-radius:var(--r-lg);
+  box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:13px 17px 14px}
+.goal .r1{display:flex;align-items:flex-end;justify-content:space-between}
+.goal .big{display:flex;align-items:baseline;gap:5px}
+.goal .big .n{font-family:var(--f-num);font-weight:700;font-size:43px;line-height:.85}
+.goal .big .of{font-size:18px;color:var(--sub);font-family:var(--f-num);font-weight:700}
+.tag{font-size:12.5px;padding:4px 10px;border:2px solid var(--ink);
+  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;background:rgba(47,158,88,.18);
+  color:#227a42;transform:rotate(-1.6deg);display:inline-block;font-family:var(--f-cn)}
+.gbar{margin:11px 0 8px}
+.gbar svg{display:block;width:100%;height:auto}
+.hint{font-size:13px;color:var(--sub)}
+
+/* ============ 快捷入口 ============ */
+.quick{display:flex;justify-content:space-between;gap:6px;margin:16px 0 18px}
+.qa{flex:1;border:none;background:none;font-family:var(--f-cn);font-size:12.5px;color:var(--ink2);
+  display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;padding:0;line-height:1.25}
+.qa .ic{width:48px;height:48px;display:grid;place-items:center;background:#fff;border:2.3px solid var(--ink);
+  border-radius:16px 6px 17px 7px/7px 17px 6px 16px;box-shadow:2px 3px 0 rgba(22,23,27,.14)}
+.qa .ic svg{width:21px;height:21px}
+.qa .ic.hot{background:var(--pink)}
+
+/* ============ 分类网格 ============ */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.cat{background:#fff;border:var(--hr) solid var(--ink);border-radius:var(--r-md);
+  box-shadow:3px 4px 0 rgba(22,23,27,.13);padding:11px 13px 12px}
+.cat .ct{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.cat .ct .dot{width:11px;height:11px;border-radius:50% 44% 52% 46%;border:1.7px solid var(--ink)}
+.cat .ct span{font-size:14.5px;font-family:var(--f-cn)}
+.cat .cn{display:flex;align-items:baseline;gap:4px;margin-bottom:7px}
+.cat .cn .n{font-family:var(--f-num);font-weight:700;font-size:31px;line-height:.85}
+.cat .cn small{font-size:12px;color:var(--sub)}
+.cat .cg{font-size:11.5px;color:var(--sub);margin-top:6px}
+.cat .cg.over{color:#b8700f}
+.mbar{height:8px;position:relative}
+.mbar .tr{position:absolute;inset:0;border:1.9px solid var(--ink);
+  border-radius:5px 2px 6px 3px/3px 6px 2px 5px;background:rgba(22,23,27,.05)}
+.mbar .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:4px 2px 5px 2px/2px 5px 2px 4px}
+
+/* ============ 重度手账专属 ============ */
+.tape{position:absolute;width:74px;height:25px;z-index:5;opacity:.8;box-shadow:0 1px 4px rgba(22,23,27,.13);
+  clip-path:polygon(0 3%,4% 0,96% 2%,100% 0,99% 96%,95% 100%,5% 98%,1% 100%)}
+.tape.p{background:rgba(234,139,188,.68)}
+.tape.b{background:rgba(168,204,233,.68)}
+.heavy .scr{background-color:#fdfaf1}
+.heavy .hero{transform:rotate(-.7deg)}
+.heavy .goal{transform:rotate(-.4deg);box-shadow:5px 6px 0 rgba(22,23,27,.15)}
+.heavy .cat{transform:rotate(-.55deg);box-shadow:4px 5px 0 rgba(22,23,27,.15)}
+.heavy .cat:nth-child(even){transform:rotate(.6deg)}
+.heavy .qa .ic{transform:rotate(-2.2deg)}
+.heavy .qa:nth-child(even) .ic{transform:rotate(2.2deg)}
+.heavy .sec-head b::after{background:rgba(234,139,188,.66);height:10px}
+
+@media (max-width:900px){body{padding:30px 16px 60px}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 手绘抖动 -->
+    <filter id="rough" x="-6%" y="-10%" width="112%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.026" numOctaves="4" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="rough2" x="-8%" y="-14%" width="116%" height="128%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="23" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+
+    <!-- ===== 主卡形状（圆角手绘矩形） ===== -->
+    <path id="heroPath" d="M17 6 C104 3.5, 236 4.5, 320 7 C329 7.4, 332 12.5, 331.5 20.5 L330.5 129 C330 138, 326 144, 318 144 L18 144.5 C9 144.5, 6.5 138, 6.5 129 L7 20.5 C7.5 11.5, 9 6.4, 17 6 Z"/>
+
+    <!-- ===== 手绘干笔刷笔触：宽笔触 + 留出粉色空隙（模拟宽扁笔刷拖过） ===== -->
+    <g id="dryStrokes">
+      <!-- 主笔触：填充多边形，两端收窄，粗细与倾角各不相同 -->
+      <g fill="#ffffff">
+        <!-- 每道：底边起点 x0、顶边终点 x1、底宽 wb、顶宽 wt -->
+        <polygon points="-52,166 -44,166 54,-16 62,-16" opacity=".93"/>
+        <polygon points="4,166 14,166 100,-16 112,-16" opacity=".8"/>
+        <polygon points="52,166 76,166 158,-16 184,-16" opacity=".95"/>
+        <polygon points="106,166 118,166 200,-16 214,-16" opacity=".78"/>
+        <polygon points="148,166 174,166 252,-16 280,-16" opacity=".92"/>
+        <polygon points="204,166 216,166 296,-16 310,-16" opacity=".8"/>
+        <polygon points="246,166 272,166 348,-16 376,-16" opacity=".94"/>
+        <polygon points="302,166 314,166 396,-16 410,-16" opacity=".76"/>
+        <polygon points="344,166 370,166 448,-16 476,-16" opacity=".9"/>
+      </g>
+      <!-- 干笔触拖痕：细的白色丝线，低透明度，制造「颜料将尽」的质感 -->
+      <g fill="none" stroke="#ffffff" stroke-linecap="round">
+        <line x1="-26" y1="162" x2="46" y2="4" stroke-width="4.5" opacity=".5"/>
+        <line x1="30" y1="164" x2="98" y2="12" stroke-width="3.6" opacity=".42"/>
+        <line x1="86" y1="160" x2="156" y2="6" stroke-width="5" opacity=".48"/>
+        <line x1="132" y1="163" x2="196" y2="16" stroke-width="3.2" opacity=".4"/>
+        <line x1="178" y1="161" x2="248" y2="4" stroke-width="4.8" opacity=".5"/>
+        <line x1="228" y1="164" x2="292" y2="12" stroke-width="3.8" opacity=".42"/>
+        <line x1="274" y1="160" x2="344" y2="6" stroke-width="5.2" opacity=".48"/>
+        <line x1="324" y1="163" x2="388" y2="14" stroke-width="3.4" opacity=".4"/>
+        <line x1="366" y1="161" x2="436" y2="4" stroke-width="4.4" opacity=".46"/>
+      </g>
+    </g>
+  </defs>
+</svg>
+
+<div class="gallery">
+  <header class="head">
+    <h1>电子收纳 · 手账版样板</h1>
+    <p>结构沿用方案 A。粉卡改为手绘干笔刷，线条全部手绘抖动，纸面点阵，字体换成手写体。<code>假数据</code>，两档强度对比。</p>
+  </header>
+
+  <section class="fontbar">
+    <h3>先挑字体</h3>
+    <p class="tip">左边数字是英文手写体（用在 187 这类大数字），右边中文手写体（用在标题、按钮、正文）。挑一组，或者分开指定。</p>
+
+    <div class="frow">
+      <div class="fname"><b>Kalam 700 + 站酷快乐体</b>粗手写 + 圆润</div>
+      <div class="num f-kalam">187</div>
+      <div class="cn f-kuaile">我的收纳 · 极简目标 · 衣物 45 件</div>
+    </div>
+    <div class="frow">
+      <div class="fname"><b>Kalam 700 + 庆科黄油</b>粗手写 + 圆胖</div>
+      <div class="num f-kalam">187</div>
+      <div class="cn f-qingke">我的收纳 · 极简目标 · 衣物 45 件</div>
+    </div>
+    <div class="frow">
+      <div class="fname"><b>Gochi Hand + 马善政</b>记号笔 + 毛笔楷</div>
+      <div class="num f-gochi">187</div>
+      <div class="cn f-mashan">我的收纳 · 极简目标 · 衣物 45 件</div>
+    </div>
+    <div class="frow">
+      <div class="fname"><b>Caveat 700 + 芝麻行书</b>快速笔迹 + 行书</div>
+      <div class="num f-caveat">187</div>
+      <div class="cn f-zhimang">我的收纳 · 极简目标 · 衣物 45 件</div>
+    </div>
+  </section>
+
+  <div class="row">
+
+    <!-- ================= 轻度手账 ================= -->
+    <figure class="sample">
+      <figcaption>
+        <b>轻度手账</b>
+        <span>干净为主：手绘粉卡 + 手绘描边 + 点阵纸 + 手写字体。结构清楚，接近你截图那种「有质感的手绘插画感」。</span>
+      </figcaption>
+      <div class="phone">
+        <div class="scr">
+
+          <div class="topbar">
+            <div class="avatar">简</div>
+            <div class="grp">
+              <button class="circ c1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></button>
+              <button class="circ c2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2a5 5 0 0 0-5 5v3.1l-1.5 2.9h13L17 12.3V9.2a5 5 0 0 0-5-5Z"/><path d="M10.2 18.2a1.9 1.9 0 0 0 3.6 0"/></svg><i class="dot"></i></button>
+            </div>
+          </div>
+
+          <div class="hero">
+            <svg viewBox="0 0 338 151" preserveAspectRatio="none" aria-label="我的收纳">
+              <use href="#heroPath" fill="#ea8bbc" stroke="#16171b" stroke-width="2.8" filter="url(#rough)"/>
+              <clipPath id="clipL"><use href="#heroPath"/></clipPath>
+              <g clip-path="url(#clipL)"><use href="#dryStrokes"/></g>
+              <g filter="url(#rough2)">
+                <line x1="20" y1="54" x2="318" y2="53" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"/>
+              </g>
+            </svg>
+            <div class="over">
+              <div class="ttl">我的收纳</div>
+              <div class="mid">
+                <span class="split">在用 179<br>收纳中 8</span>
+                <span class="big">187</span>
+              </div>
+              <div class="foot">
+                <span>96 款物品</span>
+                <span>74 个软件</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sec-head"><b>极简目标</b><a>查看进程 ›</a></div>
+          <div class="goal">
+            <div class="r1">
+              <div class="big"><span class="n">187</span><span class="of">/ 200</span></div>
+              <span class="tag">还差 13 件</span>
+            </div>
+            <div class="gbar">
+              <svg viewBox="0 0 300 12" preserveAspectRatio="none">
+                <g filter="url(#rough2)">
+                  <line x1="4" y1="6" x2="296" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round" opacity=".13"/>
+                  <line x1="5" y1="6" x2="277" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round"/>
+                </g>
+              </svg>
+            </div>
+            <div class="hint">近 8 周减少 24 件 · 待处理 8 件</div>
+          </div>
+
+          <div class="quick">
+            <button class="qa"><span class="ic hot"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>添加物品</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg></span>添加软件</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10M8 11l4 3.8 4-3.8"/><path d="M5 19.2h14"/></svg></span>导出备份</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></span>设置</button>
+          </div>
+
+          <div class="sec-head"><b>分类</b><a>全部 ›</a></div>
+          <div class="grid2">
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:var(--pink)"></span><span>衣物</span></div>
+              <div class="cn"><span class="n">45</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:96%;background:var(--warn)"></span></div>
+              <div class="cg over">目标 30 · 超出 15</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:var(--blue)"></span><span>鞋包</span></div>
+              <div class="cn"><span class="n">18</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:84%;background:var(--green)"></span></div>
+              <div class="cg">目标 20 · 还差 2</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:#bcd9ee"></span><span>数码</span></div>
+              <div class="cn"><span class="n">22</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:96%;background:var(--blue-deep)"></span></div>
+              <div class="cg">目标 20 · 超出 2</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:#f2c2dc"></span><span>家居</span></div>
+              <div class="cn"><span class="n">31</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:72%;background:var(--green)"></span></div>
+              <div class="cg">目标 40 · 还差 9</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </figure>
+
+    <!-- ================= 重度手账 ================= -->
+    <figure class="sample">
+      <figcaption>
+        <b>重度手账</b>
+        <span>更像贴出来的一页：卡片轻微歪斜、胶带贴角、纸张更暖。手账味最足，但也更「花」一点。</span>
+      </figcaption>
+      <div class="phone heavy">
+        <div class="scr">
+
+          <div class="topbar">
+            <div class="avatar">简</div>
+            <div class="grp">
+              <button class="circ c1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></button>
+              <button class="circ c2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2a5 5 0 0 0-5 5v3.1l-1.5 2.9h13L17 12.3V9.2a5 5 0 0 0-5-5Z"/><path d="M10.2 18.2a1.9 1.9 0 0 0 3.6 0"/></svg><i class="dot"></i></button>
+            </div>
+          </div>
+
+          <div class="hero">
+            <span class="tape p" style="left:-13px;top:-10px;transform:rotate(-16deg)"></span>
+            <span class="tape b" style="right:-12px;bottom:-9px;transform:rotate(-14deg)"></span>
+            <svg viewBox="0 0 338 151" preserveAspectRatio="none" aria-label="我的收纳">
+              <use href="#heroPath" fill="#ea8bbc" stroke="#16171b" stroke-width="3" filter="url(#rough)"/>
+              <clipPath id="clipH"><use href="#heroPath"/></clipPath>
+              <g clip-path="url(#clipH)"><use href="#dryStrokes"/></g>
+              <g filter="url(#rough2)">
+                <line x1="20" y1="54" x2="318" y2="53" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"/>
+              </g>
+            </svg>
+            <div class="over">
+              <div class="ttl">我的收纳</div>
+              <div class="mid">
+                <span class="split">在用 179<br>收纳中 8</span>
+                <span class="big">187</span>
+              </div>
+              <div class="foot">
+                <span>96 款物品</span>
+                <span>74 个软件</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sec-head"><b>极简目标</b><a>查看进程 ›</a></div>
+          <div class="goal">
+            <div class="r1">
+              <div class="big"><span class="n">187</span><span class="of">/ 200</span></div>
+              <span class="tag">还差 13 件</span>
+            </div>
+            <div class="gbar">
+              <svg viewBox="0 0 300 12" preserveAspectRatio="none">
+                <g filter="url(#rough2)">
+                  <line x1="4" y1="6" x2="296" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round" opacity=".13"/>
+                  <line x1="5" y1="6" x2="277" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round"/>
+                </g>
+              </svg>
+            </div>
+            <div class="hint">近 8 周减少 24 件 · 待处理 8 件</div>
+          </div>
+
+          <div class="quick">
+            <button class="qa"><span class="ic hot"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>添加物品</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg></span>添加软件</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10M8 11l4 3.8 4-3.8"/><path d="M5 19.2h14"/></svg></span>导出备份</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></span>设置</button>
+          </div>
+
+          <div class="sec-head"><b>分类</b><a>全部 ›</a></div>
+          <div class="grid2">
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:var(--pink)"></span><span>衣物</span></div>
+              <div class="cn"><span class="n">45</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:96%;background:var(--warn)"></span></div>
+              <div class="cg over">目标 30 · 超出 15</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:var(--blue)"></span><span>鞋包</span></div>
+              <div class="cn"><span class="n">18</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:84%;background:var(--green)"></span></div>
+              <div class="cg">目标 20 · 还差 2</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:#bcd9ee"></span><span>数码</span></div>
+              <div class="cn"><span class="n">22</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:96%;background:var(--blue-deep)"></span></div>
+              <div class="cg">目标 20 · 超出 2</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:#f2c2dc"></span><span>家居</span></div>
+              <div class="cn"><span class="n">31</span><small>件</small></div>
+              <div class="mbar"><span class="tr"></span><span class="fl" style="width:72%;background:var(--green)"></span></div>
+              <div class="cg">目标 40 · 还差 9</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </figure>
+
+  </div>
+</div>
+</body>
+</html>
