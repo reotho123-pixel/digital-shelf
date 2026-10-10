@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>电子收纳 · 首页样板（三个方向）</title>
+<style>
+:root{
+  /* ---- 从截图提取的设计令牌 ---- */
+  --paper:#e9e9e7;          /* 页面底色 */
+  --screen:#fbfbf9;         /* 手机屏底色 */
+  --card:#ffffff;
+  --ink:#111114;            /* 主文字 / 描边 */
+  --ink2:#3d3d44;
+  --sub:#8c8c94;
+  --hair:rgba(17,17,20,.10);
+  --pink:#e987b9;           /* 主彩色 A */
+  --pink-soft:#f3c3dd;
+  --blue:#a6cbe8;           /* 主彩色 B */
+  --blue-soft:#cfe4f4;
+  --green:#2f9e58;          /* 正向 */
+  --warn:#e08a2e;           /* 超标 */
+  --over:#d4517f;           /* 负向 */
+  --r-lg:26px;
+  --r-md:20px;
+  --r-sm:14px;
+  --stroke:1.5px solid var(--ink);
+  --shadow:0 12px 26px rgba(20,24,40,.10);
+  --shadow-s:0 6px 16px rgba(20,24,40,.09);
+  --shadow-pink:0 14px 26px rgba(190,90,140,.26);
+  --shadow-blue:0 14px 26px rgba(90,140,190,.26);
+  /* 手绘斜纹（白色宽笔刷，无缝平铺） */
+  --scribble:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M80 -80 L-80 80' stroke-width='8' opacity='.5'/%3E%3Cpath d='M120 -80 L-80 120' stroke-width='12' opacity='.38'/%3E%3Cpath d='M160 -80 L-80 160' stroke-width='6' opacity='.45'/%3E%3Cpath d='M200 -80 L-80 200' stroke-width='10' opacity='.32'/%3E%3Cpath d='M240 -80 L-80 240' stroke-width='7' opacity='.5'/%3E%3Cpath d='M280 -80 L-80 280' stroke-width='13' opacity='.4'/%3E%3Cpath d='M320 -80 L-80 320' stroke-width='9' opacity='.46'/%3E%3Cpath d='M360 -80 L-80 360' stroke-width='11' opacity='.36'/%3E%3C/g%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{position:relative;
+  background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Display","Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45;
+  padding:44px 26px 70px;
+}
+/* 背景装饰块 */
+.deco{position:absolute;z-index:0;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(198,214,230,.42));
+  border-radius:46px}
+.d1{width:430px;height:180px;left:1%;top:60px;transform:rotate(-12deg)}
+.d2{width:560px;height:230px;left:34%;top:-40px;transform:rotate(-7deg)}
+.d3{width:400px;height:170px;right:-2%;top:620px;transform:rotate(9deg)}
+.d4{width:340px;height:150px;left:8%;top:1180px;transform:rotate(6deg)}
+
+/* ---------- 画廊框架 ---------- */
+.gallery{position:relative;z-index:1;max-width:1340px;margin:0 auto}
+.gallery-head{text-align:center;margin-bottom:38px}
+.gallery-head h1{margin:0 0 10px;font-size:26px;font-weight:900;letter-spacing:-.02em}
+.gallery-head p{margin:0;color:#5d5d66;font-size:14px}
+.gallery-head code{background:rgba(17,17,20,.06);border-radius:6px;padding:2px 7px;font-size:12.5px}
+.row{display:flex;flex-wrap:wrap;gap:34px;justify-content:center;align-items:flex-start}
+.sample{margin:0;width:378px;max-width:100%}
+.sample figcaption{margin:0 0 14px;text-align:center}
+.sample figcaption b{display:block;font-size:15.5px;font-weight:900;letter-spacing:-.01em;margin-bottom:4px}
+.sample figcaption span{display:block;font-size:12.5px;color:#6c6c74;line-height:1.5}
+
+/* ---------- 手机框 ---------- */
+.phone{
+  position:relative;width:378px;height:812px;border-radius:46px;background:var(--screen);
+  box-shadow:0 0 0 9px #fff,0 0 0 10px rgba(17,17,20,.07),0 38px 64px rgba(20,24,40,.20);
+  overflow:hidden;
+}
+.scr{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:22px 20px 22px;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+
+/* ---------- 通用组件 ---------- */
+.num{font-weight:900;letter-spacing:-.045em;font-variant-numeric:tabular-nums;line-height:.9}
+.circ{width:46px;height:46px;border-radius:50%;background:#fff;border:none;color:var(--ink);
+  display:grid;place-items:center;box-shadow:var(--shadow-s);cursor:pointer;position:relative;flex:0 0 auto}
+.circ svg{width:21px;height:21px}
+.circ .dot{position:absolute;top:11px;right:12px;width:7px;height:7px;border-radius:50%;background:var(--over)}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.topbar .grp{display:flex;gap:10px}
+.avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(140deg,#f5c9de,#c9dff0);font-weight:900;font-size:16px;color:#4a2a3c}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 11px}
+.sec-head b{font-size:15px;font-weight:900;letter-spacing:-.01em}
+.sec-head a{font-size:12.5px;color:var(--sub);font-weight:800;text-decoration:none}
+.card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:17px 18px}
+.row-between{display:flex;align-items:center;justify-content:space-between}
+.hairline{height:1.5px;background:var(--ink);opacity:.9;border-radius:2px}
+
+/* 彩色卡（细黑描边 + 手绘斜纹） */
+.tone{position:relative;border-radius:var(--r-lg);border:var(--stroke);overflow:hidden;color:var(--ink)}
+.tone>*{position:relative;z-index:1}
+.tone::before{content:'';position:absolute;inset:0;z-index:0;
+  background-image:var(--scribble);background-size:160px 160px;pointer-events:none}
+.tone.pink{background:var(--pink);box-shadow:var(--shadow-pink)}
+.tone.blue{background:var(--blue);box-shadow:var(--shadow-blue)}
+
+/* 进度条 */
+.bar{height:9px;border-radius:99px;background:rgba(17,17,20,.09);overflow:hidden;position:relative}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--ink);transition:width .4s}
+.bar i.ok{background:var(--green)}
+.bar i.near{background:#3f7fd0}
+.bar i.over{background:var(--warn)}
+.bar.sm{height:6px}
+
+/* 胶囊 */
+.pill{display:inline-flex;align-items:center;gap:7px;border-radius:99px;border:none;
+  padding:11px 17px;font-size:13.5px;font-weight:800;font-family:inherit;cursor:pointer;color:var(--ink)}
+.pill.ghost{background:#fff;box-shadow:var(--shadow-s)}
+.pill.blue{background:var(--blue)}
+.pill.pink{background:var(--pink)}
+.pill.dark{background:var(--ink);color:#fff}
+.pill svg{width:17px;height:17px}
+
+/* ================= 方向 A · 数字仪表盘 ================= */
+.a-card{padding:16px 18px 14px}
+.a-card .t{font-size:16.5px;font-weight:900;letter-spacing:-.01em}
+.a-card .m{font-size:12.5px;font-weight:800;opacity:.62}
+.a-card .mid{display:flex;align-items:flex-end;justify-content:space-between;margin:12px 0 11px}
+.a-card .split{font-size:12.5px;font-weight:900;line-height:1.55;opacity:.78;letter-spacing:.01em}
+.a-card .mid .num{font-size:46px}
+.a-card .foot{font-size:12.5px;font-weight:800;opacity:.8}
+.a-goal{margin-top:12px}
+.a-goal .big{display:flex;align-items:baseline;gap:6px}
+.a-goal .big .num{font-size:40px}
+.a-goal .of{font-size:17px;font-weight:900;color:var(--sub);letter-spacing:-.02em}
+.tag{font-size:12px;font-weight:900;padding:5px 10px;border-radius:99px;background:rgba(47,158,88,.13);color:var(--green)}
+.tag.w{background:rgba(224,138,46,.15);color:#b76c14}
+.a-goal .bar{margin:10px 0 8px}
+.hint{font-size:12.5px;color:var(--sub);font-weight:700}
+.quick{display:flex;justify-content:space-between;gap:6px;margin:14px 0 16px}
+.qa{flex:1;border:none;background:none;font-family:inherit;font-size:11.5px;font-weight:800;
+  color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;padding:0}
+.qa .ic{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-s)}
+.qa .ic svg{width:22px;height:22px}
+.qa .ic.solid{background:var(--pink);box-shadow:var(--shadow-pink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cat{background:#fff;border-radius:var(--r-md);box-shadow:var(--shadow);padding:12px 14px 13px}
+.cat .ct{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.cat .ct .dot{width:9px;height:9px;border-radius:50%}
+.cat .ct span{font-size:13px;font-weight:900}
+.cat .cn{display:flex;align-items:baseline;gap:4px;margin-bottom:8px}
+.cat .cn .num{font-size:29px}
+.cat .cn small{font-size:11.5px;font-weight:900;color:var(--sub)}
+.cat .cg{font-size:11px;font-weight:800;color:var(--sub);margin-top:7px}
+.cg.over{color:#c0761a}
+
+/* ================= 方向 B · 进度优先 ================= */
+.b-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.b-title{font-size:16px;font-weight:900;letter-spacing:-.01em}
+.b-hero{text-align:center;margin-bottom:16px}
+.b-hero .ic{width:76px;height:76px;border-radius:50%;margin:0 auto 15px;display:grid;place-items:center;
+  background:var(--blue-soft);box-shadow:0 10px 22px rgba(90,140,190,.22)}
+.b-hero .ic svg{width:34px;height:34px;color:#2c5d86}
+.b-hero .lb{font-size:14px;font-weight:800;color:var(--ink2);margin-bottom:6px}
+.b-hero .num{font-size:62px;margin-bottom:10px}
+.b-delta{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:900;color:var(--green)}
+.b-delta svg{width:16px;height:16px}
+.chart{position:relative;height:186px;margin:0 0 16px;padding-right:44px}
+.chart .gl{position:absolute;left:0;right:0;bottom:var(--y);border-top:1px dashed rgba(17,17,20,.16)}
+.chart .gl b{position:absolute;right:-42px;top:-9px;font-size:10.5px;font-weight:800;color:var(--sub)}
+.bars{position:absolute;inset:0 44px 0 0;display:flex;align-items:flex-end;gap:7px}
+.bars i{flex:1;height:var(--h);background:var(--blue);border-radius:6px 6px 3px 3px;display:block;min-height:6px}
+.bars i.now{background:var(--pink)}
+.bubble{position:absolute;right:44px;bottom:calc(var(--h) + 8px);transform:translateX(50%);
+  background:var(--ink);color:#fff;font-size:11.5px;font-weight:900;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.seg{display:flex;background:#fff;border-radius:99px;padding:5px;box-shadow:var(--shadow-s);gap:2px}
+.seg button{flex:1;border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:800;
+  color:var(--sub);padding:10px 4px;border-radius:99px;cursor:pointer}
+.seg button.on{background:var(--blue);color:var(--ink)}
+.b-foot{display:flex;gap:11px;margin-top:18px}
+.b-foot .pill{flex:1;justify-content:center;padding:15px 10px;font-size:14.5px}
+.b-goal{margin-top:18px}
+.b-goal .gh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.b-goal .gh b{font-size:14.5px;font-weight:900;letter-spacing:-.01em}
+.b-goal .gh span{font-size:12px;font-weight:800;color:var(--sub)}
+.b-goal .gr{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.b-goal .gr:last-child{margin-bottom:0}
+.b-goal .gr .nm{font-size:12.5px;font-weight:900;width:34px;flex:0 0 auto}
+.b-goal .gr .bar{flex:1}
+.b-goal .gr .vv{font-size:12.5px;font-weight:900;color:var(--sub);font-variant-numeric:tabular-nums;flex:0 0 auto}
+
+/* ================= 方向 C · 收纳总览 ================= */
+.c-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.c-head h2{margin:0 0 5px;font-size:25px;font-weight:900;letter-spacing:-.03em}
+.c-head .sub{font-size:13px;font-weight:800;color:var(--sub)}
+.c-cards{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:20px}
+.c-cards .tone{padding:15px 14px 13px;min-height:118px;display:flex;flex-direction:column;justify-content:space-between}
+.c-cards .lb{font-size:13px;font-weight:900}
+.c-cards .num{font-size:38px}
+.c-cards .u{font-size:11.5px;font-weight:900;opacity:.66;margin-left:3px}
+.c-cards .ft{font-size:11.5px;font-weight:800;opacity:.72;padding-top:9px;border-top:1.5px solid rgba(17,17,20,.55)}
+.c-list{background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.c-row{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid var(--hair)}
+.c-row:last-child{border-bottom:none}
+.c-row .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
+.c-row .ic svg{width:21px;height:21px;color:#3a3a44}
+.c-row .nm{flex:1;min-width:0}
+.c-row .nm b{display:block;font-size:14.5px;font-weight:900;letter-spacing:-.01em}
+.c-row .nm span{font-size:11.5px;font-weight:800;color:var(--sub)}
+.c-row .vl{text-align:right;flex:0 0 auto}
+.c-row .vl .num{font-size:25px}
+.c-row .vl .num i{font-size:12px;font-weight:900;font-style:normal;color:var(--sub);letter-spacing:0;margin-left:2px}
+.c-row .flag{display:inline-block;font-size:10.5px;font-weight:900;padding:2px 7px;border-radius:99px;margin-top:3px}
+.c-foot-btn{width:100%;justify-content:center;margin-top:18px;padding:15px;font-size:15px}
+
+/* ---------- 令牌说明 ---------- */
+.tokens{max-width:1340px;margin:60px auto 0;background:#fff;border-radius:var(--r-lg);
+  box-shadow:var(--shadow);padding:26px 28px}
+.tokens h3{margin:0 0 16px;font-size:16px;font-weight:900}
+.tokens .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px 30px}
+.tokens h4{margin:0 0 8px;font-size:12.5px;font-weight:900;color:var(--sub);letter-spacing:.04em}
+.tokens ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.85}
+.tokens li{display:flex;align-items:center;gap:9px}
+.sw{width:17px;height:17px;border-radius:6px;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(17,17,20,.12)}
+.tokens .note{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--hair);font-size:12.5px;color:#5d5d66;line-height:1.7}
+
+@media (max-width:1260px){
+  body{padding:34px 18px 60px}
+  .d2,.d3{display:none}
+}
+</style>
+</head>
+<body>
+<div class="deco d1"></div><div class="deco d2"></div><div class="deco d3"></div><div class="deco d4"></div>
+
+<div class="gallery">
+  <header class="gallery-head">
+    <h1>电子收纳 · 首页样板</h1>
+    <p>三个方向，同一套设计配置（配色 / 圆角 / 描边 / 纹理 / 字重均取自你给的截图）。<code>全部为假数据，不可交互</code>，只用来挑方向。</p>
+  </header>
+
+  <div class="row">
+
+    <!-- ================= 方向 A ================= -->
+    <figure class="sample">
+      <figcaption>
+        <b>方向 A · 数字仪表盘</b>
+        <span>信息最全。一张彩色主卡装总量，下面是目标进度 + 快捷录入 + 分类概览。打开就知道"我有什么、离目标多远"。</span>
+      </figcaption>
+      <div class="phone">
+        <div class="scr">
+
+          <div class="topbar">
+            <div class="avatar">简</div>
+            <div class="grp">
+              <button class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></button>
+              <button class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2a5 5 0 0 0-5 5v3.1l-1.5 2.9h13L17 12.3V9.2a5 5 0 0 0-5-5Z"/><path d="M10.2 18.2a1.9 1.9 0 0 0 3.6 0"/></svg><i class="dot"></i></button>
+            </div>
+          </div>
+
+          <div class="tone pink a-card">
+            <div class="row-between">
+              <span class="t">我的收纳</span>
+              <span class="m">2026.10</span>
+            </div>
+            <div class="hairline" style="margin:13px 0 0"></div>
+            <div class="mid">
+              <span class="split">在用 179<br>收纳中 8</span>
+              <span class="num">187</span>
+            </div>
+            <div class="row-between foot">
+              <span>96 款物品</span>
+              <span>74 个软件</span>
+            </div>
+          </div>
+
+          <div class="sec-head" style="margin-top:20px"><b>极简目标</b><a>查看进程 ›</a></div>
+          <div class="card a-goal">
+            <div class="row-between">
+              <div class="big"><span class="num">187</span><span class="of">/ 200</span></div>
+              <span class="tag">还差 13 件</span>
+            </div>
+            <div class="bar"><i style="width:93.5%"></i></div>
+            <div class="hint">近 8 周减少 24 件 · 待处理 8 件</div>
+          </div>
+
+          <div class="quick">
+            <button class="qa"><span class="ic solid"><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>添加物品</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg></span>添加软件</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10M8 11l4 3.8 4-3.8"/><path d="M5 19.2h14"/></svg></span>导出备份</button>
+            <button class="qa"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></span>设置</button>
+          </div>
+
+          <div class="sec-head"><b>分类</b><a>全部 ›</a></div>
+          <div class="grid2">
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:var(--pink)"></span><span>衣物</span></div>
+              <div class="cn"><span class="num">45</span><small>件</small></div>
+              <div class="bar sm"><i class="over" style="width:100%"></i></div>
+              <div class="cg over">目标 30 · 超出 15</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:var(--blue)"></span><span>鞋包</span></div>
+              <div class="cn"><span class="num">18</span><small>件</small></div>
+              <div class="bar sm"><i class="ok" style="width:90%"></i></div>
+              <div class="cg">目标 20 · 还差 2</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:#c9dff0"></span><span>数码</span></div>
+              <div class="cn"><span class="num">22</span><small>件</small></div>
+              <div class="bar sm"><i class="near" style="width:100%"></i></div>
+              <div class="cg">目标 20 · 超出 2</div>
+            </div>
+            <div class="cat">
+              <div class="ct"><span class="dot" style="background:#f3c3dd"></span><span>家居</span></div>
+              <div class="cn"><span class="num">31</span><small>件</small></div>
+              <div class="bar sm"><i class="ok" style="width:77.5%"></i></div>
+              <div class="cg">目标 40 · 还差 9</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </figure>
+
+    <!-- ================= 方向 B ================= -->
+    <figure class="sample">
+      <figcaption>
+        <b>方向 B · 进度优先</b>
+        <span>最聚焦"极简进程"。中央超大数字 + 每周快照柱状图，其余信息全部让位。想看自己有没有在进步时打开它。</span>
+      </figcaption>
+      <div class="phone">
+        <div class="scr">
+
+          <div class="b-head">
+            <button class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg></button>
+            <span class="b-title">电子收纳</span>
+            <button class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 11.2v5"/><circle cx="12" cy="8.3" r="1.05" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+
+          <div class="b-hero">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8.6 12 4l8 4.6v6.9L12 20l-8-4.5V8.6Z"/><path d="M4 8.6 12 13.2l8-4.6M12 13.2V20"/></svg></div>
+            <div class="lb">持有物品</div>
+            <div class="num">187</div>
+            <div class="b-delta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>较 8 周前减少 24 件</div>
+          </div>
+
+          <div class="chart">
+            <div class="gl" style="--y:88.9%"><b>210</b></div>
+            <div class="gl" style="--y:44.4%"><b>190</b></div>
+            <div class="gl" style="--y:0%"><b>170</b></div>
+            <div class="bars">
+              <i style="--h:91.1%"></i>
+              <i style="--h:77.8%"></i>
+              <i style="--h:86.7%"></i>
+              <i style="--h:66.7%"></i>
+              <i style="--h:73.3%"></i>
+              <i style="--h:55.6%"></i>
+              <i style="--h:62.2%"></i>
+              <i style="--h:48.9%"></i>
+              <i style="--h:53.3%"></i>
+              <i style="--h:42.2%"></i>
+              <i style="--h:46.7%"></i>
+              <i class="now" style="--h:37.8%"></i>
+            </div>
+            <div class="bubble" style="--h:37.8%">187 件</div>
+          </div>
+
+          <div class="seg">
+            <button class="on">周</button><button>月</button><button>季</button><button>年</button><button>全部</button>
+          </div>
+
+          <div class="b-foot">
+            <button class="pill blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 8.6 12 4l8 4.6v6.9L12 20l-8-4.5V8.6Z"/><path d="M4 8.6 12 13.2l8-4.6M12 13.2V20"/></svg>物品 187</button>
+            <button class="pill pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg>软件 74</button>
+          </div>
+
+          <div class="b-goal">
+            <div class="gh"><b>分类目标</b><span>目标对比</span></div>
+            <div class="gr"><span class="nm">衣物</span><span class="bar sm"><i class="over" style="width:100%"></i></span><span class="vv">45/30</span></div>
+            <div class="gr"><span class="nm">鞋包</span><span class="bar sm"><i class="ok" style="width:90%"></i></span><span class="vv">18/20</span></div>
+            <div class="gr"><span class="nm">数码</span><span class="bar sm"><i class="near" style="width:100%"></i></span><span class="vv">22/20</span></div>
+            <div class="gr"><span class="nm">家居</span><span class="bar sm"><i class="ok" style="width:77.5%"></i></span><span class="vv">31/40</span></div>
+          </div>
+
+        </div>
+      </div>
+    </figure>
+
+    <!-- ================= 方向 C ================= -->
+    <figure class="sample">
+      <figcaption>
+        <b>方向 C · 收纳总览</b>
+        <span>最像"打开柜子看一眼"。两张彩色卡分列物品与软件，下面一张白卡按分类逐行列出件数。找东西、比数量最顺手。</span>
+      </figcaption>
+      <div class="phone">
+        <div class="scr">
+
+          <div class="b-head" style="margin-bottom:0">
+            <button class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg></button>
+            <button class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 11.2v5"/><circle cx="12" cy="8.3" r="1.05" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+
+          <div class="c-head" style="margin-top:16px">
+            <div>
+              <h2>我的收纳</h2>
+              <div class="sub">96 款 · 187 件 · 待处理 8 件</div>
+            </div>
+            <button class="pill ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>添加</button>
+          </div>
+
+          <div class="c-cards">
+            <div class="tone pink">
+              <div class="lb">物品</div>
+              <div><span class="num">187</span><span class="u">件</span></div>
+              <div class="ft">96 款 · 目标 200</div>
+            </div>
+            <div class="tone blue">
+              <div class="lb">软件</div>
+              <div><span class="num">74</span><span class="u">个</span></div>
+              <div class="ft">待删 12 · 目标 60</div>
+            </div>
+          </div>
+
+          <div class="sec-head" style="margin:0 2px 11px"><b>分类</b><a>管理 ›</a></div>
+          <div class="c-list">
+            <div class="c-row">
+              <div class="ic" style="background:var(--pink-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9 4.2 5 6.6l1.6 3.4 1.4-1v11h8V9l1.4 1L19 6.6l-4-2.4a3 3 0 0 1-6 0Z"/></svg></div>
+              <div class="nm"><b>衣物</b><span>目标 30 件</span></div>
+              <div class="vl"><span class="num">45<i>件</i></span><br><span class="flag" style="background:rgba(224,138,46,.15);color:#b76c14">超出 15</span></div>
+            </div>
+            <div class="c-row">
+              <div class="ic" style="background:var(--blue-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6.4 9h11.2l-1 11H7.4l-1-11Z"/><path d="M9.2 9V7.2a2.8 2.8 0 0 1 5.6 0V9"/></svg></div>
+              <div class="nm"><b>鞋包</b><span>目标 20 件</span></div>
+              <div class="vl"><span class="num">18<i>件</i></span><br><span class="flag" style="background:rgba(47,158,88,.13);color:var(--green)">还差 2</span></div>
+            </div>
+            <div class="c-row">
+              <div class="ic" style="background:#e6e6ea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="7" y="3.4" width="10" height="17.2" rx="2.6"/><path d="M10.6 18.2h2.8"/></svg></div>
+              <div class="nm"><b>数码</b><span>目标 20 件</span></div>
+              <div class="vl"><span class="num">22<i>件</i></span><br><span class="flag" style="background:rgba(63,127,208,.14);color:#2f6bb5">接近目标</span></div>
+            </div>
+            <div class="c-row">
+              <div class="ic" style="background:#e9e4f2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 11 12 4.4 20 11v8.6H4V11Z"/><path d="M10 19.6v-5h4v5"/></svg></div>
+              <div class="nm"><b>家居</b><span>目标 40 件</span></div>
+              <div class="vl"><span class="num">31<i>件</i></span><br><span class="flag" style="background:rgba(47,158,88,.13);color:var(--green)">还差 9</span></div>
+            </div>
+            <div class="c-row">
+              <div class="ic" style="background:#e4f0e8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10 4h4v2.6l1.6 2.1V20h-7.2V8.7L10 6.6V4Z"/><path d="M8.4 12.6h7.2"/></svg></div>
+              <div class="nm"><b>洗护</b><span>目标 12 件</span></div>
+              <div class="vl"><span class="num">15<i>件</i></span><br><span class="flag" style="background:rgba(224,138,46,.15);color:#b76c14">超出 3</span></div>
+            </div>
+          </div>
+
+          <button class="pill blue c-foot-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5l5-5 3.6 3L20 6.5"/><path d="M15 6.5h5v5"/></svg>查看极简进程</button>
+
+        </div>
+      </div>
+    </figure>
+
+  </div>
+
+  <!-- ---------- 设计令牌 ---------- -->
+  <section class="tokens">
+    <h3>从截图提取的设计配置（三个方向共用）</h3>
+    <div class="cols">
+      <div>
+        <h4>颜色</h4>
+        <ul>
+          <li><span class="sw" style="background:#e987b9"></span>主彩 A · 粉 #E987B9</li>
+          <li><span class="sw" style="background:#a6cbe8"></span>主彩 B · 蓝 #A6CBE8</li>
+          <li><span class="sw" style="background:#111114"></span>墨黑 #111114（文字 + 描边）</li>
+          <li><span class="sw" style="background:#fbfbf9"></span>屏底 #FBFBF9 · 纸底 #E9E9E7</li>
+          <li><span class="sw" style="background:#2f9e58"></span>正向绿 #2F9E58 · 超标橙 #E08A2E</li>
+        </ul>
+      </div>
+      <div>
+        <h4>形状与描边</h4>
+        <ul>
+          <li>大卡圆角 26px，小卡 20px，胶囊全圆角</li>
+          <li>彩色卡：1.5px 黑色描边 + 白色手绘斜纹</li>
+          <li>白卡：无描边，只用柔和阴影分层</li>
+          <li>圆形按钮 46px，分类图标圆 42px</li>
+        </ul>
+      </div>
+      <div>
+        <h4>字体与数字</h4>
+        <ul>
+          <li>大数字 900 字重 + 负字距（-0.045em）</li>
+          <li>数字等宽（tabular-nums），切换不跳动</li>
+          <li>正文 15px / 800 字重，副文字 12.5px 灰</li>
+          <li>数字与单位分离：数字大、单位小且灰</li>
+        </ul>
+      </div>
+      <div>
+        <h4>三者差异</h4>
+        <ul>
+          <li><b>A</b> 卡片仪表盘，信息最全</li>
+          <li><b>B</b> 大数字 + 曲线，最聚焦进程</li>
+          <li><b>C</b> 双彩卡 + 分类列表，最好查</li>
+          <li>假数据三方向统一：187 件 / 96 款 / 74 个软件</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note">
+      说明：三个方向用的是同一套令牌，差异只在信息架构与视觉重心，所以选完方向后仍可自由混搭（例如要 A 的主卡 + C 的分类列表）。数字与图标均为占位，未接任何真实功能。字体目前用系统字体（粗体靠字重堆叠），若要更贴近截图那种几何感，可以再嵌入一款无衬线粗体（如 Poppins / Archivo），需要你确认后再加，因为它会让文件不再是零外部依赖。
+    </p>
+  </section>
+</div>
+</body>
+</html>
