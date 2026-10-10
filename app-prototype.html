@@ -36,31 +36,44 @@
   --f-num:'Kalam','PatrickHand',sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0}
+html,body{margin:0;height:100%}
 body{
-  position:relative;background:var(--paper);color:var(--ink);
+  position:relative;background:var(--screen);color:var(--ink);
   font-family:'PatrickHand','ZCOOLKuaiLe',-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-  font-size:15px;line-height:1.42;padding:44px 26px 70px;-webkit-font-smoothing:antialiased;
+  font-size:15px;line-height:1.42;-webkit-font-smoothing:antialiased;
+  overflow:hidden;
+  background-image:radial-gradient(circle, rgba(22,23,27,.075) 1px, transparent 1px);
+  background-size:16px 16px;
 }
-body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.42;
-  background-image:radial-gradient(circle, rgba(22,23,27,.17) 1.05px, transparent 1.05px);
-  background-size:18px 18px}
-.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;text-align:center}
-.head h1{margin:0 0 9px;font-family:var(--f-cn);font-size:28px;font-weight:400}
-.head p{margin:0 0 8px;color:#5f6068;font-size:14.5px}
-.head .hintline{display:inline-block;margin-top:6px;padding:7px 14px;background:#fff;
-  border:2.2px solid var(--ink);border-radius:14px 5px 15px 6px/6px 15px 5px 14px;
-  font-size:13.5px;box-shadow:3px 4px 0 rgba(22,23,27,.13);text-align:left;line-height:1.75}
-.head .hintline b{font-family:var(--f-cn);font-weight:400;background:var(--hl-soft);border-radius:3px;padding:0 3px}
-.stage{display:inline-block;margin-top:24px;text-align:left}
+.wrap{position:relative;z-index:1;width:100%;height:100%}
+.stage{width:100%;height:100%}
 
-.phone{position:relative;width:378px;height:812px;border-radius:42px;background:var(--screen);
-  border:2.8px solid var(--ink);box-shadow:7px 9px 0 rgba(22,23,27,.13);overflow:hidden}
-.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:22px 20px 104px;
-  scrollbar-width:none;display:none;
-  background-image:radial-gradient(circle, rgba(22,23,27,.075) 1px, transparent 1px);background-size:16px 16px}
+/* 真机全屏：手机上直接铺满，桌面上才画一个手机框便于预览 */
+.phone{position:relative;width:100%;height:100%;background:var(--screen);overflow:hidden}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 104px);
+  scrollbar-width:none;display:none;-webkit-overflow-scrolling:touch}
 .screen::-webkit-scrollbar{display:none}
 .screen.on{display:block}
+
+/* 桌面预览：给个手机框，方便电脑上看 */
+@media (min-width: 620px){
+  body{
+    background:#ecebe4;
+    background-image:radial-gradient(circle, rgba(22,23,27,.075) 1px, transparent 1px);
+    background-size:16px 16px;
+    overflow:auto;padding:40px 20px;
+  }
+  .wrap{max-width:760px;margin:0 auto;height:auto}
+  .stage{display:flex;justify-content:center}
+  .phone{width:378px;height:812px;border-radius:42px;border:2.8px solid var(--ink);
+    box-shadow:7px 9px 0 rgba(22,23,27,.13);flex:0 0 auto}
+  .screen{padding:22px 20px 104px}
+  /* 桌面预览时安全区为 0，位置固定即可 */
+  .tabbar{bottom:17px}
+  .fab{right:22px;bottom:96px}
+  .toast{bottom:104px}
+}
 
 /* 顶栏 */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
@@ -244,15 +257,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opa
 .empty b{display:block;font-family:var(--f-cn);font-size:15px;font-weight:400;margin-bottom:7px}
 .empty span{font-size:13px;color:var(--sub)}
 
-/* 悬浮添加 */
-.fab{position:absolute;right:22px;bottom:96px;width:56px;height:56px;background:var(--accent);
+/* 悬浮添加（贴安全区之上） */
+.fab{position:absolute;right:20px;width:56px;height:56px;background:var(--accent);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
   border:2.4px solid var(--ink);display:none;place-items:center;cursor:pointer;z-index:12;
   border-radius:50% 46% 52% 48%/48% 52% 46% 50%;box-shadow:3px 4px 0 rgba(22,23,27,.2)}
 .fab svg{width:24px;height:24px}
 .fab:active{transform:translate(2px,3px);box-shadow:1px 2px 0 rgba(22,23,27,.2)}
 
 /* ===== 底部 Tab：胶囊容器 + 滑动选中块 ===== */
-.tabbar{position:absolute;left:15px;right:15px;bottom:17px;z-index:14;
+.tabbar{position:absolute;left:15px;right:15px;z-index:14;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 17px);
   background:rgba(253,250,241,.98);border:2.6px solid var(--ink);
   border-radius:999px;box-shadow:4px 5px 0 rgba(22,23,27,.17);
   padding:5px;display:flex;gap:3px;transform:rotate(-.35deg);
@@ -522,7 +537,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opa
 .dt-delbtn{width:100%;background:#f3c9d8;margin-top:9px}
 
 /* 轻提示 */
-.toast{position:absolute;left:50%;bottom:104px;transform:translateX(-50%) translateY(8px);
+.toast{position:absolute;left:50%;transform:translateX(-50%) translateY(8px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
   background:var(--ink);color:#fdfaf1;font-family:var(--f-cn);font-size:13px;padding:9px 12px 9px 16px;
   border-radius:13px 5px 14px 6px/6px 14px 5px 13px;opacity:0;pointer-events:none;
   transition:opacity .2s,transform .2s;z-index:40;display:flex;align-items:center;gap:11px;
@@ -660,14 +676,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opa
 </svg>
 
 <div class="wrap">
-  <header class="head">
-    <h1>电子收纳 · 手账版原型</h1>
-    <p>重度手账 · Kalam 700 + 站酷快乐体</p>
-    <div class="hintline">
-      这轮新加了：<b>分类可新建</b> · 卡片<b>加/删照片</b> · 卡片<b>新增/删除</b> · 状态多了<b>消耗中</b> · 衣物分<b>夏/冬/四季</b> · 底部改成<b>胶囊胶囊</b>
-    </div>
-  </header>
-
   <div class="stage">
     <div class="phone">
 
