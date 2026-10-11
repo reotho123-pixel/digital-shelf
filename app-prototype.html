@@ -1017,6 +1017,8 @@ const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'' };
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
+/* 安全绑定：元素不存在时跳过，避免一处缺失就中断整个脚本（曾因此导致页面空白） */
+const on = (sel, ev, fn) => { const el = $(sel); if (el) el.addEventListener(ev, fn); };
 const catOf = id => CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
 
 /* ================= 计算 ================= */
@@ -1683,7 +1685,7 @@ function illustrate(srcCanvas, level){
 let photoTargetId = null;
 let photoTargetMode = 'card';
 let appPhotoTargetId = null;
-$('#filePick').addEventListener('change', e => {
+on('#filePick', 'change', e => {
   const file = e.target.files && e.target.files[0];
   e.target.value = '';
 
@@ -2345,11 +2347,10 @@ function goSettings(){
   $('#scr-settings').scrollTop = 0;
 }
 
-$('#goSettings').addEventListener('click', goSettings);
-$('#qSettings').addEventListener('click', goSettings);
-$('#stBack').addEventListener('click', () => showTab('home'));
+on('#qSettings', 'click', goSettings);
+on('#stBack', 'click', () => showTab('home'));
 
-$('#stBody').addEventListener('click', e => {
+on('#stBody', 'click', e => {
   // 分类：切物品/软件
   const kind = e.target.closest('[data-catkind]');
   if (kind){ stCatKind = kind.dataset.catkind; renderSettings(); return; }
@@ -3008,7 +3009,7 @@ function showToast(ms = 1700){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('on'), ms);
 }
-$('#toastUndo').addEventListener('click', () => {
+on('#toastUndo', 'click', () => {
   const fn = undoFn; undoFn = null;
   $('#toast').classList.remove('on');
   if (fn) fn();
@@ -3021,19 +3022,19 @@ document.addEventListener('click', e => {
 });
 
 // 首页分类卡
-$('#catGrid').addEventListener('click', e => {
+on('#catGrid', 'click', e => {
   if (e.target.closest('#catAddTile')){ newCatModal(); return; }
   const card = e.target.closest('[data-cat]');
   if (card) goItems(card.dataset.cat);
 });
-$('#qNewCat').addEventListener('click', newCatModal);
-$('#qAddItem').addEventListener('click', newItemModal);
-$('#qAddApp').addEventListener('click', () => { renderAppCatChips(); renderApps(); showTab('apps'); newAppModal(); });
-$('#backHome').addEventListener('click', () => showTab('home'));
-$('#goProgress').addEventListener('click', () => {
+on('#qNewCat', 'click', newCatModal);
+on('#qAddItem', 'click', newItemModal);
+on('#qAddApp', 'click', () => { renderAppCatChips(); renderApps(); showTab('apps'); newAppModal(); });
+on('#backHome', 'click', () => showTab('home'));
+on('#goProgress', 'click', () => {
   renderProgress(); showTab('progress'); $('#scr-progress').scrollTop = 0;
 });
-$('#pgSnapTip').addEventListener('click', () => {
+on('#pgSnapTip', 'click', () => {
   openModal(`
     <h3>关于趋势数据</h3>
     <p class="mhint">这条曲线不需要你手动记——App 每周自动记一次当时的数量，久了就长成一条线。</p>
@@ -3048,7 +3049,7 @@ $('#pgSnapTip').addEventListener('click', () => {
 });
 
 // 列表页筛选
-$('#catChips').addEventListener('click', e => {
+on('#catChips', 'click', e => {
   if (e.target.closest('#chipAddCat')){ newCatModal(); return; }
   const chip = e.target.closest('[data-cat]'); if (!chip) return;
   const k = chip.dataset.cat;
@@ -3058,36 +3059,36 @@ $('#catChips').addEventListener('click', e => {
   state.loc = 'all';
   renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
 });
-$('#seasonChips').addEventListener('click', e => {
+on('#seasonChips', 'click', e => {
   const chip = e.target.closest('[data-season]'); if (!chip) return;
   const k = chip.dataset.season;
   state.season = (state.season === k) ? 'all' : k;   // 再点一次取消
   renderSeasonChips(); renderLocChips(); renderItems();
 });
-$('#locChips').addEventListener('click', e => {
+on('#locChips', 'click', e => {
   const chip = e.target.closest('[data-loc]'); if (!chip) return;
   const k = chip.dataset.loc;
   state.loc = (state.loc === k) ? 'all' : k;         // 再点一次取消
   renderLocChips(); renderItems();
 });
-$('#likeChips').addEventListener('click', e => {
+on('#likeChips', 'click', e => {
   const chip = e.target.closest('[data-like]'); if (!chip) return;
   const k = chip.dataset.like;
   state.like = (state.like === k) ? 'all' : k;   // 再点一次取消
   $$('#likeChips .chip').forEach(c => c.classList.toggle('on', c.dataset.like === state.like));
   renderItems();
 });
-$('#stChips').addEventListener('click', e => {
+on('#stChips', 'click', e => {
   const chip = e.target.closest('[data-st]'); if (!chip) return;
   const k = chip.dataset.st;
   state.st = (state.st === k) ? 'all' : k;       // 再点一次取消
   $$('#stChips .chip').forEach(c => c.classList.toggle('on', c.dataset.st === state.st));
   renderItems();
 });
-$('#q').addEventListener('input', e => { state.q = e.target.value; renderItems(); });
+on('#q', 'input', e => { state.q = e.target.value; renderItems(); });
 
 // 物品卡：照片 / 归类 / 删除 / 进详情
-$('#igrid').addEventListener('click', e => {
+on('#igrid', 'click', e => {
   if (e.target.closest('#gridAdd')){ newItemModal(); return; }
 
   const delPh = e.target.closest('[data-delphoto]');
@@ -3136,7 +3137,7 @@ $('#igrid').addEventListener('click', e => {
 });
 
 /* 卡片上的就地编辑：名称 / 位置 / 购入日期 */
-$('#igrid').addEventListener('change', e => {
+on('#igrid', 'change', e => {
   const t = e.target;
   if (t.matches('[data-edit-name]')){
     const it = ITEMS.find(x => x.id === t.dataset.editName);
@@ -3157,7 +3158,7 @@ $('#igrid').addEventListener('change', e => {
   }
 });
 // 输入框回车即失焦保存
-$('#igrid').addEventListener('keydown', e => {
+on('#igrid', 'keydown', e => {
   if (e.key === 'Enter' && e.target.matches('[data-edit-name],[data-edit-loc]')) e.target.blur();
 });
 
@@ -3287,11 +3288,11 @@ document.addEventListener('click', e => {
   if (e.target.closest('#pop') || e.target.closest('.lk') || e.target.closest('[data-status]')) return;
   closePop();
 }, true);
-$('#scr-items').addEventListener('scroll', closePop);
+on('#scr-items', 'scroll', closePop);
 
-$('#styleBtn').addEventListener('click', styleModal);
+on('#styleBtn', 'click', styleModal);
 
-$('#fab').addEventListener('click', newItemModal);
+on('#fab', 'click', newItemModal);
 
 // 底部 Tab
 function activateTab(t){
@@ -3383,24 +3384,24 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
 })();
 
 /* ================= 软件页事件 ================= */
-$('#appCatChips').addEventListener('click', e => {
+on('#appCatChips', 'click', e => {
   if (e.target.closest('#chipAddAppCat')){ newAppCatModal(); return; }
   const chip = e.target.closest('[data-acat]'); if (!chip) return;
   const k = chip.dataset.acat;
   appState.cat = (appState.cat === k && k !== 'all') ? 'all' : k;
   renderAppCatChips(); renderApps();
 });
-$('#needChips').addEventListener('click', e => {
+on('#needChips', 'click', e => {
   const chip = e.target.closest('[data-need]'); if (!chip) return;
   const k = chip.dataset.need;
   appState.need = (appState.need === k) ? 'all' : k;
   $$('#needChips .chip').forEach(c => c.classList.toggle('on', c.dataset.need === appState.need));
   renderApps();
 });
-$('#aq').addEventListener('input', e => { appState.q = e.target.value; renderApps(); });
-$('#appNewCat').addEventListener('click', newAppCatModal);
+on('#aq', 'input', e => { appState.q = e.target.value; renderApps(); });
+on('#appNewCat', 'click', newAppCatModal);
 
-$('#alist').addEventListener('click', e => {
+on('#alist', 'click', e => {
   if (e.target.closest('#appAdd')){ newAppModal(); return; }
 
   const delBtn = e.target.closest('[data-delapp]');
@@ -3416,8 +3417,8 @@ $('#alist').addEventListener('click', e => {
   if (tx){ openAppDetail(tx.dataset.appdetail); return; }
 });
 
-$('#fabApp').addEventListener('click', newAppModal);
-$('#adBack').addEventListener('click', () => {
+on('#fabApp', 'click', newAppModal);
+on('#adBack', 'click', () => {
   renderApps(); showTab('apps');
 });
 
