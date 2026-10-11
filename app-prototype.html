@@ -2811,8 +2811,9 @@ function openDB(){
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => resolve(null);
-    // 某些隐私模式下会一直挂起
-    setTimeout(() => resolve(null), 3000);
+    req.onblocked = () => resolve(null);
+    // 隐私模式或库被占用时可能一直挂起，1.5 秒后放弃（界面已经先渲染了，不影响使用）
+    setTimeout(() => resolve(null), 1500);
   });
 }
 
@@ -3461,22 +3462,28 @@ function renderAll(){
 }
 
 async function boot(){
-  const had = await loadFromDB();
-  suppressSave = false;
-  // 每次打开检查是否该记一条新快照（满 7 天才记）
-  const snapped = maybeSnapshot();
+  // 先立刻渲染，保证界面马上可用（不阻塞在数据库上）
   renderAll();
   showTab('home');
-  if (snapped) saveSoon();
-  // 字体加载会改变 Tab 宽度，稍后再对齐一次滑动块
+  syncTabInd();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
-  if (had){
-    // 静默提示：确认数据是从本地库恢复的
-    console.log('[电子收纳] 已从本地存储恢复', ITEMS.length, '条物品 /', APPS.length, '个软件');
-  } else if (dbReady){
-    console.log('[电子收纳] 首次使用，使用示例数据');
-  } else {
-    console.log('[电子收纳] 当前环境不支持本地存储，改动不会保存');
+
+  // 再异步读库；读完如果有数据就重绘一次
+  try {
+    const had = await loadFromDB();
+    suppressSave = false;
+    if (had){
+      const snapped = maybeSnapshot();
+      renderAll();
+      syncTabInd();
+      if (snapped) saveSoon();
+      console.log('[电子收纳] 已从本地存储恢复', ITEMS.length, '条物品 /', APPS.length, '个软件');
+    } else {
+      console.log(dbReady ? '[电子收纳] 首次使用' : '[电子收纳] 当前环境不支持本地存储，改动不会保存');
+    }
+  } catch (e) {
+    suppressSave = false;
+    console.warn('[电子收纳] 读取本地数据失败，使用当前数据', e);
   }
 }
 boot();
