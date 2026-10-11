@@ -1,6 +1,6 @@
 /* 电子收纳 · Service Worker
    改代码后必须把下面的 CACHE 版本�?+1，否则已安装的用户拿不到更新�?*/
-const CACHE = 'digital-shelf-v5';
+const CACHE = 'digital-shelf-v6';
 
 const ASSETS = [
   './app-prototype.html',
