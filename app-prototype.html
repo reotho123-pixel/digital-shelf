@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="电子收纳">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>电子收纳 · 手账版原型</title>
+<title>电子收纳</title>
 <style>
 @font-face{font-family:'ZCOOLKuaiLe';src:url('./fonts/zcoolkuaile.woff2') format('woff2');font-display:swap}
 @font-face{font-family:'ZCOOLQingKe';src:url('./fonts/zcoolqingke.woff2') format('woff2');font-display:swap}
@@ -37,6 +37,9 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
+/* iOS 在字号 <16px 的输入框聚焦时会自动放大整个页面，且退出后不会还原。
+   所有输入类元素字号一律 ≥16px，彻底避免这个问题。 */
+input,textarea,select{font-size:16px !important}
 body{
   position:relative;background:var(--screen);color:var(--ink);
   font-family:'PatrickHand','ZCOOLKuaiLe',-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -55,6 +58,18 @@ body{
   scrollbar-width:none;display:none;-webkit-overflow-scrolling:touch}
 .screen::-webkit-scrollbar{display:none}
 .screen.on{display:block}
+/* ===== 页面过渡 · 横向推移（像翻页，方向感最强） =====
+   用 keyframes 而不是 transition：动画万一不执行，元素本身也是可见的（失败安全）。 */
+.screen.on.slide-r{animation:slideFromRight .3s cubic-bezier(.22,1,.36,1) both}
+.screen.on.slide-l{animation:slideFromLeft  .3s cubic-bezier(.22,1,.36,1) both}
+@keyframes slideFromRight{
+  from{opacity:0;transform:translateX(24%)}
+  to{opacity:1;transform:translateX(0)}
+}
+@keyframes slideFromLeft{
+  from{opacity:0;transform:translateX(-24%)}
+  to{opacity:1;transform:translateX(0)}
+}
 
 /* 桌面预览：给个手机框，方便电脑上看 */
 @media (min-width: 620px){
@@ -236,16 +251,47 @@ body{
 .icard .ph .delph{position:absolute;top:7px;left:7px;width:23px;height:23px;border-radius:50%;
   background:#fff;border:1.9px solid var(--ink);display:grid;place-items:center;cursor:pointer;z-index:4}
 .icard .ph .delph svg{width:12px;height:12px;opacity:1}
-.icard .meta{padding:8px 10px 9px;display:flex;align-items:flex-start;gap:7px}
-.icard .meta .tx{flex:1;min-width:0}
-.icard .meta b{display:block;font-family:var(--f-cn);font-size:13.5px;font-weight:400;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.icard .meta span{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.icard .meta .del{width:24px;height:24px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
-  background:#fff;border:1.9px solid var(--ink);display:grid;place-items:center;cursor:pointer;margin-top:1px}
-.icard .meta .del svg{width:13px;height:13px}
-.icard .meta .del:active{background:rgba(212,81,127,.18)}
+.icard .meta{padding:8px 9px 9px;display:flex;flex-direction:column;gap:5px}
+/* 卡片上的就地编辑：名称 */
+.icard .meta .row-name{display:flex;align-items:center;gap:5px}
+.icard .nm-in{flex:1;min-width:0;border:none;background:transparent;padding:2px 0;
+  font-family:var(--f-cn);font-size:14px;color:var(--ink);outline:none;
+  border-bottom:1.6px dashed transparent;transition:border-color .15s}
+.icard .nm-in:focus{border-bottom-color:var(--ink)}
+.icard .nm-in::placeholder{color:#b5b6bd}
+/* 使用次数按钮 */
+.icard .use-btn{width:26px;height:26px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
+  background:var(--accent);border:1.9px solid var(--ink);display:grid;place-items:center;
+  cursor:pointer;box-shadow:1px 2px 0 rgba(22,23,27,.14);transition:transform .12s}
+.icard .use-btn svg{width:14px;height:14px}
+.icard .use-btn:active{transform:scale(.86)}
+.icard .use-btn.bump{animation:useBump .45s}
+@keyframes useBump{
+  0%{transform:scale(1)} 35%{transform:scale(1.28)} 65%{transform:scale(.94)} 100%{transform:scale(1)}
+}
+/* 删除按钮（卡片右上角的小叉） */
+.icard .row-name .del-btn{width:22px;height:22px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
+  background:#fff;border:1.8px solid var(--ink);display:grid;place-items:center;cursor:pointer}
+.icard .row-name .del-btn svg{width:11px;height:11px}
+.icard .row-name .del-btn:active{background:#f3c9d8}
+/* 拖拽排序 */
+.icard.dragging-src{opacity:.3}
+.drag-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.94;
+  transform:rotate(-1.4deg) scale(1.04);border:2.4px solid var(--ink);border-radius:14px;
+  background:#fff;overflow:hidden;box-shadow:8px 12px 24px rgba(22,23,27,.28)}
+.icard.held{transform:scale(.97);box-shadow:0 0 0 2.4px var(--accent)}
+/* 位置 / 日期 */
+.icard .loc-in,.icard .date-in{width:100%;border:none;background:transparent;padding:1px 0;
+  font-size:12px;color:var(--sub);outline:none;
+  font-family:'PatrickHand','ZCOOLKuaiLe',sans-serif;
+  border-bottom:1.6px dashed transparent;transition:border-color .15s}
+.icard .loc-in:focus,.icard .date-in:focus{border-bottom-color:var(--ink);color:var(--ink)}
+.icard .loc-in::placeholder{color:#c2c3c9}
+.icard .date-in{color:#8b8c94;font-size:11.5px}
+.icard .date-in:not(:focus):not([value]):not(:valid){color:#c2c3c9}
+.icard .ph .use{position:absolute;right:7px;bottom:7px;font-family:var(--f-cn);font-size:10px;
+  background:rgba(255,255,255,.94);border:1.7px solid var(--ink);
+  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:1px 6px;z-index:3}
 .icard.todo .ph{filter:saturate(.35)}
 .icard.add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
   min-height:180px;border-style:dashed;background:rgba(255,255,255,.6);
@@ -289,13 +335,22 @@ body{
   font-size:10px;line-height:12px;text-align:center;flex:0 0 auto;transition:background .2s,color .2s}
 .tb.on .badge{background:var(--accent);color:var(--ink);border-color:#fdfaf1}
 
-/* ===== 弹层 ===== */
-.mask{position:absolute;inset:0;background:rgba(22,23,27,.36);z-index:30;display:none;
+/* ===== 弹层 =====
+   动画用 @keyframes 而不是 transition：万一动画不执行，元素的基础状态就是可见的，
+   不会出现「弹窗卡在全透明、点不出来」这种致命问题。 */
+.mask{position:absolute;inset:0;background:rgba(22,23,27,.34);z-index:30;display:none;
   align-items:center;justify-content:center;padding:22px}
-.mask.on{display:flex}
+.mask.on{display:flex;animation:maskIn .2s ease both}
+@keyframes maskIn{from{opacity:0}to{opacity:1}}
 .modal{background:var(--screen);border:2.6px solid var(--ink);border-radius:19px;
   box-shadow:6px 7px 0 rgba(22,23,27,.24);padding:17px 17px 15px;width:100%;max-width:296px;
-  transform:rotate(-.5deg);max-height:88%;overflow-y:auto;scrollbar-width:none}
+  max-height:88%;overflow-y:auto;scrollbar-width:none;
+  transform-origin:50% 100%}
+.mask.on .modal{animation:modalIn .34s cubic-bezier(.34,1.36,.5,1) both}
+@keyframes modalIn{
+  from{transform:scale(.42) translateY(26px);opacity:0}
+  to{transform:scale(1) translateY(0);opacity:1}
+}
 .modal::-webkit-scrollbar{display:none}
 .modal h3{margin:0 0 4px;font-family:var(--f-cn);font-size:17.5px;font-weight:400}
 .modal .mhint{margin:0 0 14px;font-size:12.5px;color:var(--sub)}
@@ -683,7 +738,7 @@ body{
       <div class="screen on" id="scr-home">
 
         <div class="topbar">
-          <div class="avatar" id="goSettings" style="cursor:pointer" title="设置">简</div>
+          <div class="avatar">简</div>
         </div>
 
         <div class="hero">
@@ -708,7 +763,7 @@ body{
         <div class="sec-head"><b>极简目标</b><a id="goProgress">查看进程 ›</a></div>
         <div class="goal">
           <div class="r1">
-            <div class="big"><span class="n" id="goalNow">0</span><span class="of">/ 200</span></div>
+            <div class="big"><span class="n" id="goalNow">0</span><span class="of" id="goalOf">/ 0</span></div>
             <span class="tag" id="goalTag">—</span>
           </div>
           <div class="gbar">
@@ -725,11 +780,11 @@ body{
         <div class="quick">
           <button class="qa" id="qAddItem"><span class="ic hot"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>添加物品</button>
           <button class="qa" id="qAddApp"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg></span>添加软件</button>
-          <button class="qa" id="qSettings"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10M8 11l4 3.8 4-3.8"/><path d="M5 19.2h14"/></svg></span>设置与备份</button>
           <button class="qa" id="qNewCat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></span>新建分类</button>
+          <button class="qa" id="qSettings"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></span>设置</button>
         </div>
 
-        <div class="sec-head"><b>分类</b><a id="catAll">全部 ›</a></div>
+        <div class="sec-head"><b>分类</b></div>
         <div class="grid2" id="catGrid"></div>
 
       </div>
@@ -888,23 +943,12 @@ body{
 
       </div>
 
-      <!-- ================= 物品详情 ================= -->
-      <div class="screen" id="scr-detail">
-        <div class="topbar">
-          <button class="back" id="dtBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg></button>
-          <div class="grp">
-            <button class="circ c1" id="dtEditTop" data-toast="编辑全部信息"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg></button>
-          </div>
-        </div>
-        <div id="dtBody"></div>
-      </div>
-
       <!-- 底部 Tab：胶囊（可滑动选择） -->
       <nav class="tabbar" id="tabbar">
         <span class="tab-ind" id="tabInd"></span>
         <button class="tb on" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 10.6 12 4l8 6.6v9H4v-9Z"/><path d="M9.8 19.6v-5.2h4.4v5.2"/></svg>总览</button>
         <button class="tb" data-tab="items"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/></svg>物品</button>
-        <button class="tb" data-tab="apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg>软件<span class="badge" id="tabAppBadge">24</span></button>
+        <button class="tb" data-tab="apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg>软件<span class="badge" id="tabAppBadge">0</span></button>
         <button class="tb" data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5l5-5 3.6 3L20 6.5"/><path d="M15 6.5h5v5"/></svg>进程</button>
       </nav>
 
@@ -924,6 +968,18 @@ body{
 <input type="file" id="filePick" accept="image/*" style="display:none">
 
 <script>
+/* ================= 全局状态（必须最先声明，后面的渲染函数会用到） ================= */
+let accentId = 'green';       // 主色预设 id
+let photoStyle = 1;           // 0 = 原图  1 = 插画（轻）  2 = 插画（强）
+let dbReady = false;          // IndexedDB 是否可用
+let db = null;                // IndexedDB 句柄
+let saveTimer = null;         // 防抖保存的定时器
+let suppressSave = false;     // 初始化阶段屏蔽保存
+let GOAL_TOTAL = 0;           // 物品总目标（0 = 未设）
+let GOAL_APPS  = 0;           // 软件总目标（0 = 未设）
+let SNAPSHOTS = [];           // 每周快照（由 maybeSnapshot 自动追加）
+let lastSnapAt = 0;           // 上次记快照的时间戳
+
 /* ================= 数据 ================= */
 let CATS = [
   { id:'cloth', name:'衣物', tone:'#ded0f0', goal:30 },
@@ -940,70 +996,13 @@ const SEASONS = [
   { id:'allyear', name:'四季' }
 ];
 
-let ITEMS = [
-  // 衣物 45
-  { n:'白 T 恤',       c:'cloth', q:6,  like:'like',    loc:'衣柜左上层', ic:'ic-tshirt', season:'summer' },
-  { n:'黑色印花 T 恤', c:'cloth', q:4,  like:'neutral', loc:'衣柜左上层', ic:'ic-tshirt', season:'summer' },
-  { n:'打底衫',        c:'cloth', q:7,  like:'neutral', loc:'衣柜右上层', ic:'ic-long',   season:'winter' },
-  { n:'灰色卫衣',      c:'cloth', q:5,  like:'like',    loc:'衣柜中层',   ic:'ic-long',   season:'allyear' },
-  { n:'牛仔外套',      c:'cloth', q:2,  like:'like',    loc:'衣柜挂区',   ic:'ic-jacket', season:'allyear' },
-  { n:'条纹衬衫',      c:'cloth', q:5,  like:'neutral', loc:'衣柜挂区',   ic:'ic-shirt',  season:'allyear' },
-  { n:'黑色长裤',      c:'cloth', q:4,  like:'neutral', loc:'衣柜下层',   ic:'ic-pants',  season:'allyear' },
-  { n:'米色阔腿裤',    c:'cloth', q:3,  like:'dislike', loc:'收纳箱 3',   ic:'ic-pants',  season:'summer', st:'todo' },
-  { n:'羽绒服',        c:'cloth', q:2,  like:'like',    loc:'收纳箱 3',   ic:'ic-down',   season:'winter', st:'stored' },
-  { n:'连衣裙',        c:'cloth', q:4,  like:'like',    loc:'衣柜挂区',   ic:'ic-dress',  season:'summer' },
-  { n:'半身裙',        c:'cloth', q:3,  like:'neutral', loc:'衣柜下层',   ic:'ic-skirt',  season:'summer' },
-  // 鞋包 18
-  { n:'白色运动鞋', c:'shoe', q:3, like:'like',    loc:'鞋柜',     ic:'ic-shoe' },
-  { n:'黑色皮鞋',   c:'shoe', q:1, like:'neutral', loc:'鞋柜',     ic:'ic-shoe' },
-  { n:'帆布鞋',     c:'shoe', q:3, like:'like',    loc:'鞋柜',     ic:'ic-shoe' },
-  { n:'拖鞋',       c:'shoe', q:4, like:'neutral', loc:'玄关',     ic:'ic-shoe' },
-  { n:'双肩包',     c:'shoe', q:1, like:'like',    loc:'玄关挂钩', ic:'ic-bag' },
-  { n:'托特包',     c:'shoe', q:2, like:'neutral', loc:'衣柜顶层', ic:'ic-bag' },
-  { n:'单肩包',     c:'shoe', q:1, like:'dislike', loc:'衣柜顶层', ic:'ic-bag', st:'todo' },
-  { n:'雨伞',       c:'shoe', q:2, like:'neutral', loc:'玄关',     ic:'ic-box' },
-  { n:'旅行箱',     c:'shoe', q:1, like:'like',    loc:'床底',     ic:'ic-box', st:'stored' },
-  // 数码 22
-  { n:'手机',       c:'tech', q:1, like:'like',    loc:'随身',     ic:'ic-phone' },
-  { n:'笔记本电脑', c:'tech', q:1, like:'like',    loc:'书桌',     ic:'ic-phone' },
-  { n:'平板',       c:'tech', q:1, like:'neutral', loc:'书桌抽屉', ic:'ic-phone' },
-  { n:'无线耳机',   c:'tech', q:2, like:'like',    loc:'随身',     ic:'ic-box' },
-  { n:'有线耳机',   c:'tech', q:3, like:'neutral', loc:'书桌抽屉', ic:'ic-box', st:'todo' },
-  { n:'充电头',     c:'tech', q:4, like:'neutral', loc:'书桌抽屉', ic:'ic-box' },
-  { n:'数据线',     c:'tech', q:6, like:'neutral', loc:'书桌抽屉', ic:'ic-box' },
-  { n:'移动电源',   c:'tech', q:2, like:'neutral', loc:'背包侧袋', ic:'ic-box' },
-  { n:'键盘',       c:'tech', q:1, like:'like',    loc:'书桌',     ic:'ic-phone' },
-  { n:'鼠标',       c:'tech', q:1, like:'neutral', loc:'书桌',     ic:'ic-phone' },
-  // 家居 31
-  { n:'台灯',   c:'home', q:1,  like:'like',    loc:'书桌',     ic:'ic-lamp' },
-  { n:'抱枕',   c:'home', q:3,  like:'neutral', loc:'沙发',     ic:'ic-cup' },
-  { n:'毛毯',   c:'home', q:2,  like:'like',    loc:'沙发',     ic:'ic-cup', st:'stored' },
-  { n:'水杯',   c:'home', q:4,  like:'neutral', loc:'厨房吊柜', ic:'ic-cup' },
-  { n:'马克杯', c:'home', q:5,  like:'neutral', loc:'厨房吊柜', ic:'ic-cup' },
-  { n:'收纳盒', c:'home', q:6,  like:'like',    loc:'储物间',   ic:'ic-box' },
-  { n:'衣架',   c:'home', q:10, like:'neutral', loc:'衣柜',     ic:'ic-box' },
-  // 洗护 15
-  { n:'洗发水', c:'care', q:2, like:'neutral', loc:'浴室镜柜', ic:'ic-bottle' },
-  { n:'沐浴露', c:'care', q:2, like:'neutral', loc:'浴室镜柜', ic:'ic-bottle' },
-  { n:'洗面奶', c:'care', q:3, like:'like',    loc:'浴室台面', ic:'ic-bottle', st:'consuming' },
-  { n:'牙膏',   c:'care', q:4, like:'neutral', loc:'浴室镜柜', ic:'ic-bottle', st:'consuming' },
-  { n:'牙刷',   c:'care', q:4, like:'neutral', loc:'浴室台面', ic:'ic-bottle' }
-];
+/* 数据从空开始：首次打开是干净状态，由用户自己录入 */
+let ITEMS = [];
 
 let uid = 1;
-/* 给部分假数据补购入日期，让详情页有内容可看 */
-const BUY_SEED = {
-  '白 T 恤':'2025-05-18', '灰色卫衣':'2024-10-02', '牛仔外套':'2023-11-24',
-  '黑色长裤':'2025-03-09', '羽绒服':'2024-12-15', '连衣裙':'2025-06-01',
-  '白色运动鞋':'2025-04-11', '双肩包':'2024-08-30', '旅行箱':'2022-09-06',
-  '手机':'2024-09-20', '笔记本电脑':'2023-06-12', '无线耳机':'2025-01-08',
-  '台灯':'2024-03-17', '收纳盒':'2025-02-23', '洗面奶':'2025-09-28',
-  '牙膏':'2025-09-30', '马克杯':'2023-12-25'
-};
 ITEMS.forEach(i => {
   i.id = 'i' + (uid++);
   if (!i.st) i.st = 'inuse';
-  if (BUY_SEED[i.n]) i.buy = BUY_SEED[i.n];
 });
 
 const ST_TEXT  = { inuse:'在用', stored:'收纳中', consuming:'消耗中', todo:'待处理' };
@@ -1038,19 +1037,43 @@ function renderHome(){
   $('#heroEntries').textContent = `${ITEMS.length} 款物品`;
   $('#heroApps').textContent = `${APPS.length} 个软件`;
 
-  const GOAL = 200;
+  // 目标卡：没设目标时显示引导，不假装有个默认值
+  const GOAL = GOAL_TOTAL;
+  const goalOf = $('#goalOf');
   $('#goalNow').textContent = held;
-  const diff = GOAL - held;
+  goalOf.textContent = GOAL > 0 ? `/ ${GOAL}` : '';
   const tag = $('#goalTag');
-  if (diff > 0){ tag.textContent = `还差 ${diff} 件`; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
-  else if (diff < 0){ tag.textContent = `超出 ${-diff} 件`; tag.style.background = 'rgba(217,134,31,.2)'; tag.style.color = '#a8640c'; }
-  else { tag.textContent = '刚好达标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
-  const pct = Math.min(1, held / GOAL);
-  $('#goalBar').setAttribute('x2', String(5 + 272 * pct));
-  $('#goalHint').textContent = `待处理 ${todo} 件 · 目标 ${GOAL} 件`;
+  if (GOAL > 0){
+    const diff = GOAL - held;
+    if (diff > 0){ tag.textContent = `还差 ${diff} 件`; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
+    else if (diff < 0){ tag.textContent = `超出 ${-diff} 件`; tag.style.background = 'rgba(217,134,31,.2)'; tag.style.color = '#a8640c'; }
+    else { tag.textContent = '刚好达标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
+    const pct = Math.min(1, held / GOAL);
+    $('#goalBar').setAttribute('x2', String(5 + 272 * pct));
+    $('#goalHint').textContent = `待处理 ${todo} 件 · 目标 ${GOAL} 件`;
+  } else {
+    tag.textContent = '未设目标';
+    tag.style.background = 'rgba(139,140,148,.16)';
+    tag.style.color = '#5f6068';
+    $('#goalBar').setAttribute('x2', '5');
+    $('#goalHint').textContent = ITEMS.length ? `待处理 ${todo} 件 · 点「设置」设个目标` : '先录几件东西，再来设目标';
+  }
+
+  // 一件都没录时：分类网格换成引导
+  if (!ITEMS.length && !APPS.length){
+    $('#catGrid').innerHTML = `
+      <div class="cat add" id="catAddTile" style="grid-column:1/-1;min-height:150px;gap:10px">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#16171b" stroke-width="1.7" stroke-linejoin="round" style="width:34px;height:34px"><path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/></svg>
+        <span style="font-size:15px">先拍下你的第一件物品</span>
+        <small>点上面的「添加物品」，或直接点这里</small>
+      </div>`;
+    saveSoon();
+    return;
+  }
 
   // 分类网格
-  const cards = CATS.map(c => {
+  const orderedCats = [...CATS].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+  const cards = orderedCats.map(c => {
     const qty = catQty(c.id);
     const hasGoal = typeof c.goal === 'number' && c.goal > 0;
     const seasonTxt = c.id === 'cloth'
@@ -1086,9 +1109,87 @@ function renderHome(){
   saveSoon();
 }
 
+/* 长按分类卡 → 拖拽排序（和物品卡片同一套手势） */
+(function initCatDrag(){
+  const grid = $('#catGrid');
+  let holdTimer = null, card = null, id = null, started = false;
+  let ghost = null, offsetX = 0, offsetY = 0, lastSwap = null;
+
+  const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+
+  const begin = (x, y) => {
+    started = true;
+    const r = card.getBoundingClientRect();
+    offsetX = x - r.left; offsetY = y - r.top;
+    ghost = card.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.style.width = r.width + 'px';
+    ghost.style.height = r.height + 'px';
+    ghost.style.left = r.left + 'px';
+    ghost.style.top = r.top + 'px';
+    document.body.appendChild(ghost);
+    card.classList.add('dragging-src');
+    if (navigator.vibrate) navigator.vibrate(12);
+  };
+
+  const move = (x, y) => {
+    if (!ghost) return;
+    ghost.style.left = (x - offsetX) + 'px';
+    ghost.style.top = (y - offsetY) + 'px';
+    ghost.style.display = 'none';
+    const el = document.elementFromPoint(x, y);
+    ghost.style.display = '';
+    const over = el && el.closest('#catGrid .cat[data-cat]');
+    if (over && over !== card && over !== lastSwap){
+      lastSwap = over;
+      const kids = [...grid.children];
+      if (kids.indexOf(card) < kids.indexOf(over)) grid.insertBefore(card, over.nextSibling);
+      else grid.insertBefore(card, over);
+    }
+  };
+
+  const end = () => {
+    clearHold();
+    if (ghost){ ghost.remove(); ghost = null; }
+    if (card) card.classList.remove('dragging-src');
+    if (started){
+      const ids = [...grid.querySelectorAll('.cat[data-cat]')].map(el => el.dataset.cat);
+      ids.forEach((cid, n) => { const c = CATS.find(x => x.id === cid); if (c) c.order = n; });
+      CATS.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+      renderHome(); renderCatChips();
+      toast('分类顺序已保存');
+    }
+    card = null; id = null; started = false; lastSwap = null;
+  };
+
+  const onStart = (x, y, target) => {
+    card = target.closest('#catGrid .cat[data-cat]');
+    if (!card) return;
+    if (target.closest('.arw')){ card = null; return; }
+    id = card.dataset.cat;
+    clearHold();
+    holdTimer = setTimeout(() => begin(x, y), 420);
+  };
+
+  grid.addEventListener('touchstart', e => {
+    const t = e.touches[0]; onStart(t.clientX, t.clientY, e.target);
+  }, { passive: true });
+  grid.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (started){ if (e.cancelable) e.preventDefault(); move(t.clientX, t.clientY); }
+    else clearHold();
+  }, { passive: false });
+  grid.addEventListener('touchend', end);
+  grid.addEventListener('touchcancel', end);
+  grid.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
+  window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (started) end(); });
+})();
+
 /* ================= 物品列表 ================= */
 function renderCatChips(){
-  const list = [{ id:'all', name:'全部', qty: sumQty(ITEMS) }, ...CATS.map(c => ({ ...c, qty: catQty(c.id) }))];
+  // 不再有「全部」按钮：默认不筛选，点某个分类才筛
+  const list = CATS.map(c => ({ ...c, qty: catQty(c.id) }));
   $('#catChips').innerHTML = list.map(c =>
     `<button class="chip${state.cat === c.id ? ' on' : ''}" data-cat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
   ).join('') + `<button class="chip plus" id="chipAddCat">＋ 新建</button>`;
@@ -1134,6 +1235,8 @@ function renderItems(){
     (state.loc === 'all' || (i.loc || '').trim() === state.loc) &&
     (!q || i.n.toLowerCase().includes(q) || (i.loc || '').toLowerCase().includes(q))
   );
+  // 按用户排的顺序显示（拖拽排序）
+  rows.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
   const qty = sumQty(rows);
 
   const catName = state.cat === 'all' ? '全部物品' : catOf(state.cat).name;
@@ -1165,8 +1268,10 @@ function renderItems(){
          <svg><use href="#${i.ic || 'ic-box'}"/></svg>`;
 
     const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
+    const useCount = i.uses || 0;
+    const useBadge = useCount > 0 ? `<span class="use">今天用过 ${useCount}</span>` : '';
 
-    return `<div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}">
+    return `<div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
       <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
         ${phInner}
         ${qtyBadge}
@@ -1174,14 +1279,24 @@ function renderItems(){
           <svg viewBox="0 0 24 24"><use href="#mk-${i.like === 'like' ? 'like' : i.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg>
         </span>
         <span class="st" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
+        ${useBadge}
       </div>
       <div class="meta">
-        <div class="tx">
-          <b>${i.n}</b><span>${locTxt || '未填位置'}</span>
+        <div class="row-name">
+          <input class="nm-in" data-edit-name="${i.id}" value="${i.n}" maxlength="14" placeholder="名称">
+          <button class="use-btn" data-usebtn="${i.id}" title="记一次使用">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          </button>
+          <button class="del-btn" data-delitem="${i.id}" title="删除">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
         </div>
-        <button class="del" data-delitem="${i.id}" title="删除物品">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
-        </button>
+        <div class="row-sub">
+          <input class="loc-in" data-edit-loc="${i.id}" value="${i.loc || ''}" maxlength="16" placeholder="放哪">
+        </div>
+        <div class="row-sub">
+          <input class="date-in" data-edit-buy="${i.id}" type="date" value="${i.buy || ''}">
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1201,15 +1316,37 @@ function renderItems(){
 }
 
 /* ================= 导航 ================= */
+let switching = false;
+/* 页面过渡 · 横向推移：按 Tab 顺序决定从哪边滑进来 */
+const TAB_ORDER = ['home', 'items', 'apps', 'progress'];
+
 function showTab(tab){
+  const prevTab = state.tab;
   state.tab = tab;
-  const map = { items:'scr-items', detail:'scr-detail', apps:'scr-apps', appdetail:'scr-appdetail', progress:'scr-progress', settings:'scr-settings', home:'scr-home' };
+  const map = { items:'scr-items', apps:'scr-apps', appdetail:'scr-appdetail', progress:'scr-progress', settings:'scr-settings', home:'scr-home' };
   const screenId = map[tab] || 'scr-home';
-  $$('.screen').forEach(s => s.classList.toggle('on', s.id === screenId));
+  const next = document.getElementById(screenId);
+  const cur = $$('.screen').find(s => s.classList.contains('on') && s.id !== screenId);
+
   $$('.tb').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   $('#fab').style.display = tab === 'items' ? 'grid' : 'none';
   $('#fabApp').style.display = tab === 'apps' ? 'grid' : 'none';
   syncTabInd();
+
+  if (!next || next === cur) return;
+
+  // 方向：往右边的 Tab 切 → 新页从右滑入；往左 → 从左滑入
+  const a = TAB_ORDER.indexOf(prevTab), b = TAB_ORDER.indexOf(tab);
+  let dir = 'slide-r';                       // 默认从右（详情/设置这类"进入"页）
+  if (a >= 0 && b >= 0) dir = (b > a) ? 'slide-r' : 'slide-l';
+
+  if (cur) cur.classList.remove('on');
+
+  next.classList.add('on');
+  next.classList.remove('slide-r','slide-l');
+  void next.offsetWidth;                     // 强制回流，保证动画能重播
+  next.classList.add(dir);
+  setTimeout(() => next.classList.remove('slide-r','slide-l'), 340);
 }
 
 /* 滑动指示块：贴到当前选中的 Tab 上（详情页/设置页不占 Tab，就保持原位置） */
@@ -1230,161 +1367,36 @@ function goItems(cat){
   $('#scr-items').scrollTop = 0;
 }
 
-/* ================= 物品详情 ================= */
-let detailId = null;
-
-function openDetail(id){
-  const it = ITEMS.find(x => x.id === id);
-  if (!it) return;
-  detailId = id;
-  renderDetail();
-  showTab('detail');
-  $('#scr-detail').scrollTop = 0;
-}
-
-function renderDetail(){
-  const it = ITEMS.find(x => x.id === detailId);
-  if (!it) return;
-  const c = catOf(it.c);
-  const seasonName = it.season ? (SEASONS.find(s => s.id === it.season) || {}).name : '';
-
-  // 照片只做展示：加/换/删都在列表卡片上做
-  const photoBlock = it.photo
-    ? `<div class="dt-photo" id="dtPhoto">
-         <img src="${it.photo}" alt="">
-         <span class="dt-st" style="background:${ST_COLOR[it.st]}">${ST_TEXT[it.st]}</span>
-         <span class="dt-lk"><svg viewBox="0 0 24 24"><use href="#mk-${it.like === 'like' ? 'like' : it.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg></span>
-       </div>`
-    : `<div class="dt-photo empty">
-         <svg><use href="#${it.ic || 'ic-box'}"/></svg>
-         <span class="dt-addhint">还没有照片</span>
-         <span class="dt-st" style="background:${ST_COLOR[it.st]}">${ST_TEXT[it.st]}</span>
-         <span class="dt-lk"><svg viewBox="0 0 24 24"><use href="#mk-${it.like === 'like' ? 'like' : it.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg></span>
-       </div>`;
-
-  $('#dtBody').innerHTML = `
-    ${photoBlock}
-    <h2 class="dt-name">${it.n}</h2>
-    <div class="dt-meta">${c.name}${seasonName ? ' · ' + seasonName : ''}</div>
-
-    <div class="dt-card">
-      <div class="dt-qty">
-        <div>
-          <span class="lb">数量</span>
-          <span class="unit"> 件</span>
-        </div>
-        <div class="stepper">
-          <button id="dtMinus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
-          <span class="v" id="dtQty">${it.q}</span>
-          <button id="dtPlus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
-        </div>
-      </div>
-    </div>
-
-    <div class="dt-card">
-      <div class="dt-block">
-        <span class="k">放在哪</span>
-        <div class="dt-row" style="cursor:default">
-          <input id="dtLocIn" type="text" value="${it.loc || ''}" placeholder="比如 衣柜左上层" maxlength="16">
-        </div>
-      </div>
-      <div class="dt-block">
-        <span class="k">购入日期</span>
-        <div class="dt-row" style="cursor:default">
-          <input id="dtBuyIn" type="date" value="${it.buy || ''}">
-          ${it.buy ? '<button class="dt-clearbtn" id="dtBuyClear">清除</button>' : ''}
-        </div>
-      </div>
-      <div class="dt-block">
-        <span class="k">备注</span>
-        <textarea id="dtNote" placeholder="想到什么写什么，可以留空">${it.note || ''}</textarea>
-      </div>
-    </div>
-
-    <div class="dt-acts">
-      <button class="btn full" id="dtEditAll">编辑名称</button>
-    </div>
-  `;
-
-  // 数量
-  $('#dtMinus').addEventListener('click', () => {
-    if (it.q <= 1){
-      openModal(`
-        <h3>数量为 0</h3>
-        <p class="mhint">「${it.n}」数量减到 0 了，要删除这条吗？</p>
-        <div class="mrow">
-          <button class="btn" id="q0Cancel">再想想</button>
-          <button class="btn dan" id="q0Del">删除</button>
-        </div>
-      `);
-      $('#q0Cancel').addEventListener('click', closeModal);
-      $('#q0Del').addEventListener('click', () => { closeModal(); deleteItem(it.id); });
-      return;
-    }
-    it.q--; $('#dtQty').textContent = it.q; renderHome(); renderItems();
-  });
-  $('#dtPlus').addEventListener('click', () => {
-    it.q = Math.min(999, it.q + 1);
-    $('#dtQty').textContent = it.q; renderHome(); renderItems();
-  });
-
-  // 位置（失焦保存）
-  const locIn = $('#dtLocIn');
-  locIn.addEventListener('change', () => { it.loc = locIn.value.trim(); renderHome(); renderItems(); toast('位置已保存'); });
-  locIn.addEventListener('keydown', e => { if (e.key === 'Enter') locIn.blur(); });
-
-  // 购入日期
-  const buyIn = $('#dtBuyIn');
-  buyIn.addEventListener('change', () => {
-    it.buy = buyIn.value || '';
-    renderDetail(); renderItems();
-    toast(it.buy ? '购入日期已保存' : '购入日期已清除');
-  });
-  const buyClear = $('#dtBuyClear');
-  if (buyClear) buyClear.addEventListener('click', () => {
-    it.buy = ''; renderDetail(); renderItems(); toast('购入日期已清除');
-  });
-
-  // 备注（失焦保存）
-  const noteIn = $('#dtNote');
-  noteIn.addEventListener('change', () => { it.note = noteIn.value.trim(); renderItems(); toast('备注已保存'); });
-
-  // 改名
-  $('#dtEditAll').addEventListener('click', () => renameModal(it));
-  $('#dtEditTop').addEventListener('click', () => renameModal(it));
-}
-
-/* 重命名 / 改名弹窗 */
-function renameModal(it){
-  openModal(`
-    <h3>编辑信息</h3>
-    <p class="mhint">位置、喜欢程度、状态、备注都可以直接在详情页改，这里只改名称</p>
-    <div class="fld">
-      <label>名称</label>
-      <input type="text" id="rnName" value="${it.n}" maxlength="14">
-    </div>
-    <div class="mrow">
-      <button class="btn" id="rnCancel">取消</button>
-      <button class="btn pri" id="rnOk">保存</button>
-    </div>
-  `);
-  const inp = $('#rnName');
-  setTimeout(() => { inp.focus(); inp.select(); }, 60);
-  $('#rnCancel').addEventListener('click', closeModal);
-  $('#rnOk').addEventListener('click', () => {
-    const v = inp.value.trim();
-    if (!v) return;
-    it.n = v;
-    closeModal(); renderDetail(); renderHome(); renderItems();
-    toast('名称已保存');
-  });
-}
 
 
 /* ================= 弹层 ================= */
 const mask = $('#mask'), modal = $('#modal');
-function openModal(html){ modal.innerHTML = html; mask.classList.add('on'); }
-function closeModal(){ mask.classList.remove('on'); }
+function openModal(html){
+  modal.innerHTML = html;
+
+  // 让弹窗从「刚点的那个按钮」的位置长大出来（iOS 那种因果感）
+  let anchor = null;
+  try {
+    const ae = document.activeElement;
+    if (ae && ae !== document.body && !mask.contains(ae) && ae.closest && ae.closest('.phone')) anchor = ae;
+  } catch(e){}
+  mask.classList.add('on');
+  const mr = modal.getBoundingClientRect();
+  let ox = 50, oy = 100;
+  if (anchor && mr.width && mr.height){
+    const ar = anchor.getBoundingClientRect();
+    ox = Math.max(-20, Math.min(120, ((ar.left + ar.width / 2) - mr.left) / mr.width * 100));
+    oy = Math.max(-20, Math.min(130, ((ar.top + ar.height / 2) - mr.top) / mr.height * 100));
+  }
+  modal.style.transformOrigin = `${ox}% ${oy}%`;
+  // 重放动画（连续开两次时也能重新播）
+  modal.style.animation = 'none';
+  void modal.offsetWidth;
+  modal.style.animation = '';
+}
+function closeModal(){
+  mask.classList.remove('on');
+}
 mask.addEventListener('click', e => { if (e.target === mask) closeModal(); });
 
 /* --- 新建分类 --- */
@@ -1556,8 +1568,6 @@ function openPop(anchor, kind, id){
 function deleteItem(id){
   const idx = ITEMS.findIndex(i => i.id === id); if (idx < 0) return;
   const removed = ITEMS.splice(idx, 1)[0];
-  // 若正在看这件物品的详情页，退回列表
-  if (detailId === id){ detailId = null; showTab('items'); }
   renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
   toastUndo(`已删除「${removed.n}」`, () => {
     ITEMS.splice(idx, 0, removed);
@@ -1673,7 +1683,6 @@ function illustrate(srcCanvas, level){
 let photoTargetId = null;
 let photoTargetMode = 'card';
 let appPhotoTargetId = null;
-let photoStyle = 1;          // 0 = 原图  1 = 插画（轻）  2 = 插画（强）
 $('#filePick').addEventListener('change', e => {
   const file = e.target.files && e.target.files[0];
   e.target.value = '';
@@ -1727,7 +1736,6 @@ $('#filePick').addEventListener('change', e => {
       if (it){
         it.photo = out.toDataURL('image/jpeg', .78);
         renderItems();
-        if (mode === 'detail' && detailId === id) renderDetail();
         toast(photoStyle > 0 ? '照片已插画化并保存' : '照片已保存');
       }
     };
@@ -1776,40 +1784,15 @@ let APP_CATS = [
 const NEED_TEXT  = { need:'必需', temp:'暂用', todel:'待删' };
 const NEED_COLOR = { need:'#cfe4f4', temp:'#e6e6ea', todel:'#f3c9d8' };
 
-let APPS = [
-  { n:'微信',       c:'social', need:'need',  loc:'第一屏',     note:'' },
-  { n:'QQ',         c:'social', need:'temp',  loc:'文件夹',     note:'很少打开' },
-  { n:'微博',       c:'social', need:'todel', loc:'第二屏',     note:'一个月没打开' },
-  { n:'小红书',     c:'social', need:'temp',  loc:'第一屏',     note:'' },
-  { n:'支付宝',     c:'tool',   need:'need',  loc:'第一屏',     note:'' },
-  { n:'高德地图',   c:'tool',   need:'need',  loc:'文件夹 · 工具', note:'' },
-  { n:'备忘录',     c:'tool',   need:'need',  loc:'文件夹 · 工具', note:'' },
-  { n:'计算器',     c:'tool',   need:'need',  loc:'文件夹 · 工具', note:'' },
-  { n:'扫码王',     c:'tool',   need:'todel', loc:'文件夹 · 工具', note:'装了没用过' },
-  { n:'网易云音乐', c:'media',  need:'need',  loc:'第一屏',     note:'' },
-  { n:'哔哩哔哩',   c:'media',  need:'need',  loc:'第一屏',     note:'' },
-  { n:'腾讯视频',   c:'media',  need:'temp',  loc:'文件夹 · 影音', note:'' },
-  { n:'爱奇艺',     c:'media',  need:'todel', loc:'文件夹 · 影音', note:'和腾讯视频重复' },
-  { n:'原神',       c:'game',   need:'temp',  loc:'文件夹 · 游戏', note:'' },
-  { n:'消消乐',     c:'game',   need:'todel', loc:'文件夹 · 游戏', note:'半年没玩' },
-  { n:'淘宝',       c:'shop',   need:'need',  loc:'第一屏',     note:'' },
-  { n:'京东',       c:'shop',   need:'temp',  loc:'文件夹 · 购物', note:'' },
-  { n:'拼多多',     c:'shop',   need:'todel', loc:'第二屏',     note:'为了砍价装的' },
-  { n:'多邻国',     c:'study',  need:'temp',  loc:'文件夹 · 学习', note:'' },
-  { n:'得到',       c:'study',  need:'todel', loc:'文件夹 · 学习', note:'买了课没听' },
-  { n:'设置',       c:'sys',    need:'need',  loc:'文件夹 · 系统', note:'' },
-  { n:'相机',       c:'sys',    need:'need',  loc:'第一屏',     note:'' },
-  { n:'天气',       c:'sys',    need:'need',  loc:'文件夹 · 系统', note:'' },
-  { n:'指南针',     c:'sys',    need:'temp',  loc:'文件夹 · 系统', note:'' }
-];
+/* 数据从空开始：首次打开是干净状态，由用户自己录入 */
+let APPS = [];
 APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
 
 const appState = { cat:'all', need:'all', q:'' };
 const appCatOf = id => APP_CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
 
 function renderAppCatChips(){
-  const list = [{ id:'all', name:'全部', qty: APPS.length },
-    ...APP_CATS.map(c => ({ ...c, qty: APPS.filter(a => a.c === c.id).length }))];
+  const list = APP_CATS.map(c => ({ ...c, qty: APPS.filter(a => a.c === c.id).length }));
   $('#appCatChips').innerHTML = list.map(c =>
     `<button class="chip${appState.cat === c.id ? ' on' : ''}" data-acat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
   ).join('') + `<button class="chip plus" id="chipAddAppCat">＋ 新建</button>`;
@@ -1946,28 +1929,31 @@ function deleteApp(id){
 }
 
 /* ================= 极简进程 ================= */
-/* 示例快照：仅首次使用时作为曲线的起点展示，一旦用户自己的数据攒够就会被真实记录接上。
-   （真实快照由 maybeSnapshot() 每周自动追加，用户无需任何操作） */
-let SNAPSHOTS = [
-  { d:'08-04', items:211, entries:104, apps:31 },
-  { d:'08-11', items:203, entries:102, apps:30 },
-  { d:'08-18', items:199, entries:101, apps:30 },
-  { d:'08-25', items:188, entries: 99, apps:29 },
-  { d:'09-01', items:176, entries: 97, apps:28 },
-  { d:'09-08', items:169, entries: 96, apps:27 },
-  { d:'09-15', items:161, entries: 95, apps:27 },
-  { d:'09-22', items:152, entries: 95, apps:26 },
-  { d:'09-29', items:144, entries: 93, apps:25 },
-  { d:'10-06', items:137, entries: 92, apps:24 }
-];
-
-let GOAL_TOTAL = 200;
-let GOAL_APPS  = 20;
+/* 快照与目标都在文件顶部声明，这里只管看哪个维度 */
 let pgSeries = 'items';       // items | entries | apps | cat
 let pgCatId  = 'cloth';       // 指定分类时看哪个
 
 const sumItems  = () => sumQty(ITEMS);
 const countApps = () => APPS.length;
+
+/* 今天的日期字符串，用于使用次数按天统计 */
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* 使用次数按天算：不是今天的记录就清零重算 */
+function normalizeUses(){
+  const t = todayStr();
+  let changed = false;
+  ITEMS.forEach(i => {
+    if (i.lastUse !== t && i.uses){
+      i.uses = 0;
+      changed = true;
+    }
+  });
+  return changed;
+}
 
 /* 当前值 → 拼成"含今天"的完整序列 */
 function pgCurrent(){
@@ -1982,16 +1968,18 @@ function renderProgress(){
   const curEntries = ITEMS.length;
   const curApps = countApps();
 
-  $('#pgSince').textContent = `从 ${SNAPSHOTS[0].d} 起 · 共 ${SNAPSHOTS.length + 1} 次记录`;
+  $('#pgSince').textContent = SNAPSHOTS.length
+    ? `从 ${SNAPSHOTS[0].d} 起 · 共 ${SNAPSHOTS.length + 1} 次记录`
+    : '还没有记录 · 下周开始有曲线';
 
   // ---------- 区块 A：目标对比 ----------
-  const totalPct = Math.min(100, Math.round(curItems / GOAL_TOTAL * 100));
-  const totalOver = curItems > GOAL_TOTAL;
+  const totalPct = GOAL_TOTAL > 0 ? Math.min(100, Math.round(curItems / GOAL_TOTAL * 100)) : 0;
+  const totalOver = GOAL_TOTAL > 0 && curItems > GOAL_TOTAL;
   const totalDiff = GOAL_TOTAL - curItems;
   const totalColor = totalOver ? 'var(--warn)' : (totalPct >= 95 ? 'var(--blue-deep)' : 'var(--green)');
 
-  const appsPct = Math.min(100, Math.round(curApps / GOAL_APPS * 100));
-  const appsOver = curApps > GOAL_APPS;
+  const appsPct = GOAL_APPS > 0 ? Math.min(100, Math.round(curApps / GOAL_APPS * 100)) : 0;
+  const appsOver = GOAL_APPS > 0 && curApps > GOAL_APPS;
 
   // 分类目标（按 当前/目标 比从高到低，只列设了目标的）
   const withGoal = CATS.filter(c => c.goal > 0).map(c => {
@@ -2129,6 +2117,7 @@ function renderProgress(){
 
   $('#pgBody').innerHTML = `
     <!-- 总目标 -->
+    ${GOAL_TOTAL > 0 ? `
     <div class="pg-total">
       <div class="row1">
         <div>
@@ -2144,7 +2133,16 @@ function renderProgress(){
         <span>${totalOver ? `已超出 ${-totalDiff} 件` : `还差 ${totalDiff} 件达标`}</span>
         <span>软件 ${curApps} / ${GOAL_APPS}${appsOver ? ` · 超出 ${curApps - GOAL_APPS}` : ''}</span>
       </div>
-    </div>
+    </div>` : `
+    <div class="pg-total">
+      <div class="row1">
+        <div>
+          <div class="lb" style="font-size:14px">还没设目标</div>
+          <div class="lb" style="margin-top:4px">给物品总数定个上限，进度条才有意义</div>
+        </div>
+        <button class="pg-setbtn" id="pgSetGoal">去设置</button>
+      </div>
+    </div>`}
 
     <!-- 分类目标 -->
     <div class="pg-sec">
@@ -2158,9 +2156,9 @@ function renderProgress(){
         <span style="font-size:11.5px;color:#8b8c94;font-family:'PatrickHand',sans-serif">每周自动记录</span>
       </div>
       ${chartBlock}
-      ${seriesTabs}
+      ${all.length > 1 ? seriesTabs : ''}
       <div class="pg-summary">
-        ${n < 2 ? '再等一周就会出现第一条曲线' : `最近 ${n} 次：${all[0]} → ${all[n-1]} ${unit}，${deltaTxt}`}
+        ${n < 2 ? '等下周出现第一个点，曲线就会开始长' : `最近 ${n} 次：${all[0]} → ${all[n-1]} ${unit}，${deltaTxt}`}
       </div>
     </div>
 
@@ -2256,18 +2254,6 @@ function renderSettings(){
         <span class="tx" style="flex:1"><b>主色</b><span>涂笔、按钮、高亮块的颜色</span></span>
       </div>
       <div class="st-swatches" id="stSwatches"></div>
-      <div class="st-row" id="stBgPick">
-        <span class="ic" style="background:#f7e9cf"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 16.5l4.6-3.8 3.2 2.6L15 12.8l5 4"/></svg></span>
-        <span class="tx"><b>纸面背景</b><span>点阵纸 / 自定义背景图</span></span>
-        <span class="vv">点阵纸</span>
-        <span class="go">›</span>
-      </div>
-      <div class="st-row" id="stPhotoStyle">
-        <span class="ic" style="background:#f2cfcf"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4h16v13.2H4z"/><circle cx="9" cy="10.2" r="1.8"/><path d="M4 16.2l5-4.4 3.6 3 3-2.6L20 16"/></svg></span>
-        <span class="tx"><b>照片风格</b><span>新上传照片的插画化强度</span></span>
-        <span class="vv">${['原图','插画 · 轻','插画 · 强'][photoStyle]}</span>
-        <span class="go">›</span>
-      </div>
     </div>
 
     <!-- 数据 -->
@@ -2301,10 +2287,20 @@ function renderSettings(){
     <!-- 关于 -->
     <div class="st-sec" style="padding:14px 15px">
       <div class="st-ver">
-        电子收纳 v0.1（原型）<br>
+        电子收纳 v0.2<br>
         所有数据只保存在这台设备上，不会上传到任何服务器<br>
         建议每月导出一次备份
       </div>
+    </div>
+
+    <!-- 临时：动画方案选择（选定后可移除） -->
+    <div class="st-group">动画方案</div>
+    <div class="st-sec">
+      <a class="st-row" href="./anim-compare.html" style="text-decoration:none;color:inherit">
+        <span class="ic" style="background:#e3d6f2"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l4 4L20 5.5"/><path d="M4 19h10"/></svg></span>
+        <span class="tx"><b>页面与弹窗动画对比</b><span>三版效果并排，点着试，选定后告诉我</span></span>
+        <span class="go">›</span>
+      </a>
     </div>
   `;
 
@@ -2319,7 +2315,6 @@ const ACCENT_PRESETS = [
   { id:'sand',   name:'浅杏',  accent:'#f7e0b8', deep:'#cb9d55', hl:'rgba(247,224,184,.92)', hl2:'rgba(247,224,184,.85)' },
   { id:'lilac',  name:'浅紫',  accent:'#ded0f0', deep:'#a68ccb', hl:'rgba(222,208,240,.92)', hl2:'rgba(222,208,240,.85)' }
 ];
-let accentId = 'green';
 
 function applyAccent(id){
   const p = ACCENT_PRESETS.find(x => x.id === id) || ACCENT_PRESETS[0];
@@ -2381,15 +2376,6 @@ $('#stBody').addEventListener('click', e => {
   if (e.target.closest('#stGoalItem')){ goalModal('itemTotal'); return; }
   if (e.target.closest('#stGoalApp')){ goalModal('appTotal'); return; }
   if (e.target.closest('#stGoalCats')){ goalModal('cats'); return; }
-
-  // 照片风格
-  if (e.target.closest('#stPhotoStyle')){
-    styleModal(() => renderSettings());
-    return;
-  }
-
-  // 纸面背景
-  if (e.target.closest('#stBgPick')){ toast('背景图片功能还没做，现在是点阵纸'); return; }
 
   // 数据
   if (e.target.closest('#stExport')){ exportBackup(); return; }
@@ -2812,9 +2798,6 @@ function renameAppModal(a){
    没有数据库环境时自动降级为「不保存」，页面照常能用。 */
 const DB_NAME = 'digital-shelf';
 const DB_VER  = 1;
-let dbReady = false;
-let saveTimer = null;
-let suppressSave = false;
 
 function openDB(){
   return new Promise(resolve => {
@@ -2832,8 +2815,6 @@ function openDB(){
     setTimeout(() => resolve(null), 3000);
   });
 }
-
-let db = null;
 
 /* 收集要存的整份状态 */
 function snapshotState(){
@@ -2983,12 +2964,13 @@ async function loadFromDB(){
 /* ================= 每周自动快照 =================
    规则（照 PRD）：每次打开 App 时检查，距上次记录满 7 天才记一条；
    记录的是「持有量」（在用 + 收纳中 + 消耗中，不含待处理）；用户完全无感。 */
-let lastSnapAt = 0;
-
 function maybeSnapshot(){
   const WEEK = 7 * 24 * 60 * 60 * 1000;
   const now = Date.now();
   if (lastSnapAt && (now - lastSnapAt) < WEEK) return false;
+
+  // 一条都没录时不记，免得曲线起点是 0 看着奇怪
+  if (!ITEMS.length && !APPS.length) return false;
 
   const d = new Date();
   const label = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -3043,7 +3025,6 @@ $('#catGrid').addEventListener('click', e => {
   const card = e.target.closest('[data-cat]');
   if (card) goItems(card.dataset.cat);
 });
-$('#catAll').addEventListener('click', () => goItems('all'));
 $('#qNewCat').addEventListener('click', newCatModal);
 $('#qAddItem').addEventListener('click', newItemModal);
 $('#qAddApp').addEventListener('click', () => { renderAppCatChips(); renderApps(); showTab('apps'); newAppModal(); });
@@ -3069,9 +3050,11 @@ $('#pgSnapTip').addEventListener('click', () => {
 $('#catChips').addEventListener('click', e => {
   if (e.target.closest('#chipAddCat')){ newCatModal(); return; }
   const chip = e.target.closest('[data-cat]'); if (!chip) return;
-  state.cat = chip.dataset.cat;
+  const k = chip.dataset.cat;
+  // 再点一次已选中的分类 = 取消筛选（代替原来的「全部」按钮）
+  state.cat = (state.cat === k) ? 'all' : k;
   if (state.cat !== 'cloth') state.season = 'all';
-  state.loc = 'all';                                   // 换分类时位置筛选重置
+  state.loc = 'all';
   renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
 });
 $('#seasonChips').addEventListener('click', e => {
@@ -3124,16 +3107,178 @@ $('#igrid').addEventListener('click', e => {
   const stBtn = e.target.closest('[data-status]');
   if (stBtn){ openPop(stBtn, 'st', stBtn.dataset.status); return; }
 
-  const delIt = e.target.closest('[data-delitem]');
-  if (delIt){ deleteItem(delIt.dataset.delitem); return; }
+  // 点「记一次使用」
+  const useBtn = e.target.closest('[data-usebtn]');
+  if (useBtn){
+    const it = ITEMS.find(x => x.id === useBtn.dataset.usebtn);
+    if (it){
+      it.uses = (it.uses || 0) + 1;
+      it.lastUse = todayStr();
+      useBtn.classList.add('bump');
+      renderItems(); renderHome();
+      toast(`「${it.n}」今天用了 ${it.uses} 次`);
+    }
+    return;
+  }
+
+  // 点数量角标 → 改数量
+  const qb = e.target.closest('.qty');
+  if (qb){
+    const card = qb.closest('[data-item]');
+    const it = ITEMS.find(x => x.id === card.dataset.item);
+    if (it) qtyModal(it);
+    return;
+  }
 
   const ph = e.target.closest('[data-photo]');
   if (ph){ photoTargetId = ph.dataset.photo; photoTargetMode = 'card'; $('#filePick').click(); return; }
-
-  // 其余区域 → 进详情
-  const card = e.target.closest('[data-item]');
-  if (card) openDetail(card.dataset.item);
 });
+
+/* 卡片上的就地编辑：名称 / 位置 / 购入日期 */
+$('#igrid').addEventListener('change', e => {
+  const t = e.target;
+  if (t.matches('[data-edit-name]')){
+    const it = ITEMS.find(x => x.id === t.dataset.editName);
+    const v = t.value.trim();
+    if (it && v){ it.n = v; renderHome(); renderItems(); toast('名称已保存'); }
+    else if (it){ t.value = it.n; }
+    return;
+  }
+  if (t.matches('[data-edit-loc]')){
+    const it = ITEMS.find(x => x.id === t.dataset.editLoc);
+    if (it){ it.loc = t.value.trim(); renderHome(); toast('位置已保存'); }
+    return;
+  }
+  if (t.matches('[data-edit-buy]')){
+    const it = ITEMS.find(x => x.id === t.dataset.editBuy);
+    if (it){ it.buy = t.value || ''; toast(it.buy ? '购入日期已保存' : '购入日期已清除'); }
+    return;
+  }
+});
+// 输入框回车即失焦保存
+$('#igrid').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('[data-edit-name],[data-edit-loc]')) e.target.blur();
+});
+
+/* 长按卡片 → 进入拖拽排序模式（松手落到新位置） */
+(function initCardDrag(){
+  const grid = $('#igrid');
+  let holdTimer = null, card = null, id = null, started = false;
+  let ghost = null, offsetX = 0, offsetY = 0, lastSwapEl = null;
+
+  const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+
+  const begin = (x, y) => {
+    started = true;
+    const r = card.getBoundingClientRect();
+    offsetX = x - r.left;
+    offsetY = y - r.top;
+
+    // 做一个跟手的浮层
+    ghost = card.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.style.width = r.width + 'px';
+    ghost.style.height = r.height + 'px';
+    ghost.style.left = r.left + 'px';
+    ghost.style.top = r.top + 'px';
+    document.body.appendChild(ghost);
+
+    card.classList.add('dragging-src');
+    if (navigator.vibrate) navigator.vibrate(12);
+  };
+
+  const move = (x, y) => {
+    if (!ghost) return;
+    ghost.style.left = (x - offsetX) + 'px';
+    ghost.style.top = (y - offsetY) + 'px';
+
+    // 找手指下面的那张卡，实时换位
+    ghost.style.display = 'none';
+    const el = document.elementFromPoint(x, y);
+    ghost.style.display = '';
+    const over = el && el.closest('#igrid .icard[data-item]');
+    if (over && over !== card && over !== lastSwapEl){
+      lastSwapEl = over;
+      const a = ITEMS.find(i => i.id === id);
+      const b = ITEMS.find(i => i.id === over.dataset.item);
+      if (a && b){
+        // 交换 order，并立刻重排 DOM（不整表重绘，避免闪烁）
+        const ao = a.order ?? 9999, bo = b.order ?? 9999;
+        a.order = bo; b.order = ao;
+        const parent = grid;
+        const kids = [...parent.children];
+        const ai = kids.indexOf(card), bi = kids.indexOf(over);
+        if (ai < bi) parent.insertBefore(card, over.nextSibling);
+        else parent.insertBefore(card, over);
+      }
+    }
+  };
+
+  const end = () => {
+    clearHold();
+    if (ghost){ ghost.remove(); ghost = null; }
+    if (card){ card.classList.remove('dragging-src'); }
+    if (started){
+      // 固化顺序：按当前 DOM 顺序重写 order
+      const ids = [...grid.querySelectorAll('.icard[data-item]')].map(el => el.dataset.item);
+      ids.forEach((iid, n) => { const it = ITEMS.find(x => x.id === iid); if (it) it.order = n; });
+      renderItems();
+      toast('顺序已保存');
+    }
+    card = null; id = null; started = false; lastSwapEl = null;
+  };
+
+  const onStart = (x, y, target) => {
+    card = target.closest('#igrid .icard[data-item]');
+    if (!card) return;
+    if (target.closest('input,button,.lk,.st,.use')){ card = null; return; }
+    id = card.dataset.item;
+    clearHold();
+    holdTimer = setTimeout(() => begin(x, y), 420);   // 按住 0.42 秒才进入拖拽
+  };
+
+  grid.addEventListener('touchstart', e => {
+    const t = e.touches[0]; onStart(t.clientX, t.clientY, e.target);
+  }, { passive: true });
+  grid.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (started){ if (e.cancelable) e.preventDefault(); move(t.clientX, t.clientY); }
+    else clearHold();
+  }, { passive: false });
+  grid.addEventListener('touchend', end);
+  grid.addEventListener('touchcancel', end);
+
+  grid.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
+  window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (started) end(); });
+})();
+
+/* 改数量的小弹窗 */
+function qtyModal(it){
+  let q = it.q;
+  openModal(`
+    <h3>${it.n}</h3>
+    <p class="mhint">一共有几件？</p>
+    <div style="display:flex;justify-content:center;padding:6px 0 4px">
+      <div class="stepper">
+        <button id="qmMinus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+        <span class="v" id="qmV">${q}</span>
+        <button id="qmPlus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+      </div>
+    </div>
+    <div class="mrow">
+      <button class="btn" id="qmCancel">取消</button>
+      <button class="btn pri" id="qmOk">保存</button>
+    </div>
+  `);
+  $('#qmMinus').addEventListener('click', () => { q = Math.max(1, q - 1); $('#qmV').textContent = q; });
+  $('#qmPlus').addEventListener('click', () => { q = Math.min(999, q + 1); $('#qmV').textContent = q; });
+  $('#qmCancel').addEventListener('click', closeModal);
+  $('#qmOk').addEventListener('click', () => {
+    it.q = q; closeModal(); renderHome(); renderItems();
+    toast(`数量已改为 ${q}`);
+  });
+}
 
 // 点空白关掉归类菜单
 document.addEventListener('click', e => {
@@ -3143,7 +3288,6 @@ document.addEventListener('click', e => {
 }, true);
 $('#scr-items').addEventListener('scroll', closePop);
 
-$('#dtBack').addEventListener('click', () => showTab('items'));
 $('#styleBtn').addEventListener('click', styleModal);
 
 $('#fab').addEventListener('click', newItemModal);
@@ -3162,10 +3306,9 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
   const bar = $('#tabbar');
   const ind = $('#tabInd');
   const tabs = $$('.tb');
-  let dragging = false, moved = false, startX = 0, startIdx = 0;
+  let dragging = false, moved = false, startX = 0, startY = 0;
 
   const idxFromX = clientX => {
-    // 找出手指当前横坐标落在哪个 Tab 上
     let best = 0, bestDist = Infinity;
     tabs.forEach((b, i) => {
       const r = b.getBoundingClientRect();
@@ -3175,10 +3318,11 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
     return best;
   };
 
-  const moveIndTo = (i, animate) => {
+  // 手指位置 → 指示块跟手平移（滑动过程中不切页面，只挪块）
+  const moveIndTo = i => {
     const r = tabs[i].getBoundingClientRect();
     const br = bar.getBoundingClientRect();
-    ind.style.transition = animate ? '' : 'none';
+    ind.style.transition = 'none';
     ind.style.width = r.width + 'px';
     ind.style.transform = `translateX(${r.left - br.left - 5}px)`;
   };
@@ -3186,34 +3330,37 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
   const onDown = e => {
     const pt = e.touches ? e.touches[0] : e;
     dragging = true; moved = false;
-    startX = pt.clientX;
-    startIdx = tabs.findIndex(b => b.classList.contains('on'));
-    if (startIdx < 0) startIdx = 0;
-    bar.classList.add('dragging');
+    startX = pt.clientX; startY = pt.clientY;
+    bar.style.touchAction = 'none';          // 关键：告诉浏览器这里不要滚页面
   };
 
   const onMove = e => {
     if (!dragging) return;
     const pt = e.touches ? e.touches[0] : e;
-    if (Math.abs(pt.clientX - startX) > 6) moved = true;
+    const dx = pt.clientX - startX, dy = pt.clientY - startY;
+    if (!moved){
+      // 横向位移明显大于纵向才认定是滑动（避免误伤纵向滚动）
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) moved = true;
+      else if (Math.abs(dy) > 12){ dragging = false; bar.style.touchAction = ''; return; }
+    }
     if (!moved) return;
     if (e.cancelable) e.preventDefault();
-    moveIndTo(idxFromX(pt.clientX), false);
+    moveIndTo(idxFromX(pt.clientX));
   };
 
   const onUp = e => {
     if (!dragging) return;
     dragging = false;
-    bar.classList.remove('dragging');
-    if (!moved) return;                       // 没滑动 → 交给 click 处理
+    bar.style.touchAction = '';
+    if (!moved){ syncTabInd(); return; }     // 没滑动 → 恢复并交给 click
     const pt = e.changedTouches ? e.changedTouches[0] : e;
     const i = idxFromX(pt.clientX);
-    const t = tabs[i].dataset.tab;
-    activateTab(t);
+    ind.style.transition = '';               // 恢复过渡动画
+    activateTab(tabs[i].dataset.tab);
     // 阻止随后的 click 重复触发
     const swallow = ev => { ev.stopPropagation(); ev.preventDefault(); };
     bar.addEventListener('click', swallow, { capture: true, once: true });
-    setTimeout(() => bar.removeEventListener('click', swallow, { capture: true }), 60);
+    setTimeout(() => bar.removeEventListener('click', swallow, { capture: true }), 80);
   };
 
   bar.addEventListener('touchstart', onDown, { passive: true });
@@ -3221,12 +3368,12 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
   bar.addEventListener('touchend', onUp);
   bar.addEventListener('touchcancel', onUp);
   bar.addEventListener('mousedown', e => { onDown(e); });
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onUp);
+  window.addEventListener('mousemove', e => { if (dragging) onMove(e); });
+  window.addEventListener('mouseup', e => { if (dragging) onUp(e); });
 
-  // 尺寸变化后重新对齐
+  // 尺寸/字体变化后重新对齐
   window.addEventListener('resize', () => syncTabInd());
-  // 字体加载完会改变 Tab 宽度，加载后重新对齐
+  window.addEventListener('orientationchange', () => setTimeout(() => syncTabInd(), 200));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
   window.addEventListener('load', () => syncTabInd());
   requestAnimationFrame(() => syncTabInd());
