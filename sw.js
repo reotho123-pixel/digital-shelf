@@ -1,6 +1,6 @@
 /* 电子收纳 · Service Worker
-   改代码后必须把下面的 CACHE 版本号 +1，否则已安装的用户拿不到更新。 */
-const CACHE = 'digital-shelf-v2';
+   改代码后必须把下面的 CACHE 版本�?+1，否则已安装的用户拿不到更新�?*/
+const CACHE = 'digital-shelf-v5';
 
 const ASSETS = [
   './app-prototype.html',
@@ -37,8 +37,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;   // 只管本站资源
 
-  // 导航请求：优先用网络，断网回落到缓存的页面
-  if (req.mode === 'navigate'){
+  // 导航请求：优先用网络，断网回落到缓存的页�?  if (req.mode === 'navigate'){
     e.respondWith(
       fetch(req)
         .then(res => {
@@ -51,8 +50,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // 静态资源：缓存优先，回落到网络并写入缓存
-  e.respondWith(
+  // 静态资源：缓存优先，回落到网络并写入缓�?  e.respondWith(
     caches.match(req).then(hit => {
       if (hit) return hit;
       return fetch(req).then(res => {
