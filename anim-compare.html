@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>电子收纳 · 动画方案对比</title>
+<style>
+@font-face{font-family:'ZCOOLKuaiLe';src:url('./fonts/zcoolkuaile.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Kalam';src:url('./fonts/kalam700.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'PatrickHand';src:url('./fonts/patrickhand.woff2') format('woff2');font-display:swap}
+
+:root{
+  --paper:#ecebe4;--screen:#fdfaf1;--ink:#16171b;--ink2:#3b3d45;--sub:#8b8c94;
+  --accent:#c9e8cf;--accent-deep:#6fa87d;
+  --hl:rgba(201,232,207,.92);--hl-soft:rgba(201,232,207,.85);
+  --f-cn:'ZCOOLKuaiLe',sans-serif;--f-num:'Kalam','PatrickHand',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);padding:26px 18px 60px;
+  font-family:'PatrickHand',-apple-system,"PingFang SC",sans-serif;font-size:15px;
+  background-image:radial-gradient(circle, rgba(22,23,27,.09) 1px, transparent 1px);background-size:17px 17px}
+h1{font-family:var(--f-cn);font-size:23px;font-weight:400;margin:0 0 6px;text-align:center}
+.sub{text-align:center;color:#5f6068;font-size:13.5px;margin:0 0 22px}
+h2{font-family:var(--f-cn);font-size:17px;font-weight:400;margin:26px 0 12px;
+  background:var(--hl);display:inline-block;padding:2px 10px;border-radius:4px 10px 5px 11px;
+  transform:rotate(-.6deg)}
+.row{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+.demo{width:280px;max-width:100%}
+.demo .cap{margin:0 0 9px;text-align:center}
+.demo .cap b{display:block;font-family:var(--f-cn);font-size:14.5px;font-weight:400;margin-bottom:3px}
+.demo .cap span{font-size:12px;color:#5f6068;line-height:1.5;display:block}
+.stage{position:relative;height:404px;border:2.6px solid var(--ink);border-radius:26px;
+  background:var(--screen);overflow:hidden;
+  background-image:radial-gradient(circle, rgba(22,23,27,.07) 1px, transparent 1px);background-size:15px 15px}
+
+/* --- 页面容器（用于动画演示） --- */
+.page{position:absolute;inset:0;padding:16px 15px 62px;overflow:hidden}
+.page.hidden{display:none}
+.ph-card{background:#fff;border:2.2px solid var(--ink);border-radius:14px;box-shadow:3px 4px 0 rgba(22,23,27,.13);
+  padding:11px 12px;margin-bottom:9px}
+.ph-card .t{font-family:var(--f-cn);font-size:13.5px}
+.ph-card .m{font-size:11.5px;color:var(--sub);margin-top:2px}
+.ph-hero{background:var(--accent);border:2.4px solid var(--ink);border-radius:16px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.16);padding:12px 14px;margin-bottom:11px;
+  display:flex;justify-content:space-between;align-items:flex-end}
+.ph-hero .n{font-family:var(--f-num);font-weight:700;font-size:32px;line-height:.9}
+
+/* --- 底部 Tab（演示用，固定） --- */
+.mini-tab{position:absolute;left:12px;right:12px;bottom:10px;z-index:20;
+  background:rgba(253,250,241,.98);border:2.3px solid var(--ink);border-radius:999px;
+  padding:4px;display:flex;gap:3px;box-shadow:3px 4px 0 rgba(22,23,27,.17)}
+.mini-tab button{flex:1;border:none;background:none;font-family:var(--f-cn);font-size:11px;
+  padding:9px 2px;border-radius:999px;cursor:pointer;color:var(--sub);transition:color .2s}
+.mini-tab button.on{background:var(--ink);color:#fdfaf1}
+
+/* ============ 页面过渡 · 方案 A：淡入淡出 ============ */
+.pf{opacity:1;transition:opacity .22s ease}
+.pf.out{opacity:0}
+.pf.in{opacity:0}
+.pf.in.on{opacity:1}
+
+/* ============ 页面过渡 · 方案 B：横向推移（像翻页） ============ */
+.sl{transition:transform .3s cubic-bezier(.22,1,.36,1)}
+.sl.from-right{transform:translateX(22%);opacity:0}
+.sl.from-left{transform:translateX(-22%);opacity:0}
+.sl.active{transform:translateX(0);opacity:1}
+
+/* ============ 页面过渡 · 方案 C：缩放上浮（iOS 感） ============ */
+.sz{transition:transform .34s cubic-bezier(.32,.72,0,1),opacity .28s ease}
+.sz.out{transform:scale(.94) translateY(8px);opacity:0}
+.sz.in{transform:scale(1.04);opacity:0}
+.sz.in.on{transform:scale(1);opacity:1}
+
+/* ============ 弹窗动画 · 方案 A：从按钮弹出 ============ */
+.mk-modal{position:absolute;inset:0;z-index:40;display:flex;align-items:flex-end;
+  justify-content:center;padding:14px 14px 74px;pointer-events:none}
+.mk-modal.show{pointer-events:auto}
+.mk-modal .scrim{position:absolute;inset:0;background:rgba(22,23,27,.3);opacity:0;
+  transition:opacity .24s ease}
+.mk-modal.show .scrim{opacity:1}
+.mk-modal .box{position:relative;width:100%;max-width:250px;background:var(--screen);
+  border:2.5px solid var(--ink);border-radius:18px;box-shadow:5px 6px 0 rgba(22,23,27,.24);
+  padding:15px 15px 14px;transform-origin:50% 100%;
+  transform:scale(.3) translateY(30px);opacity:0;
+  transition:transform .34s cubic-bezier(.34,1.4,.5,1),opacity .2s ease}
+.mk-modal.show .box{transform:scale(1) translateY(0);opacity:1}
+.mk-modal .box h3{margin:0 0 4px;font-family:var(--f-cn);font-size:16px;font-weight:400}
+.mk-modal .box p{margin:0 0 12px;font-size:12px;color:var(--sub)}
+.mk-btns{display:flex;gap:8px}
+.mk-btns button{flex:1;border:2.2px solid var(--ink);background:#fff;font-family:var(--f-cn);
+  font-size:13px;padding:9px 6px;border-radius:14px 5px 15px 6px/6px 15px 5px 14px;cursor:pointer}
+.mk-btns button.pri{background:var(--accent)}
+
+/* ============ 弹窗动画 · 方案 B：iOS26 玻璃缩放（从触发点起） ============ */
+.mk2 .box{
+  transform:scale(.12) translateY(120px);opacity:0;
+  transition:transform .42s cubic-bezier(.26,1.28,.42,1),opacity .22s ease,filter .3s}
+.mk2.show .box{transform:scale(1) translateY(0);opacity:1}
+/* ============ 弹窗动画 · 方案 C：上滑弹出（sheet 感） ============ */
+.mk3{align-items:flex-end;padding:0}
+.mk3 .box{width:100%;max-width:100%;border-radius:22px 22px 0 0;border-bottom:none;
+  box-shadow:0 -6px 0 rgba(22,23,27,.02);
+  transform:translateY(105%);opacity:1;
+  transition:transform .38s cubic-bezier(.22,1,.36,1)}
+.mk3.show .box{transform:translateY(0)}
+
+.trig{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
+  border:2.3px solid var(--ink);background:var(--accent);font-family:var(--f-cn);font-size:13px;
+  padding:9px 18px;border-radius:14px 5px 15px 6px/6px 15px 5px 14px;cursor:pointer;
+  box-shadow:2px 3px 0 rgba(22,23,27,.16);z-index:30}
+.trig:active{transform:translateX(-50%) translate(1px,2px);box-shadow:0 0 0 rgba(0,0,0,0)}
+.note{max-width:820px;margin:34px auto 0;background:#fff;border:2.3px solid var(--ink);
+  border-radius:16px;box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:16px 18px}
+.note h3{margin:0 0 10px;font-family:var(--f-cn);font-size:16px;font-weight:400}
+.note ul{margin:0;padding-left:20px;font-size:13.5px;line-height:1.85;color:var(--ink2)}
+.note b{font-family:var(--f-cn);font-weight:400;background:var(--hl-soft);border-radius:3px;padding:0 3px}
+</style>
+</head>
+<body>
+
+<h1>动画方案对比</h1>
+<p class="sub">每一项都能点着试。选好后告诉我编号（比如「页面用 B，弹窗用 A」）</p>
+
+<!-- ===================== 页面过渡 ===================== -->
+<h2>一、页面过渡（切 Tab 时的动画）</h2>
+<div class="row">
+
+  <div class="demo">
+    <p class="cap"><b>A · 淡入淡出</b><span>最轻，只有透明度变化。快、不打扰，但方向感弱</span></p>
+    <div class="stage" id="stA">
+      <div class="page pf on" data-p="0">
+        <div class="ph-hero"><span class="t">我的收纳</span><span class="n">124</span></div>
+        <div class="ph-card"><div class="t">衣物 45 件</div><div class="m">目标 30 · 超出 15</div></div>
+        <div class="ph-card"><div class="t">鞋包 18 件</div><div class="m">目标 20 · 还差 2</div></div>
+      </div>
+      <div class="page pf hidden" data-p="1">
+        <div class="ph-card"><div class="t">白 T 恤</div><div class="m">衣柜左上层 · ×6</div></div>
+        <div class="ph-card"><div class="t">灰色卫衣</div><div class="m">衣柜中层 · ×5</div></div>
+        <div class="ph-card"><div class="t">牛仔外套</div><div class="m">衣柜挂区 · ×2</div></div>
+      </div>
+      <div class="page pf hidden" data-p="2">
+        <div class="ph-card"><div class="t">微信</div><div class="m">社交 · 第一屏 · 必需</div></div>
+        <div class="ph-card"><div class="t">支付宝</div><div class="m">工具 · 第一屏 · 必需</div></div>
+        <div class="ph-card"><div class="t">小红书</div><div class="m">社交 · 第一屏 · 暂用</div></div>
+      </div>
+      <div class="mini-tab">
+        <button class="on" data-go="0">总览</button><button data-go="1">物品</button><button data-go="2">软件</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <p class="cap"><b>B · 横向推移</b><span>像翻页，新页面从侧边滑入。方向感最强，能感到"往哪走"</span></p>
+    <div class="stage" id="stB">
+      <div class="page sl active" data-p="0">
+        <div class="ph-hero"><span class="t">我的收纳</span><span class="n">124</span></div>
+        <div class="ph-card"><div class="t">衣物 45 件</div><div class="m">目标 30 · 超出 15</div></div>
+        <div class="ph-card"><div class="t">鞋包 18 件</div><div class="m">目标 20 · 还差 2</div></div>
+      </div>
+      <div class="page sl hidden" data-p="1">
+        <div class="ph-card"><div class="t">白 T 恤</div><div class="m">衣柜左上层 · ×6</div></div>
+        <div class="ph-card"><div class="t">灰色卫衣</div><div class="m">衣柜中层 · ×5</div></div>
+        <div class="ph-card"><div class="t">牛仔外套</div><div class="m">衣柜挂区 · ×2</div></div>
+      </div>
+      <div class="page sl hidden" data-p="2">
+        <div class="ph-card"><div class="t">微信</div><div class="m">社交 · 第一屏 · 必需</div></div>
+        <div class="ph-card"><div class="t">支付宝</div><div class="m">工具 · 第一屏 · 必需</div></div>
+        <div class="ph-card"><div class="t">小红书</div><div class="m">社交 · 第一屏 · 暂用</div></div>
+      </div>
+      <div class="mini-tab">
+        <button class="on" data-go="0">总览</button><button data-go="1">物品</button><button data-go="2">软件</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <p class="cap"><b>C · 缩放上浮</b><span>旧页轻微缩小退出，新页从略大浮入。最有 iOS 那种"空间感"</span></p>
+    <div class="stage" id="stC">
+      <div class="page sz on" data-p="0">
+        <div class="ph-hero"><span class="t">我的收纳</span><span class="n">124</span></div>
+        <div class="ph-card"><div class="t">衣物 45 件</div><div class="m">目标 30 · 超出 15</div></div>
+        <div class="ph-card"><div class="t">鞋包 18 件</div><div class="m">目标 20 · 还差 2</div></div>
+      </div>
+      <div class="page sz hidden" data-p="1">
+        <div class="ph-card"><div class="t">白 T 恤</div><div class="m">衣柜左上层 · ×6</div></div>
+        <div class="ph-card"><div class="t">灰色卫衣</div><div class="m">衣柜中层 · ×5</div></div>
+        <div class="ph-card"><div class="t">牛仔外套</div><div class="m">衣柜挂区 · ×2</div></div>
+      </div>
+      <div class="page sz hidden" data-p="2">
+        <div class="ph-card"><div class="t">微信</div><div class="m">社交 · 第一屏 · 必需</div></div>
+        <div class="ph-card"><div class="t">支付宝</div><div class="m">工具 · 第一屏 · 必需</div></div>
+        <div class="ph-card"><div class="t">小红书</div><div class="m">社交 · 第一屏 · 暂用</div></div>
+      </div>
+      <div class="mini-tab">
+        <button class="on" data-go="0">总览</button><button data-go="1">物品</button><button data-go="2">软件</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== 弹窗动画 ===================== -->
+<h2>二、弹窗动画（点按钮后卡片怎么出来）</h2>
+<div class="row">
+
+  <div class="demo">
+    <p class="cap"><b>A · 从按钮弹出（回弹）</b><span>从底部按钮位置放大弹起，带一点回弹手感。活泼、有"从哪来回哪去"的因果感</span></p>
+    <div class="stage" id="mkA">
+      <div class="ph-card"><div class="t">白 T 恤</div><div class="m">衣柜左上层 · ×6</div></div>
+      <div class="ph-card"><div class="t">灰色卫衣</div><div class="m">衣柜中层 · ×5</div></div>
+      <button class="trig" data-open="A">＋ 添加物品</button>
+      <div class="mk-modal">
+        <div class="scrim"></div>
+        <div class="box">
+          <h3>添加物品</h3>
+          <p>只有名称是必填的，其他都能以后再补</p>
+          <div class="mk-btns"><button data-close>取消</button><button class="pri" data-close>添加</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <p class="cap"><b>B · iOS26 式缩放浮起</b><span>从触发点极小处放大浮起，带轻微模糊→清晰的过渡。最"果味"，但略慢一点</span></p>
+    <div class="stage" id="mkB">
+      <div class="ph-card"><div class="t">白 T 恤</div><div class="m">衣柜左上层 · ×6</div></div>
+      <div class="ph-card"><div class="t">灰色卫衣</div><div class="m">衣柜中层 · ×5</div></div>
+      <button class="trig" data-open="B">＋ 添加物品</button>
+      <div class="mk-modal mk2">
+        <div class="scrim"></div>
+        <div class="box" style="filter:blur(6px)">
+          <h3>添加物品</h3>
+          <p>只有名称是必填的，其他都能以后再补</p>
+          <div class="mk-btns"><button data-close>取消</button><button class="pri" data-close>添加</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <p class="cap"><b>C · 底部上滑（卡片sheet）</b><span>从屏幕底部整块滑上来盖住大半屏。空间大、适合要填好几项的表单</span></p>
+    <div class="stage" id="mkC">
+      <div class="ph-card"><div class="t">白 T 恤</div><div class="m">衣柜左上层 · ×6</div></div>
+      <div class="ph-card"><div class="t">灰色卫衣</div><div class="m">衣柜中层 · ×5</div></div>
+      <button class="trig" data-open="C">＋ 添加物品</button>
+      <div class="mk-modal mk3">
+        <div class="scrim"></div>
+        <div class="box">
+          <h3>添加物品</h3>
+          <p>只有名称是必填的，其他都能以后再补</p>
+          <div class="mk-btns"><button data-close>取消</button><button class="pri" data-close>添加</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="note">
+  <h3>怎么选</h3>
+  <ul>
+    <li><b>页面过渡</b>：A 最轻快但方向感弱；B 方向感最强、最有"翻页"的踏实感；C 最有 iOS 那种空间感，但每次切都缩一下，久用可能觉得多。</li>
+    <li><b>弹窗</b>：A 有明确的"从按钮长出"的因果，最贴合手账的活泼气质；B 最像 iOS26，但要配模糊处理，手机上可能略费性能；C 视觉最开阔，但表单只有两三个字段时会显得"小题大做"。</li>
+    <li>两项可以自由组合，比如「页面用 C、弹窗用 A」。</li>
+  </ul>
+</div>
+
+<script>
+/* ---------- 页面过渡演示 ---------- */
+function setupPageDemo(stageId, mode){
+  const stage = document.getElementById(stageId);
+  const pages = [...stage.querySelectorAll('.page')];
+  const btns = [...stage.querySelectorAll('.mini-tab button')];
+  let cur = 0, busy = false;
+
+  btns.forEach(b => b.addEventListener('click', () => {
+    const to = Number(b.dataset.go);
+    if (to === cur || busy) return;
+    busy = true;
+    btns.forEach(x => x.classList.toggle('on', x === b));
+
+    const from = pages[cur], next = pages[to];
+    const forward = to > cur;
+
+    if (mode === 'fade'){
+      from.classList.remove('on');
+      next.classList.remove('hidden');
+      next.classList.remove('on');           // 从透明开始
+      requestAnimationFrame(() => next.classList.add('on'));
+      setTimeout(() => { from.classList.add('hidden'); busy = false; }, 240);
+    }
+    else if (mode === 'slide'){
+      next.classList.remove('hidden');
+      next.classList.remove('from-right','from-left','active');
+      next.classList.add(forward ? 'from-right' : 'from-left');
+      requestAnimationFrame(() => { next.classList.add('active'); next.classList.remove('from-right','from-left'); });
+      setTimeout(() => { from.classList.add('hidden'); busy = false; }, 300);
+    }
+    else {
+      from.classList.add('out');
+      next.classList.remove('hidden');
+      next.classList.remove('on');
+      requestAnimationFrame(() => next.classList.add('on'));
+      setTimeout(() => {
+        from.classList.add('hidden'); from.classList.remove('out');
+        busy = false;
+      }, 340);
+    }
+    cur = to;
+  }));
+}
+setupPageDemo('stA', 'fade');
+setupPageDemo('stB', 'slide');
+setupPageDemo('stC', 'zoom');
+
+/* ---------- 弹窗演示 ---------- */
+document.querySelectorAll('[data-open]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const stage = btn.closest('.stage');
+    const mk = stage.querySelector('.mk-modal');
+    if (btn.dataset.open === 'B'){
+      // iOS26 式：从按钮位置起算 scale 的原点
+      const box = mk.querySelector('.box');
+      const br = btn.getBoundingClientRect(), sr = box.getBoundingClientRect();
+      const ox = ((br.left + br.width/2) - sr.left) / sr.width * 100;
+      const oy = ((br.top + br.height/2) - sr.top) / sr.height * 100;
+      box.style.transformOrigin = `${Math.max(0, Math.min(100, ox))}% ${Math.max(0, Math.min(100, oy))}%`;
+      box.style.filter = 'blur(6px)';
+      mk.classList.add('show');
+      requestAnimationFrame(() => { box.style.filter = 'blur(0)'; });
+    } else {
+      mk.classList.add('show');
+    }
+  });
+});
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mk = btn.closest('.mk-modal');
+    const box = mk.querySelector('.box');
+    if (mk.classList.contains('mk2')) box.style.filter = 'blur(6px)';
+    mk.classList.remove('show');
+  });
+});
+document.querySelectorAll('.scrim').forEach(s => {
+  s.addEventListener('click', () => {
+    const mk = s.closest('.mk-modal');
+    const box = mk.querySelector('.box');
+    if (mk.classList.contains('mk2')) box.style.filter = 'blur(6px)';
+    mk.classList.remove('show');
+  });
+});
+</script>
+</body>
+</html>
