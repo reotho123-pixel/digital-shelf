@@ -3463,10 +3463,18 @@ function renderAll(){
 
 async function boot(){
   // 先立刻渲染，保证界面马上可用（不阻塞在数据库上）
-  renderAll();
-  showTab('home');
-  syncTabInd();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
+  try {
+    renderAll();
+    showTab('home');
+    syncTabInd();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
+  } catch (e) {
+    // 渲染失败也不能让页面空着：把错误显示出来便于排查
+    console.error('[电子收纳] 首次渲染失败', e);
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div style="position:fixed;left:8px;right:8px;top:8px;z-index:9999;background:#fff;border:2px solid #c33f5c;border-radius:10px;padding:10px;font:12px/1.5 monospace;white-space:pre-wrap">渲染出错：' + (e && e.message) + '</div>');
+    return;
+  }
 
   // 再异步读库；读完如果有数据就重绘一次
   try {
