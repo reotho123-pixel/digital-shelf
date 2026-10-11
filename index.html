@@ -1,0 +1,3437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fdfaf1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="电子收纳">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<title>电子收纳 · 手账版原型</title>
+<style>
+@font-face{font-family:'ZCOOLKuaiLe';src:url('./fonts/zcoolkuaile.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'ZCOOLQingKe';src:url('./fonts/zcoolqingke.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'MaShanZheng';src:url('./fonts/mashanzheng.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Kalam';src:url('./fonts/kalam700.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'PatrickHand';src:url('./fonts/patrickhand.woff2') format('woff2');font-display:swap}
+
+:root{
+  --paper:#ecebe4;
+  --screen:#fdfaf1;
+  --ink:#16171b;
+  --ink2:#3b3d45;
+  --sub:#8b8c94;
+  --accent:#c9e8cf;          /* 主色：浅绿（涂笔、按钮、加号） */
+  --accent-deep:#6fa87d;     /* 主色加深：角标、通知点 */
+  --hl:rgba(201,232,207,.92);      /* 荧光笔高亮块 / 胶带 */
+  --hl-soft:rgba(201,232,207,.85); /* 更淡一层，用于说明条 */
+  --blue:#c9e8cf;
+  --blue-deep:#7fb08a;       /* 蓝绿互换后：原 --blue-deep 位 → 绿 */
+  --green:#7fb0d4;           /* 蓝绿互换后：原 --green 位 → 蓝（进度条达标/接近用） */
+  --warn:#d9861f;
+  --hr:2.3px;
+  --f-cn:'ZCOOLKuaiLe','MaShanZheng',sans-serif;
+  --f-num:'Kalam','PatrickHand',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+/* iOS 在字号 <16px 的输入框聚焦时会自动放大整个页面，且退出后不会还原。
+   所有输入类元素字号一律 ≥16px，彻底避免这个问题。 */
+input,textarea,select{font-size:16px !important}
+body{
+  position:relative;background:var(--screen);color:var(--ink);
+  font-family:'PatrickHand','ZCOOLKuaiLe',-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.42;-webkit-font-smoothing:antialiased;
+  overflow:hidden;
+  background-image:radial-gradient(circle, rgba(22,23,27,.075) 1px, transparent 1px);
+  background-size:16px 16px;
+}
+.wrap{position:relative;z-index:1;width:100%;height:100%}
+.stage{width:100%;height:100%}
+
+/* 真机全屏：手机上直接铺满，桌面上才画一个手机框便于预览 */
+.phone{position:relative;width:100%;height:100%;background:var(--screen);overflow:hidden}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 104px);
+  scrollbar-width:none;display:none;-webkit-overflow-scrolling:touch}
+.screen::-webkit-scrollbar{display:none}
+.screen.on{display:block}
+
+/* 桌面预览：给个手机框，方便电脑上看 */
+@media (min-width: 620px){
+  body{
+    background:#ecebe4;
+    background-image:radial-gradient(circle, rgba(22,23,27,.075) 1px, transparent 1px);
+    background-size:16px 16px;
+    overflow:auto;padding:40px 20px;
+  }
+  .wrap{max-width:760px;margin:0 auto;height:auto}
+  .stage{display:flex;justify-content:center}
+  .phone{width:378px;height:812px;border-radius:42px;border:2.8px solid var(--ink);
+    box-shadow:7px 9px 0 rgba(22,23,27,.13);flex:0 0 auto}
+  .screen{padding:22px 20px 104px}
+  /* 桌面预览时安全区为 0，位置固定即可 */
+  .tabbar{bottom:17px}
+  .fab{right:22px;bottom:96px}
+  .toast{bottom:104px}
+}
+
+/* 顶栏 */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.topbar .grp{display:flex;gap:10px;align-items:center}
+.avatar{width:46px;height:46px;display:grid;place-items:center;background:var(--accent);
+  border:2.3px solid var(--ink);font-family:var(--f-cn);font-size:19px;
+  border-radius:50% 46% 52% 48%/48% 52% 46% 50%;transform:rotate(-3deg);box-shadow:2px 3px 0 rgba(22,23,27,.15)}
+.circ{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;position:relative;flex:0 0 auto;
+  box-shadow:2px 3px 0 rgba(22,23,27,.14)}
+.circ svg{width:20px;height:20px}
+.circ .dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;
+  background:var(--accent-deep);border:1.5px solid var(--ink)}
+.c1{border-radius:50% 44% 50% 46%/46% 50% 44% 50%}
+.c2{border-radius:45% 50% 46% 50%/50% 46% 50% 45%}
+.back{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);display:grid;place-items:center;
+  cursor:pointer;box-shadow:2px 3px 0 rgba(22,23,27,.14);border-radius:46% 50% 44% 50%/50% 44% 50% 46%}
+.back svg{width:20px;height:20px}
+
+/* 主卡 */
+.hero{position:relative;margin-bottom:19px;transform:rotate(-.7deg)}
+.hero svg{display:block;width:100%;height:auto}
+.hero .over{position:absolute;inset:0;padding:14px 19px 13px;display:flex;flex-direction:column;justify-content:space-between}
+.hero .ttl{font-family:var(--f-cn);font-size:21px;line-height:1.1;text-shadow:0 1px 0 rgba(255,255,255,.42)}
+.hero .mid{display:flex;align-items:flex-end;justify-content:space-between;margin-top:2px}
+.hero .split{font-size:13px;line-height:1.6;opacity:.85;font-family:'PatrickHand',sans-serif;text-shadow:0 1px 0 rgba(255,255,255,.38)}
+.hero .big{font-family:var(--f-num);font-weight:700;font-size:52px;line-height:.84;text-shadow:0 1px 0 rgba(255,255,255,.42)}
+.hero .foot{display:flex;justify-content:space-between;font-size:13.5px;font-family:'PatrickHand',sans-serif;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.tape{position:absolute;width:74px;height:25px;z-index:5;opacity:.8;box-shadow:0 1px 4px rgba(22,23,27,.13);
+  clip-path:polygon(0 3%,4% 0,96% 2%,100% 0,99% 96%,95% 100%,5% 98%,1% 100%)}
+.tape.p{background:var(--hl)}
+.tape.b{background:rgba(214,205,238,.88)}
+
+/* 区块标题 */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 11px}
+.sec-head b{position:relative;display:inline-block;font-family:var(--f-cn);font-size:18px;font-weight:400}
+.sec-head b::after{content:'';position:absolute;left:-6px;right:-7px;bottom:2px;height:10px;z-index:-1;
+  background:var(--hl);border-radius:3px 10px 4px 11px;transform:rotate(-.8deg)}
+.sec-head a{font-size:13px;color:var(--sub);text-decoration:none;font-family:'PatrickHand',sans-serif;cursor:pointer}
+
+/* 目标卡 */
+.goal{background:#fff;border:var(--hr) solid var(--ink);border-radius:20px;
+  box-shadow:5px 6px 0 rgba(22,23,27,.15);padding:13px 17px 14px;transform:rotate(-.4deg)}
+.goal .r1{display:flex;align-items:flex-end;justify-content:space-between}
+.goal .big{display:flex;align-items:baseline;gap:5px}
+.goal .big .n{font-family:var(--f-num);font-weight:700;font-size:43px;line-height:.85}
+.goal .big .of{font-size:18px;color:var(--sub);font-family:var(--f-num);font-weight:700}
+.tag{font-size:12.5px;padding:4px 10px;border:2px solid var(--ink);
+  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;background:rgba(91,152,200,.22);
+  color:#3d6f9e;transform:rotate(-1.6deg);display:inline-block;font-family:var(--f-cn)}
+.gbar{margin:11px 0 8px}
+.gbar svg{display:block;width:100%;height:auto}
+.hint{font-size:13px;color:var(--sub)}
+
+/* 快捷入口 */
+.quick{display:flex;justify-content:space-between;gap:6px;margin:16px 0 18px}
+.qa{flex:1;border:none;background:none;font-family:var(--f-cn);font-size:12.5px;color:var(--ink2);
+  display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;padding:0;line-height:1.25}
+.qa .ic{width:48px;height:48px;display:grid;place-items:center;background:#fff;border:2.3px solid var(--ink);
+  border-radius:16px 6px 17px 7px/7px 17px 6px 16px;box-shadow:2px 3px 0 rgba(22,23,27,.14)}
+.qa .ic svg{width:21px;height:21px}
+.qa .ic.hot{background:var(--accent)}
+.qa:nth-child(odd) .ic{transform:rotate(-2.2deg)}
+.qa:nth-child(even) .ic{transform:rotate(2.2deg)}
+
+/* 分类网格 */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.cat{background:#fff;border:var(--hr) solid var(--ink);border-radius:15px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.15);padding:11px 13px 12px;cursor:pointer;
+  transform:rotate(-.55deg);transition:transform .12s,box-shadow .12s}
+.cat:nth-child(even){transform:rotate(.6deg)}
+.cat:active{transform:translate(2px,3px) rotate(0deg);box-shadow:1px 2px 0 rgba(22,23,27,.15)}
+.cat .ct{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.cat .ct .dot{width:11px;height:11px;border-radius:50% 44% 52% 46%;border:1.7px solid var(--ink)}
+.cat .ct span{font-size:14.5px;font-family:var(--f-cn)}
+.cat .ct .arw{margin-left:auto;font-size:12px;color:var(--sub);font-family:'PatrickHand',sans-serif}
+.cat .cn{display:flex;align-items:baseline;gap:4px;margin-bottom:7px}
+.cat .cn .n{font-family:var(--f-num);font-weight:700;font-size:31px;line-height:.85}
+.cat .cn small{font-size:12px;color:var(--sub)}
+.cat .cg{font-size:11.5px;color:var(--sub);margin-top:6px}
+.cat .cg.over{color:#b8700f}
+.mbar{height:8px;position:relative}
+.mbar .tr{position:absolute;inset:0;border:1.9px solid var(--ink);border-radius:5px 2px 6px 3px/3px 6px 2px 5px;background:rgba(22,23,27,.05)}
+.mbar .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:4px 2px 5px 2px/2px 5px 2px 4px}
+.cat.add{border-style:dashed;background:rgba(255,255,255,.6);box-shadow:3px 4px 0 rgba(22,23,27,.1);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:112px;text-align:center}
+.cat.add svg{width:26px;height:26px}
+.cat.add span{font-family:var(--f-cn);font-size:13.5px;color:var(--ink2)}
+.cat.add small{font-size:11px;color:var(--sub)}
+
+/* 物品列表页 */
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.page-head h2{margin:0;font-family:var(--f-cn);font-size:23px;font-weight:400}
+.page-head .cnt{font-size:12.5px;color:var(--sub);font-family:'PatrickHand',sans-serif}
+.search{display:flex;align-items:center;gap:9px;background:#fff;border:2.2px solid var(--ink);
+  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;padding:10px 13px;margin-bottom:13px;
+  box-shadow:3px 4px 0 rgba(22,23,27,.12)}
+.search svg{width:17px;height:17px;flex:0 0 auto;color:var(--sub)}
+.search input{border:none;outline:none;background:none;font-family:'PatrickHand',sans-serif;
+  font-size:14px;width:100%;color:var(--ink)}
+.search input::placeholder{color:#a9aab2}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:2.1px solid var(--ink);background:#fff;font-family:var(--f-cn);
+  font-size:13px;padding:6px 13px;cursor:pointer;color:var(--ink2);
+  border-radius:13px 5px 14px 6px/6px 14px 5px 13px;box-shadow:2px 2px 0 rgba(22,23,27,.12);
+  transition:background .12s,transform .1s}
+.chip.on{background:var(--accent);color:var(--ink);transform:rotate(-1.2deg);box-shadow:2px 3px 0 rgba(22,23,27,.18)}
+.chip:active{transform:translate(1px,2px);box-shadow:1px 1px 0 rgba(22,23,27,.12)}
+.chip .n{font-family:'PatrickHand',sans-serif;font-size:11.5px;opacity:.62;margin-left:3px}
+.chips.small .chip{font-size:12px;padding:5px 11px}
+.chip.plus{border-style:dashed;color:var(--sub);background:rgba(255,255,255,.55)}
+.chipRow{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.chipRow .lb{font-family:var(--f-cn);font-size:11.5px;color:var(--sub);flex:0 0 auto;width:26px}
+.chipRow .chips{flex:1;padding-bottom:7px}
+.count-row{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 11px}
+.count-row b{font-family:var(--f-cn);font-size:14.5px;font-weight:400}
+.count-row span{font-size:12.5px;color:var(--sub);font-family:'PatrickHand',sans-serif}
+
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.icard{background:#fff;border:2.2px solid var(--ink);border-radius:14px;overflow:hidden;
+  box-shadow:4px 5px 0 rgba(22,23,27,.14);transition:transform .12s,box-shadow .12s;position:relative}
+.icard:nth-child(odd){transform:rotate(-.5deg)}
+.icard:nth-child(even){transform:rotate(.5deg)}
+.icard .ph{position:relative;aspect-ratio:1/1;display:grid;place-items:center;
+  border-bottom:2.2px solid var(--ink);cursor:pointer;overflow:hidden}
+.icard .ph svg{width:52%;height:52%;color:var(--ink);opacity:.82}
+.icard .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.icard .ph .addph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;font-family:var(--f-cn);font-size:11px;color:var(--ink2);opacity:.72}
+.icard .ph .addph svg{width:22px;height:22px;opacity:.8}
+.icard .ph .qty{position:absolute;bottom:7px;right:7px;font-family:var(--f-num);font-weight:700;font-size:14px;
+  background:#fff;border:1.9px solid var(--ink);border-radius:9px 3px 10px 4px/4px 10px 3px 9px;padding:1px 7px;z-index:3}
+.icard .ph .lk{position:absolute;top:7px;right:7px;width:23px;height:23px;z-index:3;cursor:pointer;
+  display:grid;place-items:center;transition:transform .12s;background:none;border:none;padding:0}
+.icard .ph .lk:active{transform:scale(.86)}
+.icard .ph .lk::after{content:'';position:absolute;inset:-8px}
+/* <use> 影子树里外部类选择器无效，只能用继承属性：fill / stroke / stroke-width 写在外层 svg 上 */
+.icard .ph .lk svg{width:23px;height:23px;overflow:visible;
+  fill:var(--lkc,#fff);stroke:var(--ink);stroke-width:2;stroke-linejoin:round;
+  paint-order:stroke fill}
+.icard .ph .st{position:absolute;bottom:7px;left:7px;font-family:var(--f-cn);font-size:10.5px;
+  background:rgba(255,255,255,.95);border:1.8px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;
+  padding:1px 7px;cursor:pointer;z-index:3;transition:transform .12s}
+.icard .ph .st:active{transform:translate(1px,1px)}
+.icard .ph .st::after{content:'';position:absolute;inset:-7px}
+/* 归类小菜单（浮在卡片上） */
+.pop{position:absolute;z-index:40;background:var(--screen);border:2.4px solid var(--ink);
+  border-radius:14px 6px 15px 7px/7px 15px 6px 14px;box-shadow:5px 6px 0 rgba(22,23,27,.22);
+  padding:7px;display:none;min-width:112px}
+.pop.on{display:block}
+.pop .pi{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;
+  font-family:var(--f-cn);font-size:13px;border-radius:10px 4px 11px 5px/5px 11px 4px 10px;white-space:nowrap}
+.pop .pi:active{background:rgba(22,23,27,.07)}
+.pop .pi.sel{background:rgba(22,23,27,.075)}
+.pop .pi .mk{width:18px;height:18px;flex:0 0 auto;display:grid;place-items:center}
+.pop .pi .mk svg{width:18px;height:18px;overflow:visible;
+  fill:var(--lkc,#fff);stroke:var(--ink);stroke-width:2;stroke-linejoin:round;paint-order:stroke fill}
+.pop .pi .ck{margin-left:auto;font-family:'PatrickHand',sans-serif;font-size:13px;color:var(--ink2)}
+.icard .ph .delph{position:absolute;top:7px;left:7px;width:23px;height:23px;border-radius:50%;
+  background:#fff;border:1.9px solid var(--ink);display:grid;place-items:center;cursor:pointer;z-index:4}
+.icard .ph .delph svg{width:12px;height:12px;opacity:1}
+.icard .meta{padding:8px 9px 9px;display:flex;flex-direction:column;gap:5px}
+/* 卡片上的就地编辑：名称 */
+.icard .meta .row-name{display:flex;align-items:center;gap:5px}
+.icard .nm-in{flex:1;min-width:0;border:none;background:transparent;padding:2px 0;
+  font-family:var(--f-cn);font-size:14px;color:var(--ink);outline:none;
+  border-bottom:1.6px dashed transparent;transition:border-color .15s}
+.icard .nm-in:focus{border-bottom-color:var(--ink)}
+.icard .nm-in::placeholder{color:#b5b6bd}
+/* 使用次数按钮 */
+.icard .use-btn{width:26px;height:26px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
+  background:var(--accent);border:1.9px solid var(--ink);display:grid;place-items:center;
+  cursor:pointer;box-shadow:1px 2px 0 rgba(22,23,27,.14);transition:transform .12s}
+.icard .use-btn svg{width:14px;height:14px}
+.icard .use-btn:active{transform:scale(.86)}
+.icard .use-btn.bump{animation:useBump .45s}
+@keyframes useBump{
+  0%{transform:scale(1)} 35%{transform:scale(1.28)} 65%{transform:scale(.94)} 100%{transform:scale(1)}
+}
+/* 位置 / 日期 */
+.icard .loc-in,.icard .date-in{width:100%;border:none;background:transparent;padding:1px 0;
+  font-size:12px;color:var(--sub);outline:none;
+  font-family:'PatrickHand','ZCOOLKuaiLe',sans-serif;
+  border-bottom:1.6px dashed transparent;transition:border-color .15s}
+.icard .loc-in:focus,.icard .date-in:focus{border-bottom-color:var(--ink);color:var(--ink)}
+.icard .loc-in::placeholder{color:#c2c3c9}
+.icard .date-in{color:#8b8c94;font-size:11.5px}
+.icard .date-in:not(:focus):not([value]):not(:valid){color:#c2c3c9}
+.icard .ph .use{position:absolute;right:7px;bottom:7px;font-family:var(--f-cn);font-size:10px;
+  background:rgba(255,255,255,.94);border:1.7px solid var(--ink);
+  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:1px 6px;z-index:3}
+.icard.todo .ph{filter:saturate(.35)}
+.icard.add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  min-height:180px;border-style:dashed;background:rgba(255,255,255,.6);
+  box-shadow:3px 4px 0 rgba(22,23,27,.1);cursor:pointer}
+.icard.add svg{width:30px;height:30px}
+.icard.add span{font-family:var(--f-cn);font-size:13.5px;color:var(--ink2)}
+.icard.add small{font-size:11px;color:var(--sub)}
+.empty{background:#fff;border:2.2px dashed var(--ink);border-radius:16px;padding:26px 18px;text-align:center}
+.empty b{display:block;font-family:var(--f-cn);font-size:15px;font-weight:400;margin-bottom:7px}
+.empty span{font-size:13px;color:var(--sub)}
+
+/* 悬浮添加（贴安全区之上） */
+.fab{position:absolute;right:20px;width:56px;height:56px;background:var(--accent);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+  border:2.4px solid var(--ink);display:none;place-items:center;cursor:pointer;z-index:12;
+  border-radius:50% 46% 52% 48%/48% 52% 46% 50%;box-shadow:3px 4px 0 rgba(22,23,27,.2)}
+.fab svg{width:24px;height:24px}
+.fab:active{transform:translate(2px,3px);box-shadow:1px 2px 0 rgba(22,23,27,.2)}
+
+/* ===== 底部 Tab：胶囊容器 + 滑动选中块 ===== */
+.tabbar{position:absolute;left:15px;right:15px;z-index:14;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 17px);
+  background:rgba(253,250,241,.98);border:2.6px solid var(--ink);
+  border-radius:999px;box-shadow:4px 5px 0 rgba(22,23,27,.17);
+  padding:5px;display:flex;gap:3px;transform:rotate(-.35deg);
+  touch-action:none;user-select:none;-webkit-user-select:none}
+/* 滑动指示块：跟着选中项平移 */
+.tab-ind{position:absolute;top:5px;bottom:5px;left:5px;width:60px;border-radius:999px;
+  background:var(--ink);z-index:0;pointer-events:none;
+  transition:transform .3s cubic-bezier(.34,1.4,.5,1),width .3s cubic-bezier(.34,1.4,.5,1)}
+.tabbar.dragging .tab-ind{transition:none}
+.tb{flex:1;border:none;background:none;font-family:var(--f-cn);font-size:11px;color:var(--sub);
+  display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;
+  padding:10px 2px;border-radius:999px;position:relative;z-index:1;
+  transition:color .2s}
+.tb svg{width:17px;height:17px;color:var(--ink2);opacity:.6;flex:0 0 auto;transition:color .2s,opacity .2s}
+.tb.on{color:#fdfaf1}
+.tb.on svg{color:#fdfaf1;opacity:1}
+.tb .badge{min-width:15px;height:15px;padding:0 4px;background:var(--accent-deep);color:#fff;
+  border:1.5px solid var(--ink);border-radius:8px 3px 9px 4px;font-family:'PatrickHand',sans-serif;
+  font-size:10px;line-height:12px;text-align:center;flex:0 0 auto;transition:background .2s,color .2s}
+.tb.on .badge{background:var(--accent);color:var(--ink);border-color:#fdfaf1}
+
+/* ===== 弹层 ===== */
+.mask{position:absolute;inset:0;background:rgba(22,23,27,.36);z-index:30;display:none;
+  align-items:center;justify-content:center;padding:22px}
+.mask.on{display:flex}
+.modal{background:var(--screen);border:2.6px solid var(--ink);border-radius:19px;
+  box-shadow:6px 7px 0 rgba(22,23,27,.24);padding:17px 17px 15px;width:100%;max-width:296px;
+  transform:rotate(-.5deg);max-height:88%;overflow-y:auto;scrollbar-width:none}
+.modal::-webkit-scrollbar{display:none}
+.modal h3{margin:0 0 4px;font-family:var(--f-cn);font-size:17.5px;font-weight:400}
+.modal .mhint{margin:0 0 14px;font-size:12.5px;color:var(--sub)}
+.modal label{display:block;font-family:var(--f-cn);font-size:13px;margin:0 0 6px;color:var(--ink2)}
+.modal .fld{margin-bottom:14px}
+.modal input[type=text]{width:100%;border:2.1px solid var(--ink);background:#fff;
+  border-radius:12px 5px 13px 6px/6px 13px 5px 12px;padding:10px 12px;font-family:'PatrickHand',sans-serif;
+  font-size:14.5px;color:var(--ink);outline:none}
+.modal input[type=text]::placeholder{color:#a9aab2}
+.modal .mrow{display:flex;gap:9px;margin-top:16px}
+.btn{flex:1;border:2.2px solid var(--ink);font-family:var(--f-cn);font-size:14px;padding:11px 8px;
+  cursor:pointer;border-radius:14px 5px 15px 6px/6px 15px 5px 14px;background:#fff;color:var(--ink);
+  box-shadow:2px 3px 0 rgba(22,23,27,.16)}
+.btn:active{transform:translate(1px,2px);box-shadow:1px 1px 0 rgba(22,23,27,.16)}
+.btn.pri{background:var(--accent)}
+.btn.dan{background:#f3c9d8}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper button{width:38px;height:38px;border:2.2px solid var(--ink);background:#fff;cursor:pointer;
+  border-radius:13px 5px 14px 6px/6px 14px 5px 13px;display:grid;place-items:center;
+  box-shadow:2px 2px 0 rgba(22,23,27,.14)}
+.stepper button svg{width:15px;height:15px}
+.stepper button:active{transform:translate(1px,2px);box-shadow:0 0 0 rgba(0,0,0,0)}
+.stepper .v{font-family:var(--f-num);font-weight:700;font-size:24px;min-width:40px;text-align:center}
+.optlist{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:10px;border:2.1px solid var(--ink);background:#fff;
+  padding:10px 13px;cursor:pointer;border-radius:13px 5px 14px 6px/6px 14px 5px 13px;
+  box-shadow:2px 3px 0 rgba(22,23,27,.12);font-family:var(--f-cn);font-size:14px}
+.opt:active{transform:translate(1px,2px);box-shadow:1px 1px 0 rgba(22,23,27,.12)}
+.opt.sel{background:var(--accent)}
+.opt .dot{width:12px;height:12px;border-radius:50% 44% 52% 46%;border:1.8px solid var(--ink);flex:0 0 auto}
+.opt .sub{margin-left:auto;font-family:'PatrickHand',sans-serif;font-size:11.5px;color:var(--sub)}
+.opt.sel .sub{color:var(--ink2)}
+
+/* ===== 软件列表 ===== */
+.alist{display:flex;flex-direction:column;gap:9px}
+.arow{display:flex;align-items:center;gap:11px;background:#fff;border:2.2px solid var(--ink);
+  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;padding:10px 12px;
+  box-shadow:3px 4px 0 rgba(22,23,27,.13);position:relative}
+.arow:nth-child(odd){transform:rotate(-.35deg)}
+.arow:nth-child(even){transform:rotate(.35deg)}
+.arow .ic{width:42px;height:42px;flex:0 0 auto;border:2.1px solid var(--ink);display:grid;place-items:center;
+  border-radius:13px 5px 14px 6px/6px 14px 5px 13px;font-family:var(--f-cn);font-size:17px;
+  overflow:hidden;cursor:pointer;position:relative}
+.arow .ic img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.arow .tx{flex:1;min-width:0;cursor:pointer}
+.arow .tx b{display:block;font-family:var(--f-cn);font-size:14.5px;font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .tx span{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .need{flex:0 0 auto;font-family:var(--f-cn);font-size:11px;padding:3px 9px;border:1.9px solid var(--ink);
+  border-radius:10px 4px 11px 5px/5px 11px 4px 10px;cursor:pointer}
+.arow .need:active{transform:translate(1px,1px)}
+.arow .del{width:24px;height:24px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
+  background:#fff;border:1.9px solid var(--ink);display:grid;place-items:center;cursor:pointer}
+.arow .del svg{width:13px;height:13px}
+.arow.todel{opacity:.72}
+.alist .addrow{display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;
+  border:2.2px dashed var(--ink);background:rgba(255,255,255,.6);border-radius:15px 6px 16px 7px/7px 16px 6px 15px;
+  box-shadow:3px 4px 0 rgba(22,23,27,.1);cursor:pointer;font-family:var(--f-cn);font-size:13.5px;color:var(--ink2)}
+.alist .addrow svg{width:22px;height:22px}
+
+/* ===== 极简进程页 ===== */
+/* 总目标卡 */
+.pg-total{background:#fff;border:2.3px solid var(--ink);border-radius:19px 7px 20px 8px/8px 20px 7px 19px;
+  box-shadow:5px 6px 0 rgba(22,23,27,.15);padding:14px 16px 15px;margin-bottom:14px;transform:rotate(-.35deg)}
+.pg-total .row1{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:11px}
+.pg-total .big{display:flex;align-items:baseline;gap:5px}
+.pg-total .big .n{font-family:var(--f-num);font-weight:700;font-size:44px;line-height:.85}
+.pg-total .big .of{font-family:var(--f-num);font-weight:700;font-size:19px;color:var(--sub)}
+.pg-total .lb{font-family:var(--f-cn);font-size:12.5px;color:var(--sub)}
+.pg-bar{margin-bottom:9px}
+.pg-bar .tr{height:11px;border:2.2px solid var(--ink);border-radius:7px 3px 8px 4px/4px 8px 3px 7px;
+  background:rgba(22,23,27,.05);position:relative;overflow:hidden}
+.pg-bar .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:5px 2px 6px 3px/3px 6px 2px 5px;
+  transition:width .4s}
+.pg-sub{display:flex;justify-content:space-between;font-size:12.5px;color:var(--sub)}
+.pg-setbtn{border:2px solid var(--ink);background:#fff;font-family:var(--f-cn);font-size:11.5px;
+  padding:4px 10px;cursor:pointer;border-radius:10px 4px 11px 5px/5px 11px 4px 10px;
+  box-shadow:2px 2px 0 rgba(22,23,27,.12)}
+.pg-setbtn:active{transform:translate(1px,1px);box-shadow:0 0 0 rgba(0,0,0,0)}
+
+/* 分类目标列表 */
+.pg-sec{background:#fff;border:2.3px solid var(--ink);border-radius:18px 7px 19px 8px/8px 19px 7px 18px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:5px 15px;margin-bottom:14px}
+.pg-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1.7px dashed rgba(22,23,27,.16)}
+.pg-row:last-child{border-bottom:none}
+.pg-row .nm{font-family:var(--f-cn);font-size:13.5px;flex:0 0 auto;width:38px}
+.pg-row .bar{flex:1;height:9px;position:relative}
+.pg-row .bar .tr{position:absolute;inset:0;border:2px solid var(--ink);
+  border-radius:6px 3px 7px 3px/3px 7px 3px 6px;background:rgba(22,23,27,.05)}
+.pg-row .bar .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:4px 2px 5px 2px/2px 5px 2px 4px}
+.pg-row .vv{font-family:'PatrickHand',sans-serif;font-size:13px;font-weight:700;flex:0 0 auto;
+  min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.pg-row .flag{font-family:var(--f-cn);font-size:10.5px;padding:2px 7px;border:1.8px solid var(--ink);
+  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;flex:0 0 auto}
+
+/* 趋势图 */
+.pg-chart{background:#fff;border:2.3px solid var(--ink);border-radius:18px 7px 19px 8px/8px 19px 7px 18px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:14px 15px 12px;margin-bottom:14px}
+.pg-chart .ch-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pg-chart .ch-head b{font-family:var(--f-cn);font-size:15px;font-weight:400}
+.pg-svgbox{position:relative;height:172px;margin:4px 0 8px}
+.pg-svgbox svg{display:block;width:100%;height:100%;overflow:visible}
+.pg-tabs{display:flex;gap:5px}
+.pg-tabs button{flex:1;border:2.1px solid var(--ink);background:#fff;font-family:var(--f-cn);
+  font-size:11.5px;padding:7px 1px;cursor:pointer;color:var(--ink2);
+  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;box-shadow:2px 2px 0 rgba(22,23,27,.1)}
+.pg-tabs button.on{background:var(--accent);color:var(--ink);transform:rotate(-1deg);
+  box-shadow:2px 3px 0 rgba(22,23,27,.16)}
+.pg-summary{font-size:12.5px;color:var(--sub);margin-top:9px;line-height:1.5}
+
+/* 里程碑条 */
+.pg-mile{background:var(--accent);border:2.3px solid var(--ink);border-radius:16px 6px 17px 7px/7px 17px 6px 16px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.16);padding:13px 15px;transform:rotate(-.5deg);position:relative}
+.pg-mile .tt{font-family:var(--f-cn);font-size:13.5px;line-height:1.6}
+.pg-mile .tt b{font-family:var(--f-num);font-size:19px;font-weight:700}
+.pg-mile .sm{font-size:12px;opacity:.72;margin-top:3px}
+.pg-empty{background:#fff;border:2.2px dashed var(--ink);border-radius:16px;padding:24px 18px;text-align:center}
+.pg-empty b{display:block;font-family:var(--f-cn);font-size:15px;font-weight:400;margin-bottom:7px}
+.pg-empty span{font-size:13px;color:var(--sub);line-height:1.6}
+
+/* ===== 设置页 ===== */
+.st-sec{background:#fff;border:2.3px solid var(--ink);border-radius:18px 7px 19px 8px/8px 19px 7px 18px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:4px 15px;margin-bottom:13px}
+.st-sec:nth-child(odd){transform:rotate(-.3deg)}
+.st-sec:nth-child(even){transform:rotate(.3deg)}
+.st-group{font-family:var(--f-cn);font-size:13px;color:var(--sub);margin:0 3px 8px;
+  display:flex;align-items:center;gap:7px}
+.st-group .badge{font-size:10.5px;padding:1px 7px;border:1.8px solid var(--ink);
+  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;background:var(--accent);color:var(--ink)}
+.st-row{display:flex;align-items:center;gap:11px;padding:12px 0;
+  border-bottom:1.7px dashed rgba(22,23,27,.16);cursor:pointer}
+.st-row:last-child{border-bottom:none}
+.st-row .ic{width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;
+  border:2.1px solid var(--ink);border-radius:11px 4px 12px 5px/5px 12px 4px 11px}
+.st-row .ic svg{width:18px;height:18px}
+.st-row .tx{flex:1;min-width:0}
+.st-row .tx b{display:block;font-family:var(--f-cn);font-size:14px;font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-row .tx span{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-row .vv{font-family:'PatrickHand','ZCOOLKuaiLe',sans-serif;font-size:13px;color:var(--sub);
+  flex:0 0 auto;max-width:44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-row .go{font-family:'PatrickHand',sans-serif;font-size:17px;color:var(--sub);flex:0 0 auto}
+.st-row.danger .tx b{color:#b8465f}
+.st-row:active{background:rgba(22,23,27,.04)}
+/* 分类列表（可编辑） */
+.st-cat{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1.7px dashed rgba(22,23,27,.16)}
+.st-cat:last-child{border-bottom:none}
+.st-cat .dot{width:14px;height:14px;border-radius:50% 44% 52% 46%;border:1.9px solid var(--ink);flex:0 0 auto}
+.st-cat .nm{flex:1;min-width:0;font-family:var(--f-cn);font-size:13.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-cat .cnt{font-family:'PatrickHand',sans-serif;font-size:12px;color:var(--sub);flex:0 0 auto}
+.st-cat .mini{width:26px;height:26px;flex:0 0 auto;border:1.9px solid var(--ink);background:#fff;
+  display:grid;place-items:center;cursor:pointer;border-radius:9px 3px 10px 4px/4px 10px 3px 9px}
+.st-cat .mini svg{width:13px;height:13px}
+.st-cat .mini:active{transform:translate(1px,1px)}
+.st-cat .mini.rm{background:#f9e6ec}
+.st-addrow{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 0;
+  font-family:var(--f-cn);font-size:13px;color:var(--ink2);cursor:pointer}
+.st-addrow svg{width:19px;height:19px}
+/* 外观选择 */
+.st-swatches{display:flex;gap:9px;padding:4px 0 12px;flex-wrap:wrap}
+.st-sw{width:44px;height:44px;border:2.2px solid var(--ink);cursor:pointer;position:relative;
+  border-radius:14px 5px 15px 6px/6px 15px 5px 14px;box-shadow:2px 3px 0 rgba(22,23,27,.14)}
+.st-sw.on::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;
+  font-family:'PatrickHand',sans-serif;font-size:19px;color:var(--ink)}
+.st-sw:active{transform:translate(1px,2px);box-shadow:0 0 0 rgba(0,0,0,0)}
+.st-note{font-size:12px;color:var(--sub);line-height:1.6;padding:2px 0 12px}
+.st-meter{margin:0 0 12px}
+.st-meter .tr{height:10px;border:2.1px solid var(--ink);border-radius:6px 3px 7px 3px/3px 7px 3px 6px;
+  background:rgba(22,23,27,.05);position:relative;overflow:hidden}
+.st-meter .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:4px 2px 5px 2px/2px 5px 2px 4px;
+  background:var(--accent)}
+.st-ver{text-align:center;font-size:12px;color:var(--sub);padding:6px 0 10px;line-height:1.7}
+
+/* ===== 物品详情页 ===== */
+.dt-photo{position:relative;width:100%;aspect-ratio:1/1;max-height:250px;border:2.4px solid var(--ink);
+  border-radius:18px 7px 19px 8px/8px 19px 7px 18px;overflow:hidden;background:#fff;cursor:pointer;
+  box-shadow:5px 6px 0 rgba(22,23,27,.15);transform:rotate(-.4deg);margin-bottom:15px}
+.dt-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.dt-photo.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  background:rgba(255,255,255,.6);border-style:dashed;box-shadow:3px 4px 0 rgba(22,23,27,.1)}
+.dt-photo.empty svg{width:40%;height:40%;color:var(--ink);opacity:.45}
+.dt-photo .dt-addhint{font-family:var(--f-cn);font-size:13.5px;color:var(--ink2)}
+.dt-photo .dt-like{position:absolute;top:11px;right:11px;width:17px;height:17px;border-radius:50%;
+  border:2px solid var(--ink)}
+/* 详情页大图上的喜欢标记（只读展示） */
+.dt-photo .dt-lk{position:absolute;top:9px;right:9px;width:28px;height:28px;display:grid;place-items:center}
+.dt-photo .dt-lk svg{width:28px;height:28px;overflow:visible;
+  fill:#fff;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;paint-order:stroke fill}
+/* 购入日期 */
+#dtBuyIn{flex:1;min-width:0;border:2.1px solid var(--ink);background:#fff;
+  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;padding:7px 10px;
+  font-family:'PatrickHand','ZCOOLKuaiLe',sans-serif;font-size:13.5px;color:var(--ink);outline:none}
+.dt-clearbtn{flex:0 0 auto;border:1.9px solid var(--ink);background:#fff;font-family:var(--f-cn);
+  font-size:11.5px;padding:6px 11px;cursor:pointer;color:var(--ink2);
+  border-radius:10px 4px 11px 5px/5px 11px 4px 10px;box-shadow:2px 2px 0 rgba(22,23,27,.1)}
+.dt-clearbtn:active{transform:translate(1px,1px);box-shadow:0 0 0 rgba(0,0,0,0)}
+.dt-photo .dt-st{position:absolute;bottom:11px;left:11px;font-family:var(--f-cn);font-size:11.5px;
+  background:rgba(255,255,255,.95);border:2px solid var(--ink);
+  border-radius:9px 3px 10px 4px/4px 10px 3px 9px;padding:2px 9px}
+.dt-name{font-family:var(--f-cn);font-size:25px;font-weight:400;margin:0 0 5px;line-height:1.2}
+.dt-meta{font-size:12.5px;color:var(--sub);margin-bottom:16px}
+.dt-card{background:#fff;border:2.3px solid var(--ink);border-radius:17px 7px 18px 8px/8px 18px 7px 17px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:13px 15px;margin-bottom:13px}
+.dt-qty{display:flex;align-items:center;justify-content:space-between}
+.dt-qty .lb{font-family:var(--f-cn);font-size:15px}
+.dt-qty .unit{font-size:12.5px;color:var(--sub)}
+.dt-block{padding:11px 0;border-bottom:1.7px dashed rgba(22,23,27,.18)}
+.dt-block:first-child{padding-top:0}
+.dt-block:last-child{border-bottom:none;padding-bottom:0}
+.dt-row{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+.dt-row .k{font-family:var(--f-cn);font-size:13.5px;color:var(--ink2);flex:0 0 auto}
+.dt-row .v{font-size:13.5px;color:var(--sub);text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dt-row .v.filled{color:var(--ink)}
+.dt-block > .k{display:block;font-family:var(--f-cn);font-size:13.5px;color:var(--ink2);margin-bottom:8px}
+.dt-seg{display:flex;gap:5px}
+.dt-seg button{flex:1;border:2.1px solid var(--ink);background:#fff;font-family:var(--f-cn);
+  font-size:11.5px;padding:8px 1px;cursor:pointer;color:var(--ink2);
+  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;box-shadow:2px 2px 0 rgba(22,23,27,.1);
+  transition:background .12s,transform .1s}
+.dt-seg button.on{background:var(--segc,#c9e8cf);color:var(--ink);transform:rotate(-1deg);
+  box-shadow:2px 3px 0 rgba(22,23,27,.16)}
+.dt-seg button:active{transform:translate(1px,2px);box-shadow:1px 1px 0 rgba(22,23,27,.1)}
+#dtLocIn{flex:1;min-width:0;border:2.1px solid var(--ink);background:#fff;
+  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;padding:7px 10px;
+  font-family:'PatrickHand','ZCOOLKuaiLe',sans-serif;font-size:13.5px;color:var(--ink);outline:none}
+#dtNote{width:100%;min-height:66px;border:2.1px solid var(--ink);background:#fff;
+  border-radius:12px 5px 13px 6px/6px 13px 5px 12px;padding:9px 11px;margin-top:2px;
+  font-family:'PatrickHand','ZCOOLKuaiLe',sans-serif;font-size:13.5px;color:var(--ink);
+  outline:none;resize:vertical;line-height:1.5}
+.dt-acts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
+.dt-acts .btn{width:100%}
+.dt-acts .full{grid-column:1/-1}
+.dt-delbtn{width:100%;background:#f3c9d8;margin-top:9px}
+
+/* 轻提示 */
+.toast{position:absolute;left:50%;transform:translateX(-50%) translateY(8px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
+  background:var(--ink);color:#fdfaf1;font-family:var(--f-cn);font-size:13px;padding:9px 12px 9px 16px;
+  border-radius:13px 5px 14px 6px/6px 14px 5px 13px;opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;z-index:40;display:flex;align-items:center;gap:11px;
+  max-width:330px;white-space:nowrap}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast .undo{font-family:var(--f-cn);font-size:12.5px;background:var(--accent);color:var(--ink);
+  border:1.7px solid #fdfaf1;border-radius:9px 3px 10px 4px;padding:3px 10px;cursor:pointer;flex:0 0 auto}
+.toast .txt{overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="rough" x="-6%" y="-10%" width="112%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.026" numOctaves="4" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="rough2" x="-8%" y="-14%" width="116%" height="128%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="23" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <path id="heroPath" d="M17 6 C104 3.5, 236 4.5, 320 7 C329 7.4, 332 12.5, 331.5 20.5 L330.5 129 C330 138, 326 144, 318 144 L18 144.5 C9 144.5, 6.5 138, 6.5 129 L7 20.5 C7.5 11.5, 9 6.4, 17 6 Z"/>
+    <g id="dryStrokes">
+      <!-- 白色颜料笔触：道数多、粗细与倾角各异，模拟反复涂刷 -->
+      <g fill="#ffffff">
+        <polygon points="-52,166 -44,166 54,-16 62,-16" opacity=".93"/>
+        <polygon points="-24,166 -18,166 78,-16 86,-16" opacity=".82"/>
+        <polygon points="4,166 14,166 100,-16 112,-16" opacity=".8"/>
+        <polygon points="28,166 44,166 130,-16 150,-16" opacity=".88"/>
+        <polygon points="52,166 76,166 158,-16 184,-16" opacity=".95"/>
+        <polygon points="80,166 90,166 172,-16 184,-16" opacity=".74"/>
+        <polygon points="106,166 118,166 200,-16 214,-16" opacity=".78"/>
+        <polygon points="128,166 148,166 226,-16 250,-16" opacity=".9"/>
+        <polygon points="148,166 174,166 252,-16 280,-16" opacity=".92"/>
+        <polygon points="176,166 186,166 262,-16 274,-16" opacity=".76"/>
+        <polygon points="204,166 216,166 296,-16 310,-16" opacity=".8"/>
+        <polygon points="226,166 246,166 322,-16 346,-16" opacity=".9"/>
+        <polygon points="246,166 272,166 348,-16 376,-16" opacity=".94"/>
+        <polygon points="276,166 286,166 360,-16 372,-16" opacity=".75"/>
+        <polygon points="302,166 314,166 396,-16 410,-16" opacity=".76"/>
+        <polygon points="322,166 342,166 414,-16 438,-16" opacity=".88"/>
+        <polygon points="344,166 370,166 448,-16 476,-16" opacity=".9"/>
+        <polygon points="374,166 384,166 458,-16 470,-16" opacity=".72"/>
+      </g>
+      <!-- 干笔拖痕：颜料将尽时的细丝线 -->
+      <g fill="none" stroke="#ffffff" stroke-linecap="round">
+        <line x1="-26" y1="162" x2="46" y2="4" stroke-width="4.5" opacity=".5"/>
+        <line x1="8" y1="158" x2="74" y2="8" stroke-width="3.4" opacity=".44"/>
+        <line x1="30" y1="164" x2="98" y2="12" stroke-width="3.6" opacity=".42"/>
+        <line x1="60" y1="160" x2="122" y2="10" stroke-width="4.2" opacity=".46"/>
+        <line x1="86" y1="160" x2="156" y2="6" stroke-width="5" opacity=".48"/>
+        <line x1="112" y1="163" x2="176" y2="14" stroke-width="3.2" opacity=".4"/>
+        <line x1="132" y1="163" x2="196" y2="16" stroke-width="3.2" opacity=".4"/>
+        <line x1="158" y1="159" x2="220" y2="8" stroke-width="4.6" opacity=".47"/>
+        <line x1="178" y1="161" x2="248" y2="4" stroke-width="4.8" opacity=".5"/>
+        <line x1="204" y1="163" x2="266" y2="14" stroke-width="3.4" opacity=".41"/>
+        <line x1="228" y1="164" x2="292" y2="12" stroke-width="3.8" opacity=".42"/>
+        <line x1="252" y1="159" x2="314" y2="6" stroke-width="4.4" opacity=".46"/>
+        <line x1="274" y1="160" x2="344" y2="6" stroke-width="5.2" opacity=".48"/>
+        <line x1="300" y1="163" x2="362" y2="16" stroke-width="3.2" opacity=".4"/>
+        <line x1="324" y1="163" x2="388" y2="14" stroke-width="3.4" opacity=".4"/>
+        <line x1="348" y1="159" x2="410" y2="8" stroke-width="4.6" opacity=".46"/>
+        <line x1="366" y1="161" x2="436" y2="4" stroke-width="4.4" opacity=".46"/>
+        <line x1="392" y1="163" x2="452" y2="12" stroke-width="3.6" opacity=".42"/>
+      </g>
+    </g>
+    <g id="ic-tshirt" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/>
+    </g>
+    <g id="ic-long" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M8.8 3.8 4.6 6 2.8 12.4l2.6 1.2 1.4-2.2v8.2h8.4V11.4l1.4 2.2 2.6-1.2L17.4 6l-4.2-2.2a3 3 0 0 1-4.4 0Z"/>
+    </g>
+    <g id="ic-jacket" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M9 3.6 5 5.8v14.4h14V5.8l-4-2.2-3 3.4-3-3.4Z"/><path d="M12 7v13.2"/>
+    </g>
+    <g id="ic-shirt" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M9 3.8 5.6 5.6v14.6h12.8V5.6L15 3.8l-3 3.2-3-3.2Z"/><path d="M12 7v13"/>
+    </g>
+    <g id="ic-pants" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M6.6 3.8h10.8l-.7 16.4h-3.9L12 10.6l-.8 9.6H7.3L6.6 3.8Z"/>
+    </g>
+    <g id="ic-dress" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M9.4 3.6 7.4 5.4l2.1 4.4-3 10.6h11l-3-10.6 2.1-4.4-2-1.8a2.6 2.6 0 0 1-5.2 0Z"/>
+    </g>
+    <g id="ic-down" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M8.8 3.8 4.8 6v14.2h14.4V6l-4-2.2a3 3 0 0 1-6.4 0Z"/>
+      <path d="M4.8 9.4h14.4M4.8 13.2h14.4M4.8 16.8h14.4"/>
+    </g>
+    <g id="ic-skirt" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M9.4 4.2 7 5.6l-2 14.2h14l-2-14.2-2.4-1.4a2.6 2.6 0 0 1-5.2 0Z"/>
+      <path d="M10.4 8.6 9.6 19M13.6 8.6l.8 10.4"/>
+    </g>
+    <g id="ic-shoe" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M3.4 15.6c1.6-1 2.4-2.2 2.8-3.6l.6-2.4h3.4l.8 2c.6 1.4 1.8 2 3.6 2.2l4.4.6c1 .2 1.6.8 1.6 1.8v1.4H3.4v-2Z"/>
+    </g>
+    <g id="ic-bag" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M6.4 8.2h11.2l-1 12.2H7.4L6.4 8.2Z"/><path d="M9.2 8.2V6.4a2.8 2.8 0 0 1 5.6 0v1.8"/>
+    </g>
+    <g id="ic-phone" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <rect x="7" y="2.8" width="10" height="18.4" rx="2.6"/><path d="M10.6 18.4h2.8"/>
+    </g>
+    <g id="ic-cup" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M6.6 7h10.8l-1 13.2H7.6L6.6 7Z"/><path d="M9.4 4.2h5.2"/>
+    </g>
+    <g id="ic-bottle" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M10 3.2h4v2.6l1.6 2.1v13.1H8.4V7.9L10 5.8V3.2Z"/><path d="M8.4 12.4h7.2"/>
+    </g>
+    <g id="ic-lamp" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M8 4.2h8l2 6.4H6l2-6.4Z"/><path d="M12 10.6v8M8.4 20.4h7.2"/>
+    </g>
+    <g id="ic-box" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M4 8.6 12 4l8 4.6v6.9L12 20l-8-4.5V8.6Z"/><path d="M4 8.6 12 13.2l8-4.6M12 13.2V20"/>
+    </g>
+
+    <!-- ===== 喜欢程度标记：手绘形状 =====
+         注意：<use> 引用的是影子树，外部 CSS 的类选择器进不去，
+         所以这里不写 class，只靠「继承属性」——外层 svg 设 fill/stroke，内部不覆盖。 -->
+    <!-- 喜欢：爱心 -->
+    <g id="mk-like">
+      <path d="M12 20.4c-.4 0-.8-.15-1.1-.42C6.3 15.9 3.4 13.2 3.4 9.9c0-2.6 2-4.6 4.5-4.6 1.6 0 3.1.8 4.1 2.2 1-1.4 2.5-2.2 4.1-2.2 2.5 0 4.5 2 4.5 4.6 0 3.3-2.9 6-7.5 10.1-.3.27-.7.42-1.1.42Z"/>
+    </g>
+    <!-- 一般：手绘圆环 -->
+    <g id="mk-neutral">
+      <path d="M12 3.6c4.7 0 8.5 3.7 8.4 8.4 0 4.7-3.8 8.5-8.5 8.4-4.6 0-8.4-3.8-8.3-8.5C3.6 7.4 7.4 3.6 12 3.6Z"/>
+    </g>
+    <!-- 不喜欢：爱心加一道斜线 -->
+    <g id="mk-dislike">
+      <path d="M12 20.4c-.4 0-.8-.15-1.1-.42C6.3 15.9 3.4 13.2 3.4 9.9c0-2.6 2-4.6 4.5-4.6 1.6 0 3.1.8 4.1 2.2 1-1.4 2.5-2.2 4.1-2.2 2.5 0 4.5 2 4.5 4.6 0 3.3-2.9 6-7.5 10.1-.3.27-.7.42-1.1.42Z"/>
+      <path d="M5.8 18.4 18.2 5.6" fill="none" stroke-width="1.5"/>
+    </g>
+    <!-- 状态/分类用的小色点 -->
+    <g id="mk-dot"><circle cx="12" cy="12" r="8.2"/></g>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="phone">
+
+      <!-- ================= 总览 ================= -->
+      <div class="screen on" id="scr-home">
+
+        <div class="topbar">
+          <div class="avatar" id="goSettings" style="cursor:pointer" title="设置">简</div>
+        </div>
+
+        <div class="hero">
+          <span class="tape p" style="left:-13px;top:-10px;transform:rotate(-16deg)"></span>
+          <span class="tape b" style="right:-12px;bottom:-9px;transform:rotate(-14deg)"></span>
+          <svg viewBox="0 0 338 151" preserveAspectRatio="none" aria-label="我的收纳">
+            <use href="#heroPath" fill="#c9e8cf" stroke="#16171b" stroke-width="3" filter="url(#rough)"/>
+            <clipPath id="clipHero"><use href="#heroPath"/></clipPath>
+            <g clip-path="url(#clipHero)"><use href="#dryStrokes"/></g>
+            <g filter="url(#rough2)"><line x1="20" y1="54" x2="318" y2="53" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"/></g>
+          </svg>
+          <div class="over">
+            <div class="ttl">我的收纳</div>
+            <div class="mid">
+              <span class="split" id="heroSplit"></span>
+              <span class="big" id="heroTotal">0</span>
+            </div>
+            <div class="foot"><span id="heroEntries"></span><span id="heroApps"></span></div>
+          </div>
+        </div>
+
+        <div class="sec-head"><b>极简目标</b><a id="goProgress">查看进程 ›</a></div>
+        <div class="goal">
+          <div class="r1">
+            <div class="big"><span class="n" id="goalNow">0</span><span class="of">/ 200</span></div>
+            <span class="tag" id="goalTag">—</span>
+          </div>
+          <div class="gbar">
+            <svg viewBox="0 0 300 12" preserveAspectRatio="none">
+              <g filter="url(#rough2)">
+                <line x1="4" y1="6" x2="296" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round" opacity=".13"/>
+                <line id="goalBar" x1="5" y1="6" x2="277" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round"/>
+              </g>
+            </svg>
+          </div>
+          <div class="hint" id="goalHint">—</div>
+        </div>
+
+        <div class="quick">
+          <button class="qa" id="qAddItem"><span class="ic hot"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>添加物品</button>
+          <button class="qa" id="qAddApp"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg></span>添加软件</button>
+          <button class="qa" id="qSettings"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10M8 11l4 3.8 4-3.8"/><path d="M5 19.2h14"/></svg></span>设置与备份</button>
+          <button class="qa" id="qNewCat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></span>新建分类</button>
+        </div>
+
+        <div class="sec-head"><b>分类</b><a id="catAll">全部 ›</a></div>
+        <div class="grid2" id="catGrid"></div>
+
+      </div>
+
+      <!-- ================= 物品列表 ================= -->
+      <div class="screen" id="scr-items">
+
+        <div class="topbar">
+          <button class="back" id="backHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg></button>
+          <div class="grp">
+            <button class="circ c1" id="styleBtn" title="照片风格"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4h16v13.2H4z"/><circle cx="9" cy="10.2" r="1.8"/><path d="M4 16.2l5-4.4 3.6 3 3-2.6L20 16"/></svg></button>
+          </div>
+        </div>
+
+        <div class="page-head">
+          <h2 id="listTitle">物品</h2>
+          <span class="cnt" id="listCnt"></span>
+        </div>
+
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.4"/><path d="M15.6 15.6 20 20"/></svg>
+          <input id="q" type="text" placeholder="搜索名称、位置、备注">
+        </div>
+
+        <div class="chipRow">
+          <span class="lb">分类</span>
+          <div class="chips" id="catChips"></div>
+        </div>
+        <div class="chipRow" id="seasonRow" style="display:none">
+          <span class="lb">季节</span>
+          <div class="chips small" id="seasonChips"></div>
+        </div>
+        <div class="chipRow">
+          <span class="lb">喜欢</span>
+          <div class="chips small" id="likeChips">
+            <button class="chip" data-like="like">喜欢</button>
+            <button class="chip" data-like="neutral">一般</button>
+            <button class="chip" data-like="dislike">不喜欢</button>
+          </div>
+        </div>
+        <div class="chipRow">
+          <span class="lb">状态</span>
+          <div class="chips small" id="stChips">
+            <button class="chip" data-st="inuse">在用</button>
+            <button class="chip" data-st="stored">收纳中</button>
+            <button class="chip" data-st="consuming">消耗中</button>
+            <button class="chip" data-st="todo">待处理</button>
+          </div>
+        </div>
+        <div class="chipRow" id="locRow" style="display:none">
+          <span class="lb">位置</span>
+          <div class="chips small" id="locChips"></div>
+        </div>
+
+        <div class="count-row">
+          <b id="resTitle">全部物品</b>
+          <span id="resCnt"></span>
+        </div>
+
+        <div class="igrid" id="igrid"></div>
+
+      </div>
+
+      <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+
+      <!-- ================= 软件列表 ================= -->
+      <div class="screen" id="scr-apps">
+
+        <div class="topbar">
+          <div class="avatar">简</div>
+          <div class="grp">
+            <button class="circ c1" id="appNewCat" title="新建分类"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7.5h9M18.5 7.5H20M4 16.5h3M12.5 16.5H20"/><circle cx="15.5" cy="7.5" r="2.4"/><circle cx="9.5" cy="16.5" r="2.4"/></svg></button>
+          </div>
+        </div>
+
+        <div class="page-head">
+          <h2>手机软件</h2>
+          <span class="cnt" id="appCnt"></span>
+        </div>
+
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.4"/><path d="M15.6 15.6 20 20"/></svg>
+          <input id="aq" type="text" placeholder="搜索软件名、备注">
+        </div>
+
+        <div class="chipRow">
+          <span class="lb">分类</span>
+          <div class="chips" id="appCatChips"></div>
+        </div>
+        <div class="chipRow">
+          <span class="lb">必需</span>
+          <div class="chips small" id="needChips">
+            <button class="chip" data-need="need">必需</button>
+            <button class="chip" data-need="temp">暂用</button>
+            <button class="chip" data-need="todel">待删</button>
+          </div>
+        </div>
+
+        <div class="count-row">
+          <b id="appResTitle">全部软件</b>
+          <span id="appResCnt"></span>
+        </div>
+
+        <div class="alist" id="alist"></div>
+
+      </div>
+
+      <button class="fab" id="fabApp"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+
+      <!-- ================= 软件详情 ================= -->
+      <div class="screen" id="scr-appdetail">
+        <div class="topbar">
+          <button class="back" id="adBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg></button>
+          <div class="grp">
+            <button class="circ c1" id="adEditTop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg></button>
+          </div>
+        </div>
+        <div id="adBody"></div>
+      </div>
+
+      <!-- ================= 极简进程 ================= -->
+      <div class="screen" id="scr-progress">
+
+        <div class="topbar">
+          <div class="avatar">进</div>
+          <div class="grp">
+            <button class="circ c1" id="pgSnapTip" title="快照说明"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 11.2v5"/><circle cx="12" cy="8.3" r="1.05" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+        </div>
+
+        <div class="page-head">
+          <h2>极简进程</h2>
+          <span class="cnt" id="pgSince"></span>
+        </div>
+
+        <div id="pgBody"></div>
+
+      </div>
+
+      <!-- ================= 设置 ================= -->
+      <div class="screen" id="scr-settings">
+
+        <div class="topbar">
+          <button class="back" id="stBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg></button>
+          <div class="grp">
+            <button class="circ c1" data-toast="帮助说明"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 11.2v5"/><circle cx="12" cy="8.3" r="1.05" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+        </div>
+
+        <div class="page-head">
+          <h2>设置</h2>
+          <span class="cnt">只存在这台设备</span>
+        </div>
+
+        <div id="stBody"></div>
+
+      </div>
+
+      <!-- ================= 物品详情 ================= -->
+      <div class="screen" id="scr-detail">
+        <div class="topbar">
+          <button class="back" id="dtBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg></button>
+          <div class="grp">
+            <button class="circ c1" id="dtEditTop" data-toast="编辑全部信息"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg></button>
+          </div>
+        </div>
+        <div id="dtBody"></div>
+      </div>
+
+      <!-- 底部 Tab：胶囊（可滑动选择） -->
+      <nav class="tabbar" id="tabbar">
+        <span class="tab-ind" id="tabInd"></span>
+        <button class="tb on" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 10.6 12 4l8 6.6v9H4v-9Z"/><path d="M9.8 19.6v-5.2h4.4v5.2"/></svg>总览</button>
+        <button class="tb" data-tab="items"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/></svg>物品</button>
+        <button class="tb" data-tab="apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg>软件<span class="badge" id="tabAppBadge">24</span></button>
+        <button class="tb" data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5l5-5 3.6 3L20 6.5"/><path d="M15 6.5h5v5"/></svg>进程</button>
+      </nav>
+
+      <!-- 归类小菜单 -->
+      <div class="pop" id="pop"></div>
+
+      <!-- 弹层 -->
+      <div class="mask" id="mask"><div class="modal" id="modal"></div></div>
+
+      <!-- 轻提示 -->
+      <div class="toast" id="toast"><span class="txt" id="toastTxt"></span><button class="undo" id="toastUndo" style="display:none">撤销</button></div>
+
+    </div>
+  </div>
+</div>
+
+<input type="file" id="filePick" accept="image/*" style="display:none">
+
+<script>
+/* ================= 数据 ================= */
+let CATS = [
+  { id:'cloth', name:'衣物', tone:'#ded0f0', goal:30 },
+  { id:'shoe',  name:'鞋包', tone:'#f7e0b8', goal:20 },
+  { id:'tech',  name:'数码', tone:'#bcd9ee', goal:20 },
+  { id:'home',  name:'家居', tone:'#f2c2dc', goal:40 },
+  { id:'care',  name:'洗护', tone:'#cfe4f4', goal:12 }
+];
+const NEW_TONES = ['#f5d7a8','#e8dbc8','#e3d6f2','#cfe4f4','#f2cfcf','#dfe3c8','#d9d9e8'];
+
+const SEASONS = [
+  { id:'summer',  name:'夏季' },
+  { id:'winter',  name:'冬季' },
+  { id:'allyear', name:'四季' }
+];
+
+/* 数据从空开始：首次打开是干净状态，由用户自己录入 */
+let ITEMS = [];
+
+let uid = 1;
+ITEMS.forEach(i => {
+  i.id = 'i' + (uid++);
+  if (!i.st) i.st = 'inuse';
+});
+
+const ST_TEXT  = { inuse:'在用', stored:'收纳中', consuming:'消耗中', todo:'待处理' };
+const ST_COLOR = { inuse:'#fdfaf1', stored:'#dbeaf7', consuming:'#d9eddd', todo:'#f7d9e4' };
+/* 分段控件里的选中填充：在用也要看得出被选中，所以不用纯白 */
+const ST_FILL  = { inuse:'#e8e6dc', stored:'#cfe4f4', consuming:'#c9e8cf', todo:'#f3c9d8' };
+const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
+/* 选中态的填充色：比圆点色淡，避免「一般」看起来像禁用 */
+const LIKE_FILL  = { like:'#f6ddb4', neutral:'#dfe1e8', dislike:'#f6d3de' };
+const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
+
+const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'' };
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const catOf = id => CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
+
+/* ================= 计算 ================= */
+const liveItems = () => ITEMS;
+function sumQty(rows){ return rows.reduce((s,i) => s + i.q, 0); }
+function catQty(cid){ return sumQty(ITEMS.filter(i => i.c === cid)); }
+
+/* ================= 总览 ================= */
+function renderHome(){
+  const held = sumQty(ITEMS.filter(i => i.st === 'inuse' || i.st === 'stored' || i.st === 'consuming'));
+  const inuse = sumQty(ITEMS.filter(i => i.st === 'inuse'));
+  const stored = sumQty(ITEMS.filter(i => i.st === 'stored'));
+  const consuming = sumQty(ITEMS.filter(i => i.st === 'consuming'));
+  const todo = sumQty(ITEMS.filter(i => i.st === 'todo'));
+
+  $('#heroTotal').textContent = held;
+  $('#heroSplit').innerHTML = `在用 ${inuse}<br>收纳中 ${stored}<br>消耗中 ${consuming}`;
+  $('#heroEntries').textContent = `${ITEMS.length} 款物品`;
+  $('#heroApps').textContent = `${APPS.length} 个软件`;
+
+  // 目标卡：没设目标时显示引导，不假装有个默认值
+  const GOAL = GOAL_TOTAL;
+  $('#goalNow').textContent = held;
+  const tag = $('#goalTag');
+  if (GOAL > 0){
+    const diff = GOAL - held;
+    if (diff > 0){ tag.textContent = `还差 ${diff} 件`; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
+    else if (diff < 0){ tag.textContent = `超出 ${-diff} 件`; tag.style.background = 'rgba(217,134,31,.2)'; tag.style.color = '#a8640c'; }
+    else { tag.textContent = '刚好达标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
+    const pct = Math.min(1, held / GOAL);
+    $('#goalBar').setAttribute('x2', String(5 + 272 * pct));
+    $('#goalHint').textContent = `待处理 ${todo} 件 · 目标 ${GOAL} 件`;
+  } else {
+    tag.textContent = '未设目标';
+    tag.style.background = 'rgba(139,140,148,.16)';
+    tag.style.color = '#5f6068';
+    $('#goalBar').setAttribute('x2', '5');
+    $('#goalHint').textContent = ITEMS.length ? `待处理 ${todo} 件 · 点这里设个目标` : '先录几件东西，再来设目标';
+  }
+
+  // 一件都没录时：分类网格换成引导
+  if (!ITEMS.length && !APPS.length){
+    $('#catGrid').innerHTML = `
+      <div class="cat add" id="catAddTile" style="grid-column:1/-1;min-height:150px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/></svg>
+        <span style="font-size:15px">先拍下你的第一件物品</span>
+        <small>以后想买东西时，先来这里看看你已经有什么</small>
+      </div>`;
+    saveSoon();
+    return;
+  }
+
+  // 分类网格
+  const cards = CATS.map(c => {
+    const qty = catQty(c.id);
+    const hasGoal = typeof c.goal === 'number' && c.goal > 0;
+    const seasonTxt = c.id === 'cloth'
+      ? SEASONS.map(s => `${s.name} ${sumQty(ITEMS.filter(i => i.c === 'cloth' && i.season === s.id))}`).join(' · ')
+      : '';
+    if (!hasGoal){
+      return `<div class="cat" data-cat="${c.id}">
+        <div class="ct"><span class="dot" style="background:${c.tone}"></span><span>${c.name}</span><span class="arw">›</span></div>
+        <div class="cn"><span class="n">${qty}</span><small>件</small></div>
+        <div class="cg">未设目标</div>
+      </div>`;
+    }
+    const d = qty - c.goal;
+    const over = d > 0;
+    const ratio = qty / c.goal;
+    const color = over ? 'var(--warn)' : (ratio >= .95 ? 'var(--blue-deep)' : 'var(--green)');
+    const tip = over ? `目标 ${c.goal} · 超出 ${d}` : `目标 ${c.goal} · 还差 ${-d}`;
+    return `<div class="cat" data-cat="${c.id}">
+      <div class="ct"><span class="dot" style="background:${c.tone}"></span><span>${c.name}</span><span class="arw">›</span></div>
+      <div class="cn"><span class="n">${qty}</span><small>件</small></div>
+      <div class="mbar"><span class="tr"></span><span class="fl" style="width:${Math.min(100,Math.round(ratio*100))}%;background:${color}"></span></div>
+      <div class="cg${over ? ' over' : ''}">${tip}</div>
+      ${seasonTxt ? `<div class="cg" style="color:#a3a4ab">${seasonTxt}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const addTile = `<div class="cat add" id="catAddTile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
+    <span>新建分类</span><small>比如 厨房、文具</small>
+  </div>`;
+
+  $('#catGrid').innerHTML = cards + addTile;
+  saveSoon();
+}
+
+/* ================= 物品列表 ================= */
+function renderCatChips(){
+  const list = [{ id:'all', name:'全部', qty: sumQty(ITEMS) }, ...CATS.map(c => ({ ...c, qty: catQty(c.id) }))];
+  $('#catChips').innerHTML = list.map(c =>
+    `<button class="chip${state.cat === c.id ? ' on' : ''}" data-cat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
+  ).join('') + `<button class="chip plus" id="chipAddCat">＋ 新建</button>`;
+}
+
+function renderSeasonChips(){
+  const row = $('#seasonRow');
+  if (state.cat !== 'cloth'){ row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  const base = ITEMS.filter(i => i.c === 'cloth');
+  const list = SEASONS.map(s => ({ ...s, qty: sumQty(base.filter(i => i.season === s.id)) }));
+  $('#seasonChips').innerHTML = list.map(s =>
+    `<button class="chip${state.season === s.id ? ' on' : ''}" data-season="${s.id}">${s.name}<span class="n">${s.qty}</span></button>`
+  ).join('');
+}
+
+/* 位置筛选：列出当前分类下出现过的位置（有位置的才列） */
+function renderLocChips(){
+  const row = $('#locRow');
+  const base = ITEMS.filter(i => state.cat === 'all' || i.c === state.cat);
+  const counts = new Map();
+  base.forEach(i => {
+    const k = (i.loc || '').trim();
+    if (!k) return;
+    counts.set(k, (counts.get(k) || 0) + 1);
+  });
+  // 位置种类太少就不占一行（少于 2 个没筛选意义）
+  if (counts.size < 2){ row.style.display = 'none'; state.loc = 'all'; return; }
+  row.style.display = 'flex';
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  $('#locChips').innerHTML = sorted.map(([name, n]) =>
+    `<button class="chip${state.loc === name ? ' on' : ''}" data-loc="${name}">${name}<span class="n">${n}</span></button>`
+  ).join('');
+}
+
+function renderItems(){
+  const q = state.q.trim().toLowerCase();
+  const rows = ITEMS.filter(i =>
+    (state.cat === 'all' || i.c === state.cat) &&
+    (state.cat !== 'cloth' || state.season === 'all' || i.season === state.season) &&
+    (state.like === 'all' || i.like === state.like) &&
+    (state.st === 'all' || i.st === state.st) &&
+    (state.loc === 'all' || (i.loc || '').trim() === state.loc) &&
+    (!q || i.n.toLowerCase().includes(q) || (i.loc || '').toLowerCase().includes(q))
+  );
+  const qty = sumQty(rows);
+
+  const catName = state.cat === 'all' ? '全部物品' : catOf(state.cat).name;
+  const likeName = { all:'', like:' · 喜欢', neutral:' · 一般', dislike:' · 不喜欢' }[state.like];
+  const stName = state.st === 'all' ? '' : ` · ${ST_TEXT[state.st]}`;
+  const seName = (state.cat === 'cloth' && state.season !== 'all')
+    ? ` · ${(SEASONS.find(s => s.id === state.season) || {}).name}` : '';
+  const locName = state.loc === 'all' ? '' : ` · ${state.loc}`;
+  $('#resTitle').textContent = catName + seName + locName + likeName + stName;
+  $('#resCnt').textContent = `${rows.length} 条 · ${qty} 件`;
+  $('#listTitle').textContent = state.cat === 'all' ? '物品' : catOf(state.cat).name;
+  $('#listCnt').textContent = `${rows.length} 条 · ${qty} 件`;
+
+  const cards = rows.map(i => {
+    const k = ITEMS.indexOf(i);
+    const tint = TINTS[k % TINTS.length];
+    const seasonTxt = i.season ? (SEASONS.find(s => s.id === i.season) || {}).name : '';
+    const locTxt = [i.loc, seasonTxt].filter(Boolean).join(' · ');
+
+    const phInner = i.photo
+      ? `<img src="${i.photo}" alt="">
+         <span class="delph" data-delphoto="${i.id}" title="删除照片">
+           <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+         </span>`
+      : `<span class="addph">
+           <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"><path d="M12 7v10M7 12h10"/></svg>
+           加照片
+         </span>
+         <svg><use href="#${i.ic || 'ic-box'}"/></svg>`;
+
+    const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
+    const useCount = i.uses || 0;
+    const useBadge = useCount > 0 ? `<span class="use">今天用过 ${useCount}</span>` : '';
+
+    return `<div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
+      <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
+        ${phInner}
+        ${qtyBadge}
+        <span class="lk" data-lk="${i.id}" title="改喜欢程度" style="--lkc:${LIKE_FILL[i.like]}">
+          <svg viewBox="0 0 24 24"><use href="#mk-${i.like === 'like' ? 'like' : i.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg>
+        </span>
+        <span class="st" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
+        ${useBadge}
+      </div>
+      <div class="meta">
+        <div class="row-name">
+          <input class="nm-in" data-edit-name="${i.id}" value="${i.n}" maxlength="14" placeholder="名称">
+          <button class="use-btn" data-usebtn="${i.id}" title="记一次使用">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          </button>
+        </div>
+        <div class="row-sub">
+          <input class="loc-in" data-edit-loc="${i.id}" value="${i.loc || ''}" maxlength="16" placeholder="放哪">
+        </div>
+        <div class="row-sub">
+          <input class="date-in" data-edit-buy="${i.id}" type="date" value="${i.buy || ''}">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const addCard = `<div class="icard add" id="gridAdd">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
+    <span>添加物品</span><small>名称、照片、数量</small>
+  </div>`;
+
+  $('#igrid').innerHTML = cards + addCard;
+
+  if (!rows.length){
+    $('#igrid').innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <b>没有符合条件的物品</b><span>换个筛选，或者点下面「添加物品」新建一件</span></div>` + addCard;
+  }
+  saveSoon();
+}
+
+/* ================= 导航 ================= */
+function showTab(tab){
+  state.tab = tab;
+  const map = { items:'scr-items', detail:'scr-detail', apps:'scr-apps', appdetail:'scr-appdetail', progress:'scr-progress', settings:'scr-settings', home:'scr-home' };
+  const screenId = map[tab] || 'scr-home';
+  $$('.screen').forEach(s => s.classList.toggle('on', s.id === screenId));
+  $$('.tb').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  $('#fab').style.display = tab === 'items' ? 'grid' : 'none';
+  $('#fabApp').style.display = tab === 'apps' ? 'grid' : 'none';
+  syncTabInd();
+}
+
+/* 滑动指示块：贴到当前选中的 Tab 上（详情页/设置页不占 Tab，就保持原位置） */
+function syncTabInd(){
+  const ind = $('#tabInd');
+  if (!ind) return;
+  const active = $$('.tb').find(b => b.classList.contains('on')) || $$('.tb')[0];
+  if (!active) return;
+  const bar = $('#tabbar').getBoundingClientRect();
+  const r = active.getBoundingClientRect();
+  ind.style.width = r.width + 'px';
+  ind.style.transform = `translateX(${r.left - bar.left - 5}px)`;
+}
+function goItems(cat){
+  if (cat){ state.cat = cat; if (cat !== 'cloth') state.season = 'all'; }
+  renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+  showTab('items');
+  $('#scr-items').scrollTop = 0;
+}
+
+/* ================= 物品详情 ================= */
+let detailId = null;
+
+function openDetail(id){
+  const it = ITEMS.find(x => x.id === id);
+  if (!it) return;
+  detailId = id;
+  renderDetail();
+  showTab('detail');
+  $('#scr-detail').scrollTop = 0;
+}
+
+function renderDetail(){
+  const it = ITEMS.find(x => x.id === detailId);
+  if (!it) return;
+  const c = catOf(it.c);
+  const seasonName = it.season ? (SEASONS.find(s => s.id === it.season) || {}).name : '';
+
+  // 照片只做展示：加/换/删都在列表卡片上做
+  const photoBlock = it.photo
+    ? `<div class="dt-photo" id="dtPhoto">
+         <img src="${it.photo}" alt="">
+         <span class="dt-st" style="background:${ST_COLOR[it.st]}">${ST_TEXT[it.st]}</span>
+         <span class="dt-lk"><svg viewBox="0 0 24 24"><use href="#mk-${it.like === 'like' ? 'like' : it.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg></span>
+       </div>`
+    : `<div class="dt-photo empty">
+         <svg><use href="#${it.ic || 'ic-box'}"/></svg>
+         <span class="dt-addhint">还没有照片</span>
+         <span class="dt-st" style="background:${ST_COLOR[it.st]}">${ST_TEXT[it.st]}</span>
+         <span class="dt-lk"><svg viewBox="0 0 24 24"><use href="#mk-${it.like === 'like' ? 'like' : it.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg></span>
+       </div>`;
+
+  $('#dtBody').innerHTML = `
+    ${photoBlock}
+    <h2 class="dt-name">${it.n}</h2>
+    <div class="dt-meta">${c.name}${seasonName ? ' · ' + seasonName : ''}</div>
+
+    <div class="dt-card">
+      <div class="dt-qty">
+        <div>
+          <span class="lb">数量</span>
+          <span class="unit"> 件</span>
+        </div>
+        <div class="stepper">
+          <button id="dtMinus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+          <span class="v" id="dtQty">${it.q}</span>
+          <button id="dtPlus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dt-card">
+      <div class="dt-block">
+        <span class="k">放在哪</span>
+        <div class="dt-row" style="cursor:default">
+          <input id="dtLocIn" type="text" value="${it.loc || ''}" placeholder="比如 衣柜左上层" maxlength="16">
+        </div>
+      </div>
+      <div class="dt-block">
+        <span class="k">购入日期</span>
+        <div class="dt-row" style="cursor:default">
+          <input id="dtBuyIn" type="date" value="${it.buy || ''}">
+          ${it.buy ? '<button class="dt-clearbtn" id="dtBuyClear">清除</button>' : ''}
+        </div>
+      </div>
+      <div class="dt-block">
+        <span class="k">备注</span>
+        <textarea id="dtNote" placeholder="想到什么写什么，可以留空">${it.note || ''}</textarea>
+      </div>
+    </div>
+
+    <div class="dt-acts">
+      <button class="btn full" id="dtEditAll">编辑名称</button>
+    </div>
+  `;
+
+  // 数量
+  $('#dtMinus').addEventListener('click', () => {
+    if (it.q <= 1){
+      openModal(`
+        <h3>数量为 0</h3>
+        <p class="mhint">「${it.n}」数量减到 0 了，要删除这条吗？</p>
+        <div class="mrow">
+          <button class="btn" id="q0Cancel">再想想</button>
+          <button class="btn dan" id="q0Del">删除</button>
+        </div>
+      `);
+      $('#q0Cancel').addEventListener('click', closeModal);
+      $('#q0Del').addEventListener('click', () => { closeModal(); deleteItem(it.id); });
+      return;
+    }
+    it.q--; $('#dtQty').textContent = it.q; renderHome(); renderItems();
+  });
+  $('#dtPlus').addEventListener('click', () => {
+    it.q = Math.min(999, it.q + 1);
+    $('#dtQty').textContent = it.q; renderHome(); renderItems();
+  });
+
+  // 位置（失焦保存）
+  const locIn = $('#dtLocIn');
+  locIn.addEventListener('change', () => { it.loc = locIn.value.trim(); renderHome(); renderItems(); toast('位置已保存'); });
+  locIn.addEventListener('keydown', e => { if (e.key === 'Enter') locIn.blur(); });
+
+  // 购入日期
+  const buyIn = $('#dtBuyIn');
+  buyIn.addEventListener('change', () => {
+    it.buy = buyIn.value || '';
+    renderDetail(); renderItems();
+    toast(it.buy ? '购入日期已保存' : '购入日期已清除');
+  });
+  const buyClear = $('#dtBuyClear');
+  if (buyClear) buyClear.addEventListener('click', () => {
+    it.buy = ''; renderDetail(); renderItems(); toast('购入日期已清除');
+  });
+
+  // 备注（失焦保存）
+  const noteIn = $('#dtNote');
+  noteIn.addEventListener('change', () => { it.note = noteIn.value.trim(); renderItems(); toast('备注已保存'); });
+
+  // 改名
+  $('#dtEditAll').addEventListener('click', () => renameModal(it));
+  $('#dtEditTop').addEventListener('click', () => renameModal(it));
+}
+
+/* 重命名 / 改名弹窗 */
+function renameModal(it){
+  openModal(`
+    <h3>编辑信息</h3>
+    <p class="mhint">位置、喜欢程度、状态、备注都可以直接在详情页改，这里只改名称</p>
+    <div class="fld">
+      <label>名称</label>
+      <input type="text" id="rnName" value="${it.n}" maxlength="14">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="rnCancel">取消</button>
+      <button class="btn pri" id="rnOk">保存</button>
+    </div>
+  `);
+  const inp = $('#rnName');
+  setTimeout(() => { inp.focus(); inp.select(); }, 60);
+  $('#rnCancel').addEventListener('click', closeModal);
+  $('#rnOk').addEventListener('click', () => {
+    const v = inp.value.trim();
+    if (!v) return;
+    it.n = v;
+    closeModal(); renderDetail(); renderHome(); renderItems();
+    toast('名称已保存');
+  });
+}
+
+
+/* ================= 弹层 ================= */
+const mask = $('#mask'), modal = $('#modal');
+function openModal(html){ modal.innerHTML = html; mask.classList.add('on'); }
+function closeModal(){ mask.classList.remove('on'); }
+mask.addEventListener('click', e => { if (e.target === mask) closeModal(); });
+
+/* --- 新建分类 --- */
+function newCatModal(){
+  openModal(`
+    <h3>新建分类</h3>
+    <p class="mhint">给这一类物品起个名字，之后可以随时改名</p>
+    <div class="fld">
+      <label>分类名称</label>
+      <input type="text" id="newCatName" placeholder="比如 厨房、文具、工具" maxlength="8">
+    </div>
+    <div class="fld">
+      <label>目标件数（可留空）</label>
+      <input type="text" id="newCatGoal" placeholder="留空表示先不设目标" inputmode="numeric">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="catCancel">取消</button>
+      <button class="btn pri" id="catOk" disabled>创建</button>
+    </div>
+  `);
+  const nameIn = $('#newCatName'), okBtn = $('#catOk');
+  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
+  setTimeout(() => nameIn.focus(), 60);
+  $('#catCancel').addEventListener('click', closeModal);
+  okBtn.addEventListener('click', () => {
+    const name = nameIn.value.trim();
+    if (!name) return;
+    const goalRaw = $('#newCatGoal').value.trim();
+    const goal = /^\d+$/.test(goalRaw) ? Number(goalRaw) : null;
+    const tone = NEW_TONES[CATS.length % NEW_TONES.length];
+    CATS.push({ id:'c' + Date.now(), name, tone, goal });
+    closeModal();
+    renderHome(); renderCatChips(); renderItems();
+    toast(`已新建分类「${name}」`);
+  });
+}
+
+/* --- 添加物品 --- */
+function newItemModal(){
+  let qty = 1, cat = (state.cat !== 'all' ? state.cat : CATS[0].id);
+  const catChips = () => CATS.map(c =>
+    `<button class="chip${cat === c.id ? ' on' : ''}" data-pick="${c.id}">${c.name}</button>`).join('');
+
+  openModal(`
+    <h3>添加物品</h3>
+    <p class="mhint">只有名称是必填的，其他都能以后再补</p>
+    <div class="fld">
+      <label>名称</label>
+      <input type="text" id="niName" placeholder="比如 白 T 恤" maxlength="14">
+    </div>
+    <div class="fld">
+      <label>分类</label>
+      <div class="chips" id="niCat" style="padding-bottom:2px">${catChips()}</div>
+    </div>
+    <div class="fld">
+      <label>数量</label>
+      <div class="stepper">
+        <button id="niMinus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+        <span class="v" id="niQty">1</span>
+        <button id="niPlus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+      </div>
+    </div>
+    <div class="mrow">
+      <button class="btn" id="niCancel">取消</button>
+      <button class="btn pri" id="niOk" disabled>添加</button>
+    </div>
+  `);
+
+  const nameIn = $('#niName'), okBtn = $('#niOk');
+  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
+  setTimeout(() => nameIn.focus(), 60);
+  $('#niMinus').addEventListener('click', () => { qty = Math.max(1, qty - 1); $('#niQty').textContent = qty; });
+  $('#niPlus').addEventListener('click', () => { qty = Math.min(999, qty + 1); $('#niQty').textContent = qty; });
+  $('#niCat').addEventListener('click', e => {
+    const b = e.target.closest('[data-pick]'); if (!b) return;
+    cat = b.dataset.pick;
+    $('#niCat').innerHTML = catChips();
+  });
+  $('#niCancel').addEventListener('click', closeModal);
+  okBtn.addEventListener('click', () => {
+    const name = nameIn.value.trim();
+    if (!name) return;
+    const item = { id:'i' + (uid++), n:name, c:cat, q:qty, like:'neutral', loc:'', st:'inuse', ic:'ic-box' };
+    ITEMS.push(item);
+    closeModal();
+    renderHome(); renderCatChips(); renderItems();
+    if (state.tab === 'items') setTimeout(() => {
+      const el = document.querySelector(`[data-item="${item.id}"]`);
+      if (el) el.scrollIntoView({ block:'center', behavior:'smooth' });
+    }, 80);
+    toast(`已添加「${name}」`);
+  });
+}
+
+/* --- 状态选择 --- */
+function statusModal(id){
+  const it = ITEMS.find(i => i.id === id); if (!it) return;
+  const opts = Object.keys(ST_TEXT).map(k =>
+    `<div class="opt${it.st === k ? ' sel' : ''}" data-st="${k}">
+       <span class="dot" style="background:${ST_COLOR[k]}"></span>${ST_TEXT[k]}
+       <span class="sub">${k === 'inuse' ? '正在用' : k === 'stored' ? '收起来' : k === 'consuming' ? '在用会变少' : '准备处理'}</span>
+     </div>`).join('');
+  openModal(`
+    <h3>${it.n}</h3>
+    <p class="mhint">这件东西现在是什么状态</p>
+    <div class="optlist">${opts}</div>
+  `);
+  $('#modal .optlist').addEventListener('click', e => {
+    const o = e.target.closest('[data-st]'); if (!o) return;
+    it.st = o.dataset.st;
+    closeModal(); renderHome(); renderItems();
+    toast(`「${it.n}」改为${ST_TEXT[it.st]}`);
+  });
+}
+
+/* ================= 卡片上的归类小菜单 ================= */
+const pop = $('#pop');
+let popOpen = false;
+
+function closePop(){ pop.classList.remove('on'); popOpen = false; }
+
+/* kind: 'st' 状态 | 'like' 喜欢程度 */
+function openPop(anchor, kind, id){
+  const it = ITEMS.find(x => x.id === id); if (!it) return;
+  const map = kind === 'st'
+    ? Object.keys(ST_TEXT).map(k => ({ k, name: ST_TEXT[k], color: ST_COLOR[k], shape:'dot' }))
+    : Object.keys(LIKE_FILL).map(k => ({
+        k,
+        name: { like:'喜欢', neutral:'一般', dislike:'不喜欢' }[k],
+        color: LIKE_FILL[k],
+        shape: k === 'like' ? 'like' : k === 'dislike' ? 'dislike' : 'neutral'
+      }));
+  const cur = kind === 'st' ? it.st : it.like;
+
+  pop.innerHTML = map.map(m =>
+    `<div class="pi${cur === m.k ? ' sel' : ''}" data-pick="${m.k}">
+       <span class="mk" style="--lkc:${m.color}"><svg viewBox="0 0 24 24"><use href="#mk-${m.shape}"/></svg></span>${m.name}
+       ${cur === m.k ? '<span class="ck">✓</span>' : ''}
+     </div>`).join('');
+  pop.classList.add('on');
+  popOpen = true;
+
+  // 定位：优先贴在触发元素下方，超出就翻到上方
+  const phoneRect = $('.phone').getBoundingClientRect();
+  const aRect = anchor.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = aRect.left - phoneRect.left - 8;
+  left = Math.max(8, Math.min(left, phoneRect.width - pw - 8));
+  let top = aRect.bottom - phoneRect.top + 7;
+  if (top + ph > phoneRect.height - 14) top = aRect.top - phoneRect.top - ph - 7;
+  pop.style.left = left + 'px';
+  pop.style.top = Math.max(8, top) + 'px';
+
+  pop.onclick = e => {
+    const p = e.target.closest('[data-pick]'); if (!p) return;
+    if (kind === 'st'){
+      it.st = p.dataset.pick;
+      closePop(); renderHome(); renderItems();
+      toast(`「${it.n}」已归到「${ST_TEXT[it.st]}」`);
+    } else {
+      it.like = p.dataset.pick;
+      closePop(); renderHome(); renderItems();
+      toast(`「${it.n}」已归到「${{like:'喜欢',neutral:'一般',dislike:'不喜欢'}[it.like]}」`);
+    }
+  };
+}
+
+/* --- 删物品（可撤销） --- */
+function deleteItem(id){
+  const idx = ITEMS.findIndex(i => i.id === id); if (idx < 0) return;
+  const removed = ITEMS.splice(idx, 1)[0];
+  // 若正在看这件物品的详情页，退回列表
+  if (detailId === id){ detailId = null; showTab('items'); }
+  renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+  toastUndo(`已删除「${removed.n}」`, () => {
+    ITEMS.splice(idx, 0, removed);
+    renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+    toast('已恢复');
+  });
+}
+
+/* ================= 照片：插画化处理（方案一，纯前端） =================
+   流程：降采样 → 提饱和 + 色彩量化（平涂色块）→ 在小图上找边缘 → 放大叠加描边 → 提亮
+   关键点：必须「先提饱和再量化」，否则低饱和的颜色（如深绿）会被量化压成灰色。
+   全部在本地 canvas 完成，照片不出设备。 */
+function illustrate(srcCanvas, level){
+  const w = srcCanvas.width, h = srcCanvas.height;
+  const strong = level >= 2;
+
+  // 1) 降采样到小块（块越小 → 色块越明显）
+  const dScale = strong ? 0.14 : 0.28;
+  const dw = Math.max(12, Math.round(w * dScale)), dh = Math.max(12, Math.round(h * dScale));
+  const down = document.createElement('canvas');
+  down.width = dw; down.height = dh;
+  const dctx = down.getContext('2d', { willReadFrequently: true });
+  dctx.imageSmoothingEnabled = true;
+  dctx.imageSmoothingQuality = 'high';
+  dctx.drawImage(srcCanvas, 0, 0, dw, dh);
+
+  // 2) 在小图上提饱和 + 量化
+  const idata = dctx.getImageData(0, 0, dw, dh);
+  const d = idata.data;
+  const sat = strong ? 1.55 : 1.25;
+  const steps = strong ? 5 : 7;
+  const q = 255 / (steps - 1);
+  for (let i = 0; i < d.length; i += 4){
+    let r = d[i], g = d[i+1], b = d[i+2];
+    const gray = 0.299*r + 0.587*g + 0.114*b;
+    r = gray + (r - gray) * sat;
+    g = gray + (g - gray) * sat;
+    b = gray + (b - gray) * sat;
+    r = r < 0 ? 0 : r > 255 ? 255 : r;
+    g = g < 0 ? 0 : g > 255 ? 255 : g;
+    b = b < 0 ? 0 : b > 255 ? 255 : b;
+    d[i]   = Math.round(Math.round(r / q) * q);
+    d[i+1] = Math.round(Math.round(g / q) * q);
+    d[i+2] = Math.round(Math.round(b / q) * q);
+  }
+  dctx.putImageData(idata, 0, 0);
+
+  // 3) 在小图上算边缘（此时边界是硬边，梯度干净 → 线条连续）
+  const lum = new Float32Array(dw * dh);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++){
+    lum[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+  }
+  const mask = document.createElement('canvas');
+  mask.width = dw; mask.height = dh;
+  const mctx = mask.getContext('2d', { willReadFrequently: true });
+  const mdata = mctx.createImageData(dw, dh);
+  const m = mdata.data;
+  const thr = strong ? 20 : 28;
+  const raw = new Uint8Array(dw * dh);
+  for (let y = 1; y < dh - 1; y++){
+    for (let x = 1; x < dw - 1; x++){
+      const p = y * dw + x;
+      const gx = lum[p+1] - lum[p-1];
+      const gy = lum[p+dw] - lum[p-dw];
+      if (Math.sqrt(gx*gx + gy*gy) > thr) raw[p] = 1;
+    }
+  }
+  // 去噪：孤立点（周围没有邻居）不算边缘，避免背景出现麻点
+  for (let y = 1; y < dh - 1; y++){
+    for (let x = 1; x < dw - 1; x++){
+      const p = y * dw + x;
+      if (!raw[p]) continue;
+      const n = raw[p-1] + raw[p+1] + raw[p-dw] + raw[p+dw]
+              + raw[p-dw-1] + raw[p-dw+1] + raw[p+dw-1] + raw[p+dw+1];
+      if (n < 2) continue;                       // 邻居太少 → 丢弃
+      const i = p * 4;
+      m[i] = m[i+1] = m[i+2] = 0;
+      m[i+3] = 255;
+    }
+  }
+  mctx.putImageData(mdata, 0, 0);
+
+  // 4) 色块放大回原尺寸
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(down, 0, 0, w, h);
+
+  // 5) 叠描边（轻微模糊 → 像手绘线条而不是像素边）
+  ctx.globalAlpha = strong ? 0.5 : 0.34;
+  ctx.filter = 'blur(0.8px)';
+  ctx.drawImage(mask, 0, 0, w, h);
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+
+  // 6) 轻微提亮
+  const out = ctx.getImageData(0, 0, w, h);
+  const o = out.data;
+  const lift = strong ? 12 : 8;
+  for (let i = 0; i < o.length; i += 4){
+    o[i]   = Math.min(255, o[i]   + lift);
+    o[i+1] = Math.min(255, o[i+1] + lift);
+    o[i+2] = Math.min(255, o[i+2] + lift);
+  }
+  ctx.putImageData(out, 0, 0);
+
+  return cv;
+}
+
+/* ================= 照片 ================= */
+let photoTargetId = null;
+let photoTargetMode = 'card';
+let appPhotoTargetId = null;
+let photoStyle = 1;          // 0 = 原图  1 = 插画（轻）  2 = 插画（强）
+$('#filePick').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+
+  // 软件图标
+  if (appPhotoTargetId){
+    const aid = appPhotoTargetId; appPhotoTargetId = null;
+    if (!file) return;
+    const fr0 = new FileReader();
+    fr0.onload = ev => {
+      const im = new Image();
+      im.onload = () => {
+        const S = 200;
+        const cv = document.createElement('canvas');
+        cv.width = S; cv.height = S;
+        const ctx = cv.getContext('2d');
+        const side = Math.min(im.naturalWidth, im.naturalHeight);
+        ctx.drawImage(im, (im.naturalWidth - side) / 2, (im.naturalHeight - side) / 2, side, side, 0, 0, S, S);
+        const a = APPS.find(x => x.id === aid);
+        if (a){
+          a.photo = cv.toDataURL('image/jpeg', .82);
+          renderApps();
+          if (appDetailId === aid) renderAppDetail();
+          toast('图标已保存');
+        }
+      };
+      im.onerror = () => toast('这张图读不出来，换一张试试');
+      im.src = ev.target.result;
+    };
+    fr0.readAsDataURL(file);
+    return;
+  }
+
+  if (!file || !photoTargetId) return;
+  const id = photoTargetId, mode = photoTargetMode;
+  photoTargetId = null; photoTargetMode = 'card';
+  const fr = new FileReader();
+  fr.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1000;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const scale = Math.min(1, MAX / Math.max(w, h));
+      w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      const out = photoStyle > 0 ? illustrate(cv, photoStyle) : cv;
+      const it = ITEMS.find(x => x.id === id);
+      if (it){
+        it.photo = out.toDataURL('image/jpeg', .78);
+        renderItems();
+        if (mode === 'detail' && detailId === id) renderDetail();
+        toast(photoStyle > 0 ? '照片已插画化并保存' : '照片已保存');
+      }
+    };
+    img.onerror = () => toast('这张图读不出来，换一张试试');
+    img.src = ev.target.result;
+  };
+  fr.readAsDataURL(file);
+});
+
+/* ================= 照片风格选择 ================= */
+function styleModal(after){
+  const opts = [
+    { v:0, name:'原图',      desc:'照片原样保存' },
+    { v:1, name:'插画 · 轻', desc:'描边 + 微提亮，还看得出原样' },
+    { v:2, name:'插画 · 强', desc:'明显色块化，最像插画' }
+  ];
+  openModal(`
+    <h3>照片风格</h3>
+    <p class="mhint">新上传的照片会按这个风格处理，已经传过的不会变</p>
+    <div class="optlist">
+      ${opts.map(o => `<div class="opt${photoStyle === o.v ? ' sel' : ''}" data-style="${o.v}">
+        <span style="font-family:var(--f-cn)">${o.name}</span>
+        <span class="sub">${o.desc}</span>
+      </div>`).join('')}
+    </div>
+  `);
+  $('#modal .optlist').addEventListener('click', e => {
+    const o = e.target.closest('[data-style]'); if (!o) return;
+    photoStyle = Number(o.dataset.style);
+    closeModal();
+    if (typeof after === 'function') after();
+    toast(`照片风格：${opts.find(x => x.v === photoStyle).name}`);
+  });
+}
+
+/* ================= 软件数据 ================= */
+let APP_CATS = [
+  { id:'social', name:'社交', tone:'#ded0f0' },
+  { id:'tool',   name:'工具', tone:'#bcd9ee' },
+  { id:'media',  name:'影音', tone:'#f5d7a8' },
+  { id:'game',   name:'游戏', tone:'#f8d8c0' },
+  { id:'shop',   name:'购物', tone:'#f2cfcf' },
+  { id:'study',  name:'学习', tone:'#cfe4f4' },
+  { id:'sys',    name:'系统', tone:'#d9d9e8' }
+];
+const NEED_TEXT  = { need:'必需', temp:'暂用', todel:'待删' };
+const NEED_COLOR = { need:'#cfe4f4', temp:'#e6e6ea', todel:'#f3c9d8' };
+
+/* 数据从空开始：首次打开是干净状态，由用户自己录入 */
+let APPS = [];
+APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
+
+const appState = { cat:'all', need:'all', q:'' };
+const appCatOf = id => APP_CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
+
+function renderAppCatChips(){
+  const list = [{ id:'all', name:'全部', qty: APPS.length },
+    ...APP_CATS.map(c => ({ ...c, qty: APPS.filter(a => a.c === c.id).length }))];
+  $('#appCatChips').innerHTML = list.map(c =>
+    `<button class="chip${appState.cat === c.id ? ' on' : ''}" data-acat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
+  ).join('') + `<button class="chip plus" id="chipAddAppCat">＋ 新建</button>`;
+}
+
+function renderApps(){
+  const q = appState.q.trim().toLowerCase();
+  const rows = APPS.filter(a =>
+    (appState.cat === 'all' || a.c === appState.cat) &&
+    (appState.need === 'all' || a.need === appState.need) &&
+    (!q || a.n.toLowerCase().includes(q) || (a.note || '').toLowerCase().includes(q))
+  );
+
+  const catName = appState.cat === 'all' ? '全部软件' : appCatOf(appState.cat).name;
+  const needName = appState.need === 'all' ? '' : ` · ${NEED_TEXT[appState.need]}`;
+  $('#appResTitle').textContent = catName + needName;
+  $('#appResCnt').textContent = `${rows.length} 个`;
+  $('#appCnt').textContent = `${APPS.length} 个 · 待删 ${APPS.filter(a => a.need === 'todel').length}`;
+  $('#tabAppBadge').textContent = APPS.length;
+
+  const cards = rows.map(a => {
+    const c = appCatOf(a.c);
+    const iconInner = a.photo
+      ? `<img src="${a.photo}" alt="">`
+      : `<span style="color:${a.need === 'todel' ? '#8b8c94' : '#3b3d45'}">${a.n.slice(0, 1)}</span>`;
+    // 位置里已经含分类名时（如「工具文件夹」），副行不再重复分类
+    const locHasCat = a.loc && a.loc.includes(c.name);
+    const sub = [locHasCat ? null : c.name, a.loc, a.note].filter(Boolean).join(' · ');
+    return `<div class="arow${a.need === 'todel' ? ' todel' : ''}" data-app="${a.id}">
+      <div class="ic" style="background:${a.photo ? '#fff' : c.tone}" data-appphoto="${a.id}">${iconInner}</div>
+      <div class="tx" data-appdetail="${a.id}"><b>${a.n}</b><span>${sub}</span></div>
+      <span class="need" data-appneed="${a.id}" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
+      <button class="del" data-delapp="${a.id}" title="删除软件">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+
+  const addRow = `<div class="addrow" id="appAdd">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
+    添加软件
+  </div>`;
+
+  $('#alist').innerHTML = rows.length ? (cards + addRow)
+    : `<div class="empty"><b>没有符合条件的软件</b><span>换个筛选，或者点下面「添加软件」</span></div>` + addRow;
+  saveSoon();
+}
+
+/* 软件：归类（必需程度） */
+function openAppPop(anchor, id){
+  const a = APPS.find(x => x.id === id); if (!a) return;
+  pop.innerHTML = Object.keys(NEED_TEXT).map(k =>
+    `<div class="pi${a.need === k ? ' sel' : ''}" data-apick="${k}">
+       <span class="mk" style="--lkc:${NEED_COLOR[k]}"><svg viewBox="0 0 24 24"><use href="#mk-dot"/></svg></span>${NEED_TEXT[k]}
+       ${a.need === k ? '<span class="ck">✓</span>' : ''}
+     </div>`).join('');
+  pop.classList.add('on'); popOpen = true;
+  const phoneRect = $('.phone').getBoundingClientRect();
+  const aRect = anchor.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = aRect.left - phoneRect.left - 8;
+  left = Math.max(8, Math.min(left, phoneRect.width - pw - 8));
+  let top = aRect.bottom - phoneRect.top + 7;
+  if (top + ph > phoneRect.height - 14) top = aRect.top - phoneRect.top - ph - 7;
+  pop.style.left = left + 'px';
+  pop.style.top = Math.max(8, top) + 'px';
+  pop.onclick = e => {
+    const p = e.target.closest('[data-apick]'); if (!p) return;
+    a.need = p.dataset.apick;
+    closePop(); renderApps();
+    toast(`「${a.n}」已归到「${NEED_TEXT[a.need]}」`);
+  };
+}
+
+/* 软件：新增 */
+function newAppModal(){
+  let cat = (appState.cat !== 'all' ? appState.cat : APP_CATS[0].id);
+  const catChips = () => APP_CATS.map(c =>
+    `<button class="chip${cat === c.id ? ' on' : ''}" data-pick="${c.id}">${c.name}</button>`).join('');
+
+  openModal(`
+    <h3>添加软件</h3>
+    <p class="mhint">只有名称是必填的，其他都能以后再补</p>
+    <div class="fld">
+      <label>软件名</label>
+      <input type="text" id="naName" placeholder="比如 微信" maxlength="14">
+    </div>
+    <div class="fld">
+      <label>分类</label>
+      <div class="chips" id="naCat" style="padding-bottom:2px">${catChips()}</div>
+    </div>
+    <div class="fld">
+      <label>在手机上的位置</label>
+      <input type="text" id="naLoc" placeholder="比如 第二屏、工具文件夹" maxlength="16">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="naCancel">取消</button>
+      <button class="btn pri" id="naOk" disabled>添加</button>
+    </div>
+  `);
+  const nameIn = $('#naName'), okBtn = $('#naOk');
+  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
+  setTimeout(() => nameIn.focus(), 60);
+  $('#naCat').addEventListener('click', e => {
+    const b = e.target.closest('[data-pick]'); if (!b) return;
+    cat = b.dataset.pick; $('#naCat').innerHTML = catChips();
+  });
+  $('#naCancel').addEventListener('click', closeModal);
+  okBtn.addEventListener('click', () => {
+    const name = nameIn.value.trim();
+    if (!name) return;
+    const a = { id:'a' + Date.now(), n:name, c:cat, need:'temp',
+      loc:$('#naLoc').value.trim(), note:'', photo:null };
+    APPS.push(a);
+    closeModal(); renderAppCatChips(); renderApps();
+    setTimeout(() => {
+      const el = document.querySelector(`[data-app="${a.id}"]`);
+      if (el) el.scrollIntoView({ block:'center', behavior:'smooth' });
+    }, 80);
+    toast(`已添加「${name}」`);
+  });
+}
+
+/* 软件：删除（可撤销） */
+function deleteApp(id){
+  const idx = APPS.findIndex(x => x.id === id); if (idx < 0) return;
+  const removed = APPS.splice(idx, 1)[0];
+  renderAppCatChips(); renderApps();
+  toastUndo(`已删除「${removed.n}」`, () => {
+    APPS.splice(idx, 0, removed);
+    renderAppCatChips(); renderApps();
+    toast('已恢复');
+  });
+}
+
+/* ================= 极简进程 ================= */
+/* 快照从空开始：由 maybeSnapshot() 每周自动记录一条，用户无需任何操作 */
+let SNAPSHOTS = [];
+
+let GOAL_TOTAL = 200;
+let GOAL_APPS  = 20;
+let pgSeries = 'items';       // items | entries | apps | cat
+let pgCatId  = 'cloth';       // 指定分类时看哪个
+
+const sumItems  = () => sumQty(ITEMS);
+const countApps = () => APPS.length;
+
+/* 今天的日期字符串，用于使用次数按天统计 */
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* 使用次数按天算：不是今天的记录就清零重算 */
+function normalizeUses(){
+  const t = todayStr();
+  let changed = false;
+  ITEMS.forEach(i => {
+    if (i.lastUse !== t && i.uses){
+      i.uses = 0;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+/* 当前值 → 拼成"含今天"的完整序列 */
+function pgCurrent(){
+  if (pgSeries === 'apps')  return countApps();
+  if (pgSeries === 'entries') return ITEMS.length;
+  if (pgSeries === 'cat')   return catQty(pgCatId);
+  return sumItems();
+}
+
+function renderProgress(){
+  const curItems = sumItems();
+  const curEntries = ITEMS.length;
+  const curApps = countApps();
+
+  $('#pgSince').textContent = SNAPSHOTS.length
+    ? `从 ${SNAPSHOTS[0].d} 起 · 共 ${SNAPSHOTS.length + 1} 次记录`
+    : '还没有记录 · 下周开始有曲线';
+
+  // ---------- 区块 A：目标对比 ----------
+  const totalPct = GOAL_TOTAL > 0 ? Math.min(100, Math.round(curItems / GOAL_TOTAL * 100)) : 0;
+  const totalOver = GOAL_TOTAL > 0 && curItems > GOAL_TOTAL;
+  const totalDiff = GOAL_TOTAL - curItems;
+  const totalColor = totalOver ? 'var(--warn)' : (totalPct >= 95 ? 'var(--blue-deep)' : 'var(--green)');
+
+  const appsPct = GOAL_APPS > 0 ? Math.min(100, Math.round(curApps / GOAL_APPS * 100)) : 0;
+  const appsOver = GOAL_APPS > 0 && curApps > GOAL_APPS;
+
+  // 分类目标（按 当前/目标 比从高到低，只列设了目标的）
+  const withGoal = CATS.filter(c => c.goal > 0).map(c => {
+    const q = catQty(c.id);
+    return { ...c, q, ratio: q / c.goal, diff: q - c.goal };
+  }).sort((a, b) => b.ratio - a.ratio);
+
+  const catRows = withGoal.map(c => {
+    const pct = Math.min(100, Math.round(c.ratio * 100));
+    const over = c.diff > 0;
+    const color = over ? 'var(--warn)' : (c.ratio >= .95 ? 'var(--blue-deep)' : 'var(--green)');
+    const flag = over
+      ? `<span class="flag" style="background:rgba(217,134,31,.18);color:#a8640c">超出 ${c.diff}</span>`
+      : (c.ratio >= .95
+        ? `<span class="flag" style="background:rgba(127,176,212,.24);color:#3d6f9e">接近</span>`
+        : `<span class="flag" style="background:rgba(127,176,212,.18);color:#3d6f9e">还差 ${-c.diff}</span>`);
+    // 超标时：条子画满，再叠一段更深的「超出」色块，一眼能看出超了多少
+    const flInner = over
+      ? `<span class="fl" style="width:100%;background:var(--warn)"></span>
+         <span class="fl" style="left:auto;right:2px;width:${Math.min(46, Math.round((c.diff / c.goal) * 100) + 12)}%;background:#b8630c;opacity:.85"></span>`
+      : `<span class="fl" style="width:${pct}%;background:${color}"></span>`;
+    return `<div class="pg-row">
+      <span class="nm">${c.name}</span>
+      <span class="bar"><span class="tr"></span>${flInner}</span>
+      <span class="vv">${c.q}/${c.goal}</span>
+      ${flag}
+    </div>`;
+  }).join('');
+
+  // ---------- 区块 B：趋势 ----------
+  const labels = SNAPSHOTS.map(s => s.d);
+  let series, unit;
+  if (pgSeries === 'apps'){ series = SNAPSHOTS.map(s => s.apps); unit = '个'; }
+  else if (pgSeries === 'entries'){ series = SNAPSHOTS.map(s => s.entries); unit = '条'; }
+  else if (pgSeries === 'cat'){ series = SNAPSHOTS.map(s => Math.round(s.items * (catQty(pgCatId) / Math.max(1, sumItems())))); unit = '件'; }
+  else { series = SNAPSHOTS.map(s => s.items); unit = '件'; }
+  const cur = pgCurrent();
+  const all = series.concat([cur]);
+  const n = all.length;
+
+  const W = 300, H = 150, PADL = 30, PADR = 8, PADT = 12, PADB = 20;
+  const iw = W - PADL - PADR, ih = H - PADT - PADB;
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const span = Math.max(1, hi - lo);
+  const pad = Math.ceil(span * 0.18) || 1;
+  const y0 = lo - pad, y1 = hi + pad;
+  const X = i => PADL + (n <= 1 ? iw / 2 : iw * i / (n - 1));
+  const Y = v => PADT + ih * (1 - (v - y0) / Math.max(1, y1 - y0));
+
+  // 网格线 + 纵轴数字
+  const gridVals = [y1, Math.round((y0 + y1) / 2), y0];
+  const grid = gridVals.map(v =>
+    `<line x1="${PADL}" y1="${Y(v).toFixed(1)}" x2="${W - PADR}" y2="${Y(v).toFixed(1)}"
+       stroke="rgba(22,23,27,.16)" stroke-width="1" stroke-dasharray="3 4"/>
+     <text x="${PADL - 6}" y="${(Y(v) + 3.5).toFixed(1)}" text-anchor="end"
+       font-size="9" fill="#8b8c94" font-family="PatrickHand, sans-serif">${v}</text>`
+  ).join('');
+
+  const pts = all.map((v, i) => [X(i), Y(v)]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const areaPath = `${line} L ${pts[n-1][0].toFixed(1)} ${(PADT + ih).toFixed(1)} L ${pts[0][0].toFixed(1)} ${(PADT + ih).toFixed(1)} Z`;
+  const dots = pts.map((p, i) => {
+    const last = i === n - 1;
+    return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${last ? 4 : 2.6}"
+      fill="${last ? '#d55f9b' : '#fff'}" stroke="${last ? '#16171b' : '#16171b'}" stroke-width="${last ? 2 : 1.6}"/>`;
+  }).join('');
+
+  // x 轴：只标首、中、尾，避免拥挤
+  const xLabels = [0, Math.floor((n - 1) / 2), n - 1].map(i =>
+    `<text x="${X(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="9"
+       fill="#8b8c94" font-family="PatrickHand, sans-serif">${i === n - 1 ? '今天' : labels[i] || ''}</text>`
+  ).join('');
+
+  const first = all[0], lastV = all[n - 1];
+  const delta = lastV - first;
+  const deltaTxt = delta === 0 ? '持平'
+    : (delta < 0 ? `减少 ${-delta} ${unit}` : `增加 ${delta} ${unit}`);
+  const weekTxt = (() => {
+    const prev = all[n - 2];
+    if (prev === undefined) return '';
+    const d = lastV - prev;
+    return d === 0 ? '与上周持平' : (d < 0 ? `比上周少 ${-d}` : `比上周多 ${d}`);
+  })();
+
+  const catOptions = CATS.map(c =>
+    `<button data-pgcat="${c.id}" class="${pgCatId === c.id ? 'on' : ''}">${c.name}</button>`).join('');
+
+  const chartBlock = n < 2
+    ? `<div class="pg-empty" style="margin:0">
+         <b>数据积累中</b>
+         <span>已记录起点 ${first} ${unit}，下周开始出现曲线</span>
+       </div>`
+    : `<div class="pg-svgbox">
+         <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+           ${grid}
+           <path d="${areaPath}" fill="rgba(201,232,207,.42)" stroke="none"/>
+           <path d="${line}" fill="none" stroke="#16171b" stroke-width="2.2"
+             stroke-linejoin="round" stroke-linecap="round"/>
+           ${dots}
+           ${xLabels}
+         </svg>
+       </div>`;
+
+  const seriesTabs = `
+    <div class="pg-tabs">
+      <button data-pg="items"   class="${pgSeries === 'items' ? 'on' : ''}">物品</button>
+      <button data-pg="entries" class="${pgSeries === 'entries' ? 'on' : ''}">款数</button>
+      <button data-pg="apps"    class="${pgSeries === 'apps' ? 'on' : ''}">软件</button>
+      <button data-pg="cat"     class="${pgSeries === 'cat' ? 'on' : ''}">分类</button>
+    </div>
+    ${pgSeries === 'cat' ? `<div class="pg-tabs" style="margin-top:6px">${catOptions}</div>` : ''}
+  `;
+
+  // ---------- 区块 C：里程碑 ----------
+  const mileBlock = n < 2 ? '' : (() => {
+    const d = all[n - 1] - all[0];
+    if (d < 0){
+      return `<div class="pg-mile">
+        <div class="tt">从 ${labels[0]} 的 <b>${all[0]}</b> ${unit}，到现在 <b>${all[n-1]}</b> ${unit}，
+          累计减少 <b>${-d}</b> ${unit}</div>
+        <div class="sm">${weekTxt || ''}</div>
+      </div>`;
+    }
+    if (d > 0){
+      return `<div class="pg-mile" style="background:#f7e0b8">
+        <div class="tt">这段时间增加了 <b>${d}</b> ${unit}，现在是 <b>${all[n-1]}</b> ${unit}</div>
+        <div class="sm">${weekTxt || ''}</div>
+      </div>`;
+    }
+    return `<div class="pg-mile" style="background:#e6e6ea">
+      <div class="tt">数量和起点一样，都是 <b>${all[n-1]}</b> ${unit}</div>
+      <div class="sm">${weekTxt || ''}</div>
+    </div>`;
+  })();
+
+  $('#pgBody').innerHTML = `
+    <!-- 总目标 -->
+    ${GOAL_TOTAL > 0 ? `
+    <div class="pg-total">
+      <div class="row1">
+        <div>
+          <div class="big"><span class="n">${curItems}</span><span class="of">/ ${GOAL_TOTAL}</span></div>
+          <div class="lb">持有物品 · 目标 ${GOAL_TOTAL} 件</div>
+        </div>
+        <button class="pg-setbtn" id="pgSetGoal">改目标</button>
+      </div>
+      <div class="pg-bar">
+        <div class="tr"><div class="fl" style="width:${totalPct}%;background:${totalColor}"></div></div>
+      </div>
+      <div class="pg-sub">
+        <span>${totalOver ? `已超出 ${-totalDiff} 件` : `还差 ${totalDiff} 件达标`}</span>
+        <span>软件 ${curApps} / ${GOAL_APPS}${appsOver ? ` · 超出 ${curApps - GOAL_APPS}` : ''}</span>
+      </div>
+    </div>` : `
+    <div class="pg-total">
+      <div class="row1">
+        <div>
+          <div class="lb" style="font-size:14px">还没设目标</div>
+          <div class="lb" style="margin-top:4px">给物品总数定个上限，进度条才有意义</div>
+        </div>
+        <button class="pg-setbtn" id="pgSetGoal">去设置</button>
+      </div>
+    </div>`}
+
+    <!-- 分类目标 -->
+    <div class="pg-sec">
+      ${catRows || '<div class="pg-row" style="justify-content:center;color:#8b8c94;font-size:13px">还没有分类设了目标</div>'}
+    </div>
+
+    <!-- 趋势 -->
+    <div class="pg-chart">
+      <div class="ch-head">
+        <b>数量趋势</b>
+        <span style="font-size:11.5px;color:#8b8c94;font-family:'PatrickHand',sans-serif">每周自动记录</span>
+      </div>
+      ${chartBlock}
+      ${all.length > 1 ? seriesTabs : ''}
+      <div class="pg-summary">
+        ${n < 2 ? '等下周出现第一个点，曲线就会开始长' : `最近 ${n} 次：${all[0]} → ${all[n-1]} ${unit}，${deltaTxt}`}
+      </div>
+    </div>
+
+    ${mileBlock}
+  `;
+
+  // 事件
+  $('#pgBody').addEventListener('click', e => {
+    const tab = e.target.closest('[data-pg]');
+    if (tab){ pgSeries = tab.dataset.pg; renderProgress(); return; }
+    const ct = e.target.closest('[data-pgcat]');
+    if (ct){ pgCatId = ct.dataset.pgcat; renderProgress(); return; }
+    if (e.target.closest('#pgSetGoal')){ goalModal('cats'); return; }
+  });
+}
+
+/* ================= 设置 ================= */
+/* 分类管理当前正在编辑哪一类（item / app） */
+let stCatKind = 'item';
+
+const stCatList  = () => (stCatKind === 'item' ? CATS : APP_CATS);
+const stCatCount = c => (stCatKind === 'item'
+  ? ITEMS.filter(i => i.c === c.id).length
+  : APPS.filter(a => a.c === c.id).length);
+const stCatUnit  = () => (stCatKind === 'item' ? '条物品' : '个软件');
+
+function renderSettings(){
+  const curItems = sumItems();
+  const curApps = countApps();
+
+  // 估算占用：按条数与图片数粗算（正式版从 IndexedDB 取真实值）
+  const photoCount = ITEMS.filter(i => i.photo).length + APPS.filter(a => a.photo).length;
+  const estMB = ((ITEMS.length + APPS.length) * 0.004 + photoCount * 0.11).toFixed(1);
+  const QUOTA = 120;   // 浏览器大致可用空间，仅作示意
+
+  const catRows = stCatList().map(c => {
+    const n = stCatCount(c);
+    const goalTxt = (stCatKind === 'item' && c.goal) ? `目标 ${c.goal}` : '';
+    return `<div class="st-cat" data-scat="${c.id}">
+      <span class="dot" style="background:${c.tone}"></span>
+      <span class="nm">${c.name}</span>
+      <span class="cnt">${n} ${stCatUnit()}${goalTxt ? ' · ' + goalTxt : ''}</span>
+      <button class="mini" data-renamecat="${c.id}" title="改名">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg>
+      </button>
+      <button class="mini rm" data-delcat="${c.id}" title="删除">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+
+  $('#stBody').innerHTML = `
+    <!-- 分类管理 -->
+    <div class="st-group">分类管理 <span class="badge">共 ${stCatList().length} 个</span></div>
+    <div class="st-sec">
+      <div class="pg-tabs" style="margin:10px 0 4px">
+        <button data-catkind="item" class="${stCatKind === 'item' ? 'on' : ''}">物品分类</button>
+        <button data-catkind="app"  class="${stCatKind === 'app' ? 'on' : ''}">软件分类</button>
+      </div>
+      ${catRows}
+      <div class="st-addrow" id="stAddCat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
+        新增分类
+      </div>
+    </div>
+
+    <!-- 极简目标 -->
+    <div class="st-group">极简目标</div>
+    <div class="st-sec">
+      <div class="st-row" id="stGoalItem">
+        <span class="ic" style="background:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5l5-5 3.6 3L20 6.5"/><path d="M15 6.5h5v5"/></svg></span>
+        <span class="tx"><b>物品总目标</b><span>现在 ${curItems} 件</span></span>
+        <span class="vv">${GOAL_TOTAL} 件</span>
+        <span class="go">›</span>
+      </div>
+      <div class="st-row" id="stGoalApp">
+        <span class="ic" style="background:#dbeaf7"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg></span>
+        <span class="tx"><b>软件总目标</b><span>现在 ${curApps} 个</span></span>
+        <span class="vv">${GOAL_APPS} 个</span>
+        <span class="go">›</span>
+      </div>
+      <div class="st-row" id="stGoalCats">
+        <span class="ic" style="background:#ded0f0"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h10"/></svg></span>
+        <span class="tx"><b>分类目标</b><span>${CATS.filter(c => c.goal > 0).length} 个分类设了目标</span></span>
+        <span class="go">›</span>
+      </div>
+    </div>
+
+    <!-- 外观 -->
+    <div class="st-group">外观</div>
+    <div class="st-sec">
+      <div class="st-row" style="cursor:default;border-bottom:none;padding-bottom:6px">
+        <span class="tx" style="flex:1"><b>主色</b><span>涂笔、按钮、高亮块的颜色</span></span>
+      </div>
+      <div class="st-swatches" id="stSwatches"></div>
+      <div class="st-row" id="stBgPick">
+        <span class="ic" style="background:#f7e9cf"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 16.5l4.6-3.8 3.2 2.6L15 12.8l5 4"/></svg></span>
+        <span class="tx"><b>纸面背景</b><span>点阵纸 / 自定义背景图</span></span>
+        <span class="vv">点阵纸</span>
+        <span class="go">›</span>
+      </div>
+      <div class="st-row" id="stPhotoStyle">
+        <span class="ic" style="background:#f2cfcf"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4h16v13.2H4z"/><circle cx="9" cy="10.2" r="1.8"/><path d="M4 16.2l5-4.4 3.6 3 3-2.6L20 16"/></svg></span>
+        <span class="tx"><b>照片风格</b><span>新上传照片的插画化强度</span></span>
+        <span class="vv">${['原图','插画 · 轻','插画 · 强'][photoStyle]}</span>
+        <span class="go">›</span>
+      </div>
+    </div>
+
+    <!-- 数据 -->
+    <div class="st-group">数据</div>
+    <div class="st-sec">
+      <div style="padding:12px 0 4px">
+        <div class="st-meter">
+          <div class="tr"><div class="fl" style="width:${Math.min(100, (estMB / QUOTA) * 100).toFixed(1)}%"></div></div>
+        </div>
+        <div class="st-note" style="padding-bottom:6px">
+          已用约 <b>${estMB} MB</b>（${ITEMS.length} 条物品 · ${APPS.length} 个软件 · ${photoCount} 张图）
+        </div>
+      </div>
+      <div class="st-row" id="stExport">
+        <span class="ic" style="background:#cfe4f4"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10M8 11l4 3.8 4-3.8"/><path d="M5 19.2h14"/></svg></span>
+        <span class="tx"><b>导出备份</b><span>生成一个文件，含全部数据和图片</span></span>
+        <span class="go">›</span>
+      </div>
+      <div class="st-row" id="stImport">
+        <span class="ic" style="background:#d9eddd"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5V4.5M8 11l4-3.8 4 3.8"/><path d="M5 19.2h14"/></svg></span>
+        <span class="tx"><b>导入备份</b><span>会覆盖当前全部数据</span></span>
+        <span class="go">›</span>
+      </div>
+      <div class="st-row danger" id="stClear">
+        <span class="ic" style="background:#f9e6ec"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg></span>
+        <span class="tx"><b>清空全部数据</b><span>不可撤销，需要先导出备份</span></span>
+        <span class="go">›</span>
+      </div>
+    </div>
+
+    <!-- 关于 -->
+    <div class="st-sec" style="padding:14px 15px">
+      <div class="st-ver">
+        电子收纳 v0.1（原型）<br>
+        所有数据只保存在这台设备上，不会上传到任何服务器<br>
+        建议每月导出一次备份
+      </div>
+    </div>
+  `;
+
+  renderSwatches();
+}
+
+/* 主色选择：只改 CSS 变量，立即生效 */
+const ACCENT_PRESETS = [
+  { id:'green',  name:'浅绿',  accent:'#c9e8cf', deep:'#6fa87d', hl:'rgba(201,232,207,.92)', hl2:'rgba(201,232,207,.85)' },
+  { id:'blue',   name:'浅蓝',  accent:'#c6e0f4', deep:'#7fb0d4', hl:'rgba(198,224,244,.92)', hl2:'rgba(198,224,244,.85)' },
+  { id:'pink',   name:'浅粉',  accent:'#f3c8dd', deep:'#d484ac', hl:'rgba(243,200,221,.92)', hl2:'rgba(243,200,221,.85)' },
+  { id:'sand',   name:'浅杏',  accent:'#f7e0b8', deep:'#cb9d55', hl:'rgba(247,224,184,.92)', hl2:'rgba(247,224,184,.85)' },
+  { id:'lilac',  name:'浅紫',  accent:'#ded0f0', deep:'#a68ccb', hl:'rgba(222,208,240,.92)', hl2:'rgba(222,208,240,.85)' }
+];
+let accentId = 'green';
+
+function applyAccent(id){
+  const p = ACCENT_PRESETS.find(x => x.id === id) || ACCENT_PRESETS[0];
+  accentId = p.id;
+  const root = document.documentElement.style;
+  root.setProperty('--accent', p.accent);
+  root.setProperty('--accent-deep', p.deep);
+  root.setProperty('--hl', p.hl);
+  root.setProperty('--hl-soft', p.hl2);
+  // 主卡是 SVG <use>，fill 属性不吃 CSS 变量，得单独设
+  const hero = document.querySelector('.hero svg use');
+  if (hero) hero.setAttribute('fill', p.accent);
+  saveSoon();
+}
+
+function renderSwatches(){
+  const box = $('#stSwatches');
+  if (!box) return;
+  box.innerHTML = ACCENT_PRESETS.map(p =>
+    `<button class="st-sw${accentId === p.id ? ' on' : ''}" data-accent="${p.id}"
+       style="background:${p.accent}" title="${p.name}"></button>`).join('');
+}
+
+/* ================= 设置页事件 ================= */
+function goSettings(){
+  renderSettings();
+  showTab('settings');
+  $('#scr-settings').scrollTop = 0;
+}
+
+$('#goSettings').addEventListener('click', goSettings);
+$('#qSettings').addEventListener('click', goSettings);
+$('#stBack').addEventListener('click', () => showTab('home'));
+
+$('#stBody').addEventListener('click', e => {
+  // 分类：切物品/软件
+  const kind = e.target.closest('[data-catkind]');
+  if (kind){ stCatKind = kind.dataset.catkind; renderSettings(); return; }
+
+  // 分类改名
+  const rn = e.target.closest('[data-renamecat]');
+  if (rn){ renameCatModal(rn.dataset.renamecat); return; }
+
+  // 分类删除
+  const rm = e.target.closest('[data-delcat]');
+  if (rm){ delCatModal(rm.dataset.delcat); return; }
+
+  // 新增分类
+  if (e.target.closest('#stAddCat')){
+    if (stCatKind === 'item') newCatModal(); else newAppCatModal();
+    return;
+  }
+
+  // 主色
+  const sw = e.target.closest('[data-accent]');
+  if (sw){ applyAccent(sw.dataset.accent); renderSwatches(); toast('主色已切换'); return; }
+
+  // 目标编辑
+  if (e.target.closest('#stGoalItem')){ goalModal('itemTotal'); return; }
+  if (e.target.closest('#stGoalApp')){ goalModal('appTotal'); return; }
+  if (e.target.closest('#stGoalCats')){ goalModal('cats'); return; }
+
+  // 照片风格
+  if (e.target.closest('#stPhotoStyle')){
+    styleModal(() => renderSettings());
+    return;
+  }
+
+  // 纸面背景
+  if (e.target.closest('#stBgPick')){ toast('背景图片功能还没做，现在是点阵纸'); return; }
+
+  // 数据
+  if (e.target.closest('#stExport')){ exportBackup(); return; }
+  if (e.target.closest('#stImport')){ importBackup(); return; }
+  if (e.target.closest('#stClear')){ clearAllModal(); return; }
+});
+
+/* --- 分类改名 --- */
+function renameCatModal(id){
+  const c = stCatList().find(x => x.id === id);
+  if (!c) return;
+  openModal(`
+    <h3>重命名分类</h3>
+    <p class="mhint">分类下的条目不会变，只是换个名字</p>
+    <div class="fld">
+      <label>分类名称</label>
+      <input type="text" id="rcName" value="${c.name}" maxlength="8">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="rcCancel">取消</button>
+      <button class="btn pri" id="rcOk">保存</button>
+    </div>
+  `);
+  const inp = $('#rcName');
+  setTimeout(() => { inp.focus(); inp.select(); }, 60);
+  $('#rcCancel').addEventListener('click', closeModal);
+  $('#rcOk').addEventListener('click', () => {
+    const v = inp.value.trim();
+    if (!v) return;
+    c.name = v;
+    closeModal(); renderSettings(); renderHome(); renderCatChips(); renderAppCatChips(); renderItems(); renderApps();
+    toast(`已改名为「${v}」`);
+  });
+}
+
+/* --- 分类删除（条目归入未分类） --- */
+function delCatModal(id){
+  const c = stCatList().find(x => x.id === id);
+  if (!c) return;
+  const n = stCatCount(c);
+  openModal(`
+    <h3>删除「${c.name}」？</h3>
+    <p class="mhint">${n > 0
+      ? `这个分类下有 ${n} ${stCatUnit()}，删除后会归入「未分类」，不会丢。`
+      : '这个分类下还没有条目，可以放心删。'}</p>
+    <div class="mrow">
+      <button class="btn" id="dcCancel">取消</button>
+      <button class="btn dan" id="dcOk">删除</button>
+    </div>
+  `);
+  $('#dcCancel').addEventListener('click', closeModal);
+  $('#dcOk').addEventListener('click', () => {
+    if (stCatKind === 'item'){
+      ITEMS.forEach(i => { if (i.c === c.id) i.c = 'none'; });
+      const list = CATS;
+      // 保留一个「未分类」兜底
+      if (!list.some(x => x.id === 'none')) list.push({ id:'none', name:'未分类', tone:'#e6e6ea', goal:0 });
+      list.splice(list.findIndex(x => x.id === c.id), 1);
+    } else {
+      APPS.forEach(a => { if (a.c === c.id) a.c = 'none'; });
+      const list = APP_CATS;
+      if (!list.some(x => x.id === 'none')) list.push({ id:'none', name:'未分类', tone:'#e6e6ea' });
+      list.splice(list.findIndex(x => x.id === c.id), 1);
+    }
+    closeModal();
+    renderSettings(); renderHome(); renderCatChips(); renderAppCatChips(); renderItems(); renderApps();
+    toast(`已删除分类「${c.name}」`);
+  });
+}
+
+/* --- 目标编辑 --- */
+function goalModal(kind){
+  if (kind === 'itemTotal' || kind === 'appTotal'){
+    const isItem = kind === 'itemTotal';
+    const cur = isItem ? GOAL_TOTAL : GOAL_APPS;
+    const unit = isItem ? '件' : '个';
+    openModal(`
+      <h3>${isItem ? '物品总目标' : '软件总目标'}</h3>
+      <p class="mhint">想把总数控制到多少${unit}？留空表示先不设目标</p>
+      <div class="fld">
+        <label>目标数量（${unit}）</label>
+        <input type="text" id="gmVal" value="${cur}" inputmode="numeric" placeholder="留空表示不设">
+      </div>
+      <div class="mrow">
+        <button class="btn" id="gmCancel">取消</button>
+        <button class="btn pri" id="gmOk">保存</button>
+      </div>
+    `);
+    const inp = $('#gmVal');
+    setTimeout(() => { inp.focus(); inp.select(); }, 60);
+    $('#gmCancel').addEventListener('click', closeModal);
+    $('#gmOk').addEventListener('click', () => {
+      const v = inp.value.trim();
+      const num = /^\d+$/.test(v) ? Number(v) : 0;
+      if (isItem) GOAL_TOTAL = num; else GOAL_APPS = num;
+      closeModal(); renderSettings(); renderProgress(); renderHome();
+      toast(num > 0 ? `目标已设为 ${num} ${unit}` : '已取消目标');
+    });
+    return;
+  }
+
+  // 分类目标：一屏改所有
+  const rows = CATS.map(c =>
+    `<div class="st-cat">
+       <span class="dot" style="background:${c.tone}"></span>
+       <span class="nm">${c.name}</span>
+       <input type="text" data-goalcat="${c.id}" value="${c.goal || ''}" inputmode="numeric"
+         placeholder="不设" style="width:64px;flex:0 0 auto;border:2px solid var(--ink);background:#fff;
+         border-radius:9px 3px 10px 4px/4px 10px 3px 9px;padding:5px 8px;
+         font-family:'PatrickHand',sans-serif;font-size:13.5px;text-align:right;outline:none">
+     </div>`).join('');
+  openModal(`
+    <h3>分类目标</h3>
+    <p class="mhint">给每个分类定一个件数上限，留空表示不设</p>
+    <div style="max-height:46vh;overflow-y:auto;scrollbar-width:none">${rows}</div>
+    <div class="mrow">
+      <button class="btn" id="gcCancel">取消</button>
+      <button class="btn pri" id="gcOk">保存</button>
+    </div>
+  `);
+  $('#gcCancel').addEventListener('click', closeModal);
+  $('#gcOk').addEventListener('click', () => {
+    document.querySelectorAll('[data-goalcat]').forEach(inp => {
+      const c = CATS.find(x => x.id === inp.dataset.goalcat);
+      if (!c) return;
+      const v = inp.value.trim();
+      c.goal = /^\d+$/.test(v) ? Number(v) : 0;
+    });
+    closeModal(); renderSettings(); renderHome(); renderProgress();
+    toast('分类目标已保存');
+  });
+}
+
+/* --- 导出备份 --- */
+function exportBackup(){
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    cats: CATS, appCats: APP_CATS,
+    items: ITEMS, apps: APPS,
+    goals: { total: GOAL_TOTAL, apps: GOAL_APPS },
+    snapshots: SNAPSHOTS
+  };
+  try {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    a.href = url;
+    a.download = `收纳备份-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast(`已导出 ${ITEMS.length} 条物品 · ${APPS.length} 个软件`);
+  } catch (err) {
+    toast('导出失败，换个浏览器试试');
+  }
+}
+
+/* --- 导入备份（可选 覆盖 / 合并） --- */
+function importBackup(){
+  openModal(`
+    <h3>导入备份</h3>
+    <p class="mhint">先选怎么处理，再挑备份文件</p>
+    <div class="optlist" id="ibModes">
+      <div class="opt sel" data-mode="merge">
+        <span style="font-family:var(--f-cn)">合并</span>
+        <span class="sub">保留现有 ${ITEMS.length} 条物品</span>
+      </div>
+      <div class="opt" data-mode="replace">
+        <span style="font-family:var(--f-cn)">覆盖</span>
+        <span class="sub">清掉现在的，换成备份的</span>
+      </div>
+    </div>
+    <div class="mhint" id="ibTip" style="margin-top:11px">同名同类物品会合并数量，不会出现重复两条。</div>
+    <div class="mrow">
+      <button class="btn" id="ibCancel">取消</button>
+      <button class="btn pri" id="ibOk">选择文件</button>
+    </div>
+  `);
+  let mode = 'merge';
+  $('#ibModes').addEventListener('click', e => {
+    const o = e.target.closest('[data-mode]'); if (!o) return;
+    mode = o.dataset.mode;
+    $$('#ibModes .opt').forEach(x => x.classList.toggle('sel', x === o));
+    $('#ibTip').textContent = mode === 'merge'
+      ? '同名同类物品会合并数量，不会出现重复两条。'
+      : '当前数据会被全部替换，导入前建议先导出一份。';
+  });
+  $('#ibCancel').addEventListener('click', closeModal);
+  $('#ibOk').addEventListener('click', () => {
+    closeModal();
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.json,application/json';
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      const fr = new FileReader();
+      fr.onload = ev => {
+        try {
+          const d = JSON.parse(ev.target.result);
+          if (!d || !Array.isArray(d.items) || !Array.isArray(d.apps)) throw new Error('bad');
+          const res = applyBackup(d, mode);
+          toast(mode === 'merge'
+            ? `已合并：新增 ${res.added} 条 · 合并数量 ${res.merged} 条`
+            : `已覆盖：${ITEMS.length} 条物品 · ${APPS.length} 个软件`);
+        } catch (err) {
+          toast('这个备份文件无法读取');
+        }
+      };
+      fr.readAsText(f);
+    };
+    inp.click();
+  });
+}
+
+/* mode: 'replace' 覆盖 | 'merge' 合并 */
+function applyBackup(d, mode){
+  // 备份里图片是 dataURL 直接带着的，不用额外处理
+  const inItems = (d.items || []).map(i => ({ ...i }));
+  const inApps  = (d.apps  || []).map(a => ({ ...a }));
+  inItems.forEach((i, n) => { if (!i.id) i.id = 'bk-i' + (n + 1); if (!i.st) i.st = 'inuse'; });
+  inApps.forEach((a, n) => { if (!a.id) a.id = 'bk-a' + (n + 1); });
+
+  if (mode === 'replace'){
+    CATS     = (d.cats || []).map(c => ({ ...c }));
+    APP_CATS = (d.appCats || []).map(c => ({ ...c }));
+    ITEMS    = inItems;
+    APPS     = inApps;
+    GOAL_TOTAL = (d.goals && d.goals.total) || 0;
+    GOAL_APPS  = (d.goals && d.goals.apps) || 0;
+    if (Array.isArray(d.snapshots) && d.snapshots.length) SNAPSHOTS = d.snapshots;
+  } else {
+    // ---- 合并 ----
+    // 1) 分类：按名字去重，备份里没有的分类补进来
+    const mergeCats = (cur, inc) => {
+      inc.forEach(ic => {
+        const hit = cur.find(c => c.name === ic.name);
+        if (hit){
+          if (!hit.goal && ic.goal) hit.goal = ic.goal;   // 本地没设目标就用备份的
+        } else {
+          cur.push({ ...ic, id: 'mg-' + Math.random().toString(36).slice(2, 8) });
+        }
+      });
+    };
+    mergeCats(CATS, d.cats || []);
+    mergeCats(APP_CATS, d.appCats || []);
+
+    // 2) 物品：同名 + 同分类 → 合并数量；否则新增
+    let added = 0, merged = 0;
+    inItems.forEach(ii => {
+      const cName = ((d.cats || []).find(c => c.id === ii.c) || {}).name;
+      const targetCat = CATS.find(c => c.name === cName) || CATS.find(c => c.id === ii.c);
+      const dup = ITEMS.find(x => x.n === ii.n && (!targetCat || x.c === targetCat.id));
+      if (dup){
+        dup.q = (dup.q || 1) + (ii.q || 1);          // 数量相加
+        if (!dup.photo && ii.photo) dup.photo = ii.photo;   // 没图的补图
+        if (!dup.loc && ii.loc) dup.loc = ii.loc;
+        if (!dup.note && ii.note) dup.note = ii.note;
+        if (!dup.buy && ii.buy) dup.buy = ii.buy;
+        merged++;
+      } else {
+        ITEMS.push({ ...ii, id: 'mg-i' + Math.random().toString(36).slice(2, 8),
+          c: targetCat ? targetCat.id : ii.c });
+        added++;
+      }
+    });
+
+    // 3) 软件：同名 → 跳过；否则新增
+    inApps.forEach(ia => {
+      const cName = ((d.appCats || []).find(c => c.id === ia.c) || {}).name;
+      const targetCat = APP_CATS.find(c => c.name === cName) || APP_CATS.find(c => c.id === ia.c);
+      const dup = APPS.find(x => x.n === ia.n);
+      if (dup){
+        if (!dup.photo && ia.photo) dup.photo = ia.photo;
+        if (!dup.note && ia.note) dup.note = ia.note;
+        if (!dup.loc && ia.loc) dup.loc = ia.loc;
+      } else {
+        APPS.push({ ...ia, id: 'mg-a' + Math.random().toString(36).slice(2, 8),
+          c: targetCat ? targetCat.id : ia.c });
+        added++;
+      }
+    });
+
+    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderAppCatChips();
+    renderItems(); renderApps(); renderProgress();
+    saveSoon();
+    return { added, merged };
+  }
+
+  renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderAppCatChips();
+  renderItems(); renderApps(); renderProgress();
+  saveSoon();
+  return { added: inItems.length, merged: 0 };
+}
+
+/* --- 清空全部数据 --- */
+function clearAllModal(){
+  openModal(`
+    <h3>清空全部数据？</h3>
+    <p class="mhint">所有物品、软件、目标、快照都会删掉，且无法撤销。清空前强烈建议先导出备份。</p>
+    <div class="fld">
+      <label>输入「清空」两个字确认</label>
+      <input type="text" id="caConfirm" placeholder="清空">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="caCancel">取消</button>
+      <button class="btn dan" id="caOk" disabled>清空</button>
+    </div>
+  `);
+  const inp = $('#caConfirm'), ok = $('#caOk');
+  inp.addEventListener('input', () => { ok.disabled = inp.value.trim() !== '清空'; });
+  setTimeout(() => inp.focus(), 60);
+  $('#caCancel').addEventListener('click', closeModal);
+  ok.addEventListener('click', () => {
+    ITEMS.length = 0;
+    APPS.length = 0;
+    CATS.forEach(c => { c.goal = 0; });
+    GOAL_TOTAL = 0;
+    GOAL_APPS = 0;
+    closeModal();
+    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderAppCatChips();
+    renderItems(); renderApps(); renderProgress();
+    toast('已清空全部数据');
+  });
+}
+/* ================= 软件详情 ================= */
+let appDetailId = null;
+
+function openAppDetail(id){
+  const a = APPS.find(x => x.id === id);
+  if (!a) return;
+  appDetailId = id;
+  renderAppDetail();
+  showTab('appdetail');
+  $('#scr-appdetail').scrollTop = 0;
+}
+
+function renderAppDetail(){
+  const a = APPS.find(x => x.id === appDetailId);
+  if (!a) return;
+  const c = appCatOf(a.c);
+
+  const iconBlock = a.photo
+    ? `<div class="dt-photo" id="adIcon" style="max-height:200px">
+         <img src="${a.photo}" alt="">
+         <span class="dt-st" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
+       </div>`
+    : `<div class="dt-photo empty" id="adIcon" style="max-height:200px">
+         <span style="font-family:var(--f-cn);font-size:56px;opacity:.75">${a.n.slice(0,1)}</span>
+         <span class="dt-addhint">点这里加图标</span>
+         <span class="dt-st" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
+       </div>`;
+
+  $('#adBody').innerHTML = `
+    ${iconBlock}
+    <h2 class="dt-name">${a.n}</h2>
+    <div class="dt-meta">${c.name}</div>
+
+    <div class="dt-card">
+      <div class="dt-block">
+        <span class="k">在手机上的位置</span>
+        <div class="dt-row" style="cursor:default">
+          <input id="adLocIn" type="text" value="${a.loc || ''}" placeholder="比如 第二屏、工具文件夹" maxlength="16">
+        </div>
+      </div>
+      <div class="dt-block">
+        <span class="k">备注</span>
+        <textarea id="adNote" placeholder="想到什么写什么，可以留空">${a.note || ''}</textarea>
+      </div>
+    </div>
+
+    <div class="dt-acts">
+      <button class="btn full" id="adEditName">编辑名称</button>
+    </div>
+  `;
+
+  const locIn = $('#adLocIn');
+  locIn.addEventListener('change', () => { a.loc = locIn.value.trim(); renderApps(); toast('位置已保存'); });
+  locIn.addEventListener('keydown', e => { if (e.key === 'Enter') locIn.blur(); });
+
+  const noteIn = $('#adNote');
+  noteIn.addEventListener('change', () => { a.note = noteIn.value.trim(); renderApps(); toast('备注已保存'); });
+
+  $('#adIcon').addEventListener('click', () => { appPhotoTargetId = a.id; $('#filePick').click(); });
+  $('#adEditName').addEventListener('click', () => renameAppModal(a));
+  $('#adEditTop').addEventListener('click', () => renameAppModal(a));
+}
+
+function renameAppModal(a){
+  openModal(`
+    <h3>编辑信息</h3>
+    <p class="mhint">位置和备注可以直接在详情页改，这里只改名称</p>
+    <div class="fld">
+      <label>软件名</label>
+      <input type="text" id="ranName" value="${a.n}" maxlength="14">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="ranCancel">取消</button>
+      <button class="btn pri" id="ranOk">保存</button>
+    </div>
+  `);
+  const inp = $('#ranName');
+  setTimeout(() => { inp.focus(); inp.select(); }, 60);
+  $('#ranCancel').addEventListener('click', closeModal);
+  $('#ranOk').addEventListener('click', () => {
+    const v = inp.value.trim();
+    if (!v) return;
+    a.n = v;
+    closeModal(); renderAppDetail(); renderApps();
+    toast('名称已保存');
+  });
+}
+
+/* ================= 持久化：IndexedDB =================
+   图片存 Blob（不用 base64，省约 1/3 空间）；其余数据存 JSON。
+   没有数据库环境时自动降级为「不保存」，页面照常能用。 */
+const DB_NAME = 'digital-shelf';
+const DB_VER  = 1;
+let dbReady = false;
+let saveTimer = null;
+let suppressSave = false;
+
+function openDB(){
+  return new Promise(resolve => {
+    let req;
+    try { req = indexedDB.open(DB_NAME, DB_VER); }
+    catch (e){ resolve(null); return; }
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+      if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+    // 某些隐私模式下会一直挂起
+    setTimeout(() => resolve(null), 3000);
+  });
+}
+
+let db = null;
+
+/* 收集要存的整份状态 */
+function snapshotState(){
+  return {
+    version: 1,
+    savedAt: Date.now(),
+    accentId,
+    photoStyle,
+    lastSnapAt,
+    goals: { total: GOAL_TOTAL, apps: GOAL_APPS },
+    cats: CATS.map(c => ({ ...c })),
+    appCats: APP_CATS.map(c => ({ ...c })),
+    // 图片单独存，这里只留标记，避免 JSON 里塞大字符串
+    items: ITEMS.map(i => { const { photo, ...rest } = i; return { ...rest, hasPhoto: !!photo }; }),
+    apps:  APPS.map(a => { const { photo, ...rest } = a; return { ...rest, hasPhoto: !!photo }; }),
+    snapshots: SNAPSHOTS
+  };
+}
+
+async function saveNow(){
+  if (!db || suppressSave) return;
+  try {
+    const tx = db.transaction(['kv', 'photos'], 'readwrite');
+    const kv = tx.objectStore('kv');
+    const ph = tx.objectStore('photos');
+
+    kv.put(snapshotState(), 'state');
+    // 图片：dataURL → Blob 后存（Blob 更省空间）
+    const all = [...ITEMS.map(i => ({ id:'item:' + i.id, d:i.photo })),
+                 ...APPS.map(a => ({ id:'app:' + a.id,  d:a.photo }))];
+    all.forEach(({ id, d }) => {
+      if (d) ph.put(dataURLtoBlob(d), id);
+      else ph.delete(id);
+    });
+    // 清理已删条目的图片
+    const keys = await new Promise(res => {
+      const r = ph.getAllKeys();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    });
+    const alive = new Set(all.filter(x => x.d).map(x => x.id));
+    keys.forEach(k => { if (!alive.has(k)) ph.delete(k); });
+  } catch (e) {
+    console.warn('保存失败', e);
+  }
+}
+
+/* 防抖保存：连续改动只写一次 */
+function saveSoon(){
+  if (!db || suppressSave) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 500);
+}
+
+/* 页面隐藏/关闭时立刻落盘，避免防抖窗口内丢改动 */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && db && !suppressSave){
+    clearTimeout(saveTimer);
+    saveNow();
+  }
+});
+window.addEventListener('pagehide', () => {
+  if (db && !suppressSave){ clearTimeout(saveTimer); saveNow(); }
+});
+
+function dataURLtoBlob(dataURL){
+  try {
+    const [head, body] = dataURL.split(',');
+    const mime = (head.match(/:(.*?);/) || [])[1] || 'image/jpeg';
+    const bin = atob(body);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  } catch (e){ return null; }
+}
+
+function blobToDataURL(blob){
+  return new Promise(resolve => {
+    if (!blob) return resolve(null);
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => resolve(null);
+    fr.readAsDataURL(blob);
+  });
+}
+
+/* 启动时读库 */
+async function loadFromDB(){
+  db = await openDB();
+  if (!db){ dbReady = false; return false; }
+  dbReady = true;
+  try {
+    const tx = db.transaction(['kv', 'photos'], 'readonly');
+    const kv = tx.objectStore('kv');
+    const ph = tx.objectStore('photos');
+    const state = await new Promise(res => {
+      const r = kv.get('state');
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => res(null);
+    });
+    if (!state) return false;   // 首次使用 → 保留种子数据
+
+    // 恢复图片
+    const getPhoto = id => new Promise(res => {
+      const r = ph.get(id);
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => res(null);
+    });
+
+    suppressSave = true;
+
+    CATS     = (state.cats || CATS).map(c => ({ ...c }));
+    APP_CATS = (state.appCats || APP_CATS).map(c => ({ ...c }));
+    GOAL_TOTAL = (state.goals && state.goals.total) || 0;
+    GOAL_APPS  = (state.goals && state.goals.apps) || 0;
+    if (typeof state.accentId === 'string') accentId = state.accentId;
+    if (typeof state.photoStyle === 'number') photoStyle = state.photoStyle;
+    if (typeof state.lastSnapAt === 'number') lastSnapAt = state.lastSnapAt;
+    if (Array.isArray(state.snapshots) && state.snapshots.length) SNAPSHOTS = state.snapshots;
+
+    ITEMS = (state.items || []).map(i => ({ ...i, photo: null }));
+    APPS  = (state.apps  || []).map(a => ({ ...a, photo: null }));
+
+    // 并发取回图片
+    await Promise.all([
+      ...ITEMS.map(async i => {
+        if (!i.hasPhoto) return;
+        const b = await getPhoto('item:' + i.id);
+        if (b) i.photo = await blobToDataURL(b);
+      }),
+      ...APPS.map(async a => {
+        if (!a.hasPhoto) return;
+        const b = await getPhoto('app:' + a.id);
+        if (b) a.photo = await blobToDataURL(b);
+      })
+    ]);
+
+    suppressSave = false;
+    return true;
+  } catch (e) {
+    console.warn('读取失败', e);
+    suppressSave = false;
+    return false;
+  }
+}
+
+/* ================= 每周自动快照 =================
+   规则（照 PRD）：每次打开 App 时检查，距上次记录满 7 天才记一条；
+   记录的是「持有量」（在用 + 收纳中 + 消耗中，不含待处理）；用户完全无感。 */
+let lastSnapAt = 0;
+
+function maybeSnapshot(){
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  if (lastSnapAt && (now - lastSnapAt) < WEEK) return false;
+
+  // 一条都没录时不记，免得曲线起点是 0 看着奇怪
+  if (!ITEMS.length && !APPS.length) return false;
+
+  const d = new Date();
+  const label = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  // 同一天不重复记
+  if (SNAPSHOTS.length && SNAPSHOTS[SNAPSHOTS.length - 1].d === label){
+    lastSnapAt = now;
+    return false;
+  }
+
+  const held = sumQty(ITEMS.filter(i => i.st !== 'todo'));
+  SNAPSHOTS.push({ d: label, items: held, entries: ITEMS.length, apps: APPS.length });
+  if (SNAPSHOTS.length > 60) SNAPSHOTS.shift();   // 最多留 60 条，约一年
+  lastSnapAt = now;
+  return true;
+}
+
+/* ================= 轻提示 ================= */
+let toastTimer, undoFn = null;
+function toast(msg){
+  undoFn = null;
+  $('#toastTxt').textContent = msg;
+  $('#toastUndo').style.display = 'none';
+  showToast();
+}
+function toastUndo(msg, fn){
+  undoFn = fn;
+  $('#toastTxt').textContent = msg;
+  $('#toastUndo').style.display = 'inline-block';
+  showToast(4200);
+}
+function showToast(ms = 1700){
+  const el = $('#toast');
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+}
+$('#toastUndo').addEventListener('click', () => {
+  const fn = undoFn; undoFn = null;
+  $('#toast').classList.remove('on');
+  if (fn) fn();
+});
+
+/* ================= 事件 ================= */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-toast]');
+  if (t) toast(t.dataset.toast);
+});
+
+// 首页分类卡
+$('#catGrid').addEventListener('click', e => {
+  if (e.target.closest('#catAddTile')){ newCatModal(); return; }
+  const card = e.target.closest('[data-cat]');
+  if (card) goItems(card.dataset.cat);
+});
+$('#catAll').addEventListener('click', () => goItems('all'));
+$('#qNewCat').addEventListener('click', newCatModal);
+$('#qAddItem').addEventListener('click', newItemModal);
+$('#qAddApp').addEventListener('click', () => { renderAppCatChips(); renderApps(); showTab('apps'); newAppModal(); });
+$('#backHome').addEventListener('click', () => showTab('home'));
+$('#goProgress').addEventListener('click', () => {
+  renderProgress(); showTab('progress'); $('#scr-progress').scrollTop = 0;
+});
+$('#pgSnapTip').addEventListener('click', () => {
+  openModal(`
+    <h3>关于趋势数据</h3>
+    <p class="mhint">这条曲线不需要你手动记——App 每周自动记一次当时的数量，久了就长成一条线。</p>
+    <div class="optlist">
+      <div class="opt" style="cursor:default"><span style="font-family:var(--f-cn);font-size:13px;line-height:1.6">
+        每次打开 App 时检查，距上次记录满 7 天才记一条，不会重复。记录的是「持有量」，待处理的物品不算在内。
+      </span></div>
+    </div>
+    <div class="mrow"><button class="btn pri" id="snapTipOk">知道了</button></div>
+  `);
+  $('#snapTipOk').addEventListener('click', closeModal);
+});
+
+// 列表页筛选
+$('#catChips').addEventListener('click', e => {
+  if (e.target.closest('#chipAddCat')){ newCatModal(); return; }
+  const chip = e.target.closest('[data-cat]'); if (!chip) return;
+  state.cat = chip.dataset.cat;
+  if (state.cat !== 'cloth') state.season = 'all';
+  state.loc = 'all';                                   // 换分类时位置筛选重置
+  renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+});
+$('#seasonChips').addEventListener('click', e => {
+  const chip = e.target.closest('[data-season]'); if (!chip) return;
+  const k = chip.dataset.season;
+  state.season = (state.season === k) ? 'all' : k;   // 再点一次取消
+  renderSeasonChips(); renderLocChips(); renderItems();
+});
+$('#locChips').addEventListener('click', e => {
+  const chip = e.target.closest('[data-loc]'); if (!chip) return;
+  const k = chip.dataset.loc;
+  state.loc = (state.loc === k) ? 'all' : k;         // 再点一次取消
+  renderLocChips(); renderItems();
+});
+$('#likeChips').addEventListener('click', e => {
+  const chip = e.target.closest('[data-like]'); if (!chip) return;
+  const k = chip.dataset.like;
+  state.like = (state.like === k) ? 'all' : k;   // 再点一次取消
+  $$('#likeChips .chip').forEach(c => c.classList.toggle('on', c.dataset.like === state.like));
+  renderItems();
+});
+$('#stChips').addEventListener('click', e => {
+  const chip = e.target.closest('[data-st]'); if (!chip) return;
+  const k = chip.dataset.st;
+  state.st = (state.st === k) ? 'all' : k;       // 再点一次取消
+  $$('#stChips .chip').forEach(c => c.classList.toggle('on', c.dataset.st === state.st));
+  renderItems();
+});
+$('#q').addEventListener('input', e => { state.q = e.target.value; renderItems(); });
+
+// 物品卡：照片 / 归类 / 删除 / 进详情
+$('#igrid').addEventListener('click', e => {
+  if (e.target.closest('#gridAdd')){ newItemModal(); return; }
+
+  const delPh = e.target.closest('[data-delphoto]');
+  if (delPh){
+    const it = ITEMS.find(x => x.id === delPh.dataset.delphoto);
+    if (it){ it.photo = null; renderItems(); toast('照片已删除'); }
+    return;
+  }
+
+  // 点喜欢圆点 → 归类喜欢程度
+  const lk = e.target.closest('.lk');
+  if (lk){
+    const card = lk.closest('[data-item]');
+    if (card) openPop(lk, 'like', card.dataset.item);
+    return;
+  }
+  // 点状态标签 → 归类状态
+  const stBtn = e.target.closest('[data-status]');
+  if (stBtn){ openPop(stBtn, 'st', stBtn.dataset.status); return; }
+
+  // 点「记一次使用」
+  const useBtn = e.target.closest('[data-usebtn]');
+  if (useBtn){
+    const it = ITEMS.find(x => x.id === useBtn.dataset.usebtn);
+    if (it){
+      it.uses = (it.uses || 0) + 1;
+      it.lastUse = todayStr();
+      useBtn.classList.add('bump');
+      renderItems(); renderHome();
+      toast(`「${it.n}」今天用了 ${it.uses} 次`);
+    }
+    return;
+  }
+
+  // 点数量角标 → 改数量
+  const qb = e.target.closest('.qty');
+  if (qb){
+    const card = qb.closest('[data-item]');
+    const it = ITEMS.find(x => x.id === card.dataset.item);
+    if (it) qtyModal(it);
+    return;
+  }
+
+  const ph = e.target.closest('[data-photo]');
+  if (ph){ photoTargetId = ph.dataset.photo; photoTargetMode = 'card'; $('#filePick').click(); return; }
+});
+
+/* 卡片上的就地编辑：名称 / 位置 / 购入日期 */
+$('#igrid').addEventListener('change', e => {
+  const t = e.target;
+  if (t.matches('[data-edit-name]')){
+    const it = ITEMS.find(x => x.id === t.dataset.editName);
+    const v = t.value.trim();
+    if (it && v){ it.n = v; renderHome(); renderItems(); toast('名称已保存'); }
+    else if (it){ t.value = it.n; }
+    return;
+  }
+  if (t.matches('[data-edit-loc]')){
+    const it = ITEMS.find(x => x.id === t.dataset.editLoc);
+    if (it){ it.loc = t.value.trim(); renderHome(); toast('位置已保存'); }
+    return;
+  }
+  if (t.matches('[data-edit-buy]')){
+    const it = ITEMS.find(x => x.id === t.dataset.editBuy);
+    if (it){ it.buy = t.value || ''; toast(it.buy ? '购入日期已保存' : '购入日期已清除'); }
+    return;
+  }
+});
+// 输入框回车即失焦保存
+$('#igrid').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('[data-edit-name],[data-edit-loc]')) e.target.blur();
+});
+
+/* 长按卡片 → 删除（详情页已移除，删除改走长按） */
+(function initCardLongPress(){
+  let timer = null, target = null;
+  const clear = () => { clearTimeout(timer); timer = null; target = null; };
+
+  const start = e => {
+    const card = e.target.closest('#igrid .icard[data-item]');
+    if (!card) return;
+    // 输入框/按钮上不触发长按
+    if (e.target.closest('input,button,.lk,.st,.use')) return;
+    target = card;
+    timer = setTimeout(() => {
+      const it = ITEMS.find(x => x.id === target.dataset.item);
+      if (it) deleteItem(it.id);
+      clear();
+    }, 650);
+  };
+
+  const grid = $('#igrid');
+  grid.addEventListener('touchstart', start, { passive: true });
+  grid.addEventListener('mousedown', start);
+  ['touchend','touchmove','touchcancel','mouseup','mouseleave','scroll'].forEach(ev =>
+    grid.addEventListener(ev, clear, { passive: true }));
+  grid.addEventListener('wheel', clear, { passive: true });
+})();
+
+/* 改数量的小弹窗 */
+function qtyModal(it){
+  let q = it.q;
+  openModal(`
+    <h3>${it.n}</h3>
+    <p class="mhint">一共有几件？</p>
+    <div style="display:flex;justify-content:center;padding:6px 0 4px">
+      <div class="stepper">
+        <button id="qmMinus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+        <span class="v" id="qmV">${q}</span>
+        <button id="qmPlus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+      </div>
+    </div>
+    <div class="mrow">
+      <button class="btn" id="qmCancel">取消</button>
+      <button class="btn pri" id="qmOk">保存</button>
+    </div>
+  `);
+  $('#qmMinus').addEventListener('click', () => { q = Math.max(1, q - 1); $('#qmV').textContent = q; });
+  $('#qmPlus').addEventListener('click', () => { q = Math.min(999, q + 1); $('#qmV').textContent = q; });
+  $('#qmCancel').addEventListener('click', closeModal);
+  $('#qmOk').addEventListener('click', () => {
+    it.q = q; closeModal(); renderHome(); renderItems();
+    toast(`数量已改为 ${q}`);
+  });
+}
+
+// 点空白关掉归类菜单
+document.addEventListener('click', e => {
+  if (!popOpen) return;
+  if (e.target.closest('#pop') || e.target.closest('.lk') || e.target.closest('[data-status]')) return;
+  closePop();
+}, true);
+$('#scr-items').addEventListener('scroll', closePop);
+
+$('#dtBack').addEventListener('click', () => showTab('items'));
+$('#styleBtn').addEventListener('click', styleModal);
+
+$('#fab').addEventListener('click', newItemModal);
+
+// 底部 Tab
+function activateTab(t){
+  if (t === 'items') goItems();
+  else if (t === 'apps'){ renderAppCatChips(); renderApps(); showTab('apps'); $('#scr-apps').scrollTop = 0; }
+  else if (t === 'home') showTab('home');
+  else { renderProgress(); showTab('progress'); $('#scr-progress').scrollTop = 0; }
+}
+$$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
+
+/* 拖动切换：按住胶囊左右滑，松手落在哪个 Tab 就切到哪个 */
+(function initTabDrag(){
+  const bar = $('#tabbar');
+  const ind = $('#tabInd');
+  const tabs = $$('.tb');
+  let dragging = false, moved = false, startX = 0, startIdx = 0;
+
+  const idxFromX = clientX => {
+    // 找出手指当前横坐标落在哪个 Tab 上
+    let best = 0, bestDist = Infinity;
+    tabs.forEach((b, i) => {
+      const r = b.getBoundingClientRect();
+      const d = Math.abs(clientX - (r.left + r.width / 2));
+      if (d < bestDist){ bestDist = d; best = i; }
+    });
+    return best;
+  };
+
+  const moveIndTo = (i, animate) => {
+    const r = tabs[i].getBoundingClientRect();
+    const br = bar.getBoundingClientRect();
+    ind.style.transition = animate ? '' : 'none';
+    ind.style.width = r.width + 'px';
+    ind.style.transform = `translateX(${r.left - br.left - 5}px)`;
+  };
+
+  const onDown = e => {
+    const pt = e.touches ? e.touches[0] : e;
+    dragging = true; moved = false;
+    startX = pt.clientX;
+    startIdx = tabs.findIndex(b => b.classList.contains('on'));
+    if (startIdx < 0) startIdx = 0;
+    bar.classList.add('dragging');
+  };
+
+  const onMove = e => {
+    if (!dragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    if (Math.abs(pt.clientX - startX) > 6) moved = true;
+    if (!moved) return;
+    if (e.cancelable) e.preventDefault();
+    moveIndTo(idxFromX(pt.clientX), false);
+  };
+
+  const onUp = e => {
+    if (!dragging) return;
+    dragging = false;
+    bar.classList.remove('dragging');
+    if (!moved) return;                       // 没滑动 → 交给 click 处理
+    const pt = e.changedTouches ? e.changedTouches[0] : e;
+    const i = idxFromX(pt.clientX);
+    const t = tabs[i].dataset.tab;
+    activateTab(t);
+    // 阻止随后的 click 重复触发
+    const swallow = ev => { ev.stopPropagation(); ev.preventDefault(); };
+    bar.addEventListener('click', swallow, { capture: true, once: true });
+    setTimeout(() => bar.removeEventListener('click', swallow, { capture: true }), 60);
+  };
+
+  bar.addEventListener('touchstart', onDown, { passive: true });
+  bar.addEventListener('touchmove', onMove, { passive: false });
+  bar.addEventListener('touchend', onUp);
+  bar.addEventListener('touchcancel', onUp);
+  bar.addEventListener('mousedown', e => { onDown(e); });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  // 尺寸变化后重新对齐
+  window.addEventListener('resize', () => syncTabInd());
+  // 字体加载完会改变 Tab 宽度，加载后重新对齐
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
+  window.addEventListener('load', () => syncTabInd());
+  requestAnimationFrame(() => syncTabInd());
+  setTimeout(() => syncTabInd(), 120);
+  setTimeout(() => syncTabInd(), 500);
+})();
+
+/* ================= 软件页事件 ================= */
+$('#appCatChips').addEventListener('click', e => {
+  if (e.target.closest('#chipAddAppCat')){ newAppCatModal(); return; }
+  const chip = e.target.closest('[data-acat]'); if (!chip) return;
+  const k = chip.dataset.acat;
+  appState.cat = (appState.cat === k && k !== 'all') ? 'all' : k;
+  renderAppCatChips(); renderApps();
+});
+$('#needChips').addEventListener('click', e => {
+  const chip = e.target.closest('[data-need]'); if (!chip) return;
+  const k = chip.dataset.need;
+  appState.need = (appState.need === k) ? 'all' : k;
+  $$('#needChips .chip').forEach(c => c.classList.toggle('on', c.dataset.need === appState.need));
+  renderApps();
+});
+$('#aq').addEventListener('input', e => { appState.q = e.target.value; renderApps(); });
+$('#appNewCat').addEventListener('click', newAppCatModal);
+
+$('#alist').addEventListener('click', e => {
+  if (e.target.closest('#appAdd')){ newAppModal(); return; }
+
+  const delBtn = e.target.closest('[data-delapp]');
+  if (delBtn){ deleteApp(delBtn.dataset.delapp); return; }
+
+  const needBtn = e.target.closest('[data-appneed]');
+  if (needBtn){ openAppPop(needBtn, needBtn.dataset.appneed); return; }
+
+  const iconBtn = e.target.closest('[data-appphoto]');
+  if (iconBtn){ appPhotoTargetId = iconBtn.dataset.appphoto; $('#filePick').click(); return; }
+
+  const tx = e.target.closest('[data-appdetail]');
+  if (tx){ openAppDetail(tx.dataset.appdetail); return; }
+});
+
+$('#fabApp').addEventListener('click', newAppModal);
+$('#adBack').addEventListener('click', () => {
+  renderApps(); showTab('apps');
+});
+
+/* 软件分类新建 */
+function newAppCatModal(){
+  openModal(`
+    <h3>新建软件分类</h3>
+    <p class="mhint">给这一类软件起个名字</p>
+    <div class="fld">
+      <label>分类名称</label>
+      <input type="text" id="nacName" placeholder="比如 记账、健康" maxlength="8">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="nacCancel">取消</button>
+      <button class="btn pri" id="nacOk" disabled>创建</button>
+    </div>
+  `);
+  const nameIn = $('#nacName'), okBtn = $('#nacOk');
+  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
+  setTimeout(() => nameIn.focus(), 60);
+  $('#nacCancel').addEventListener('click', closeModal);
+  okBtn.addEventListener('click', () => {
+    const name = nameIn.value.trim();
+    if (!name) return;
+    const tone = NEW_TONES[APP_CATS.length % NEW_TONES.length];
+    APP_CATS.push({ id:'ac' + Date.now(), name, tone });
+    closeModal(); renderAppCatChips(); renderApps();
+    toast(`已新建分类「${name}」`);
+  });
+}
+
+/* ================= 初始化 ================= */
+function renderAll(){
+  applyAccent(accentId);
+  renderHome();
+  renderCatChips();
+  renderSeasonChips();
+  renderItems();
+  renderAppCatChips();
+  renderApps();
+  renderProgress();
+}
+
+async function boot(){
+  const had = await loadFromDB();
+  suppressSave = false;
+  // 每次打开检查是否该记一条新快照（满 7 天才记）
+  const snapped = maybeSnapshot();
+  renderAll();
+  showTab('home');
+  if (snapped) saveSoon();
+  // 字体加载会改变 Tab 宽度，稍后再对齐一次滑动块
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
+  if (had){
+    // 静默提示：确认数据是从本地库恢复的
+    console.log('[电子收纳] 已从本地存储恢复', ITEMS.length, '条物品 /', APPS.length, '个软件');
+  } else if (dbReady){
+    console.log('[电子收纳] 首次使用，使用示例数据');
+  } else {
+    console.log('[电子收纳] 当前环境不支持本地存储，改动不会保存');
+  }
+}
+boot();
+
+/* ================= Service Worker（离线可用） ================= */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(
+      reg => console.log('[电子收纳] 离线缓存已就绪', reg.scope),
+      err => console.warn('[电子收纳] 离线缓存注册失败', err)
+    );
+  });
+}
+</script>
+</body>
+</html>
