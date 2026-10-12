@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#fdfaf1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -37,6 +37,10 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
+/* 禁止双指捏合缩放（加进主屏后捏小会露出白边，看着像网页）。
+   viewport 的 user-scalable=no 在 iOS 上会被忽略，touch-action 才管用；
+   双击放大也用这条压掉（别用 touchend preventDefault，会吃掉 click）。 */
+html,body{touch-action:pan-x pan-y;overscroll-behavior:none}
 /* iOS 在字号 <16px 的输入框聚焦时会自动放大整个页面，且退出后不会还原。
    所有输入类元素字号一律 ≥16px，彻底避免这个问题。 */
 input,textarea,select{font-size:16px !important}
@@ -968,6 +972,22 @@ body{
 <input type="file" id="filePick" accept="image/*" style="display:none">
 
 <script>
+/* 禁掉双指捏合缩放。加进主屏后还能捏小的话，露出的白边会让人一眼看出是网页。
+   viewport 的 user-scalable=no 在 iOS 上基本被忽略，真正管用的是这两条：
+     - gesturestart/change/end 是 iOS Safari 专有事件，拦掉即可
+     - touchmove 里判断多指兜底（部分 WebView 不发 gesture 事件）
+   注意：双击放大交给 CSS 的 touch-action:manipulation，
+   千万别在 touchend 里 preventDefault —— 那会把后续 click 一起吃掉，按钮全点不动。
+   iOS「辅助功能 → 缩放」的三指手势是系统级，网页拦不住也不该拦。 */
+(function lockZoom(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive:false });
+  });
+  document.addEventListener('touchmove', function(e){
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive:false });
+})();
+
 /* ================= 全局状态（必须最先声明，后面的渲染函数会用到） ================= */
 let accentId = 'green';       // 主色预设 id
 let photoStyle = 1;           // 0 = 原图  1 = 插画（轻）  2 = 插画（强）

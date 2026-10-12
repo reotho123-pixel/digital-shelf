@@ -1,9 +1,14 @@
-/* 鐢靛瓙鏀剁撼 路 Service Worker
-   鏀逛唬鐮佸悗蹇呴』鎶婁笅闈㈢殑 CACHE 鐗堟湰鍙?+1锛屽惁鍒欏凡瀹夎鐨勭敤鎴锋嬁涓嶅埌鏇存柊銆?*/
-const CACHE = 'digital-shelf-v8';
+/* 电子收纳 · Service Worker
+   改代码后必须把下面的 CACHE 版本号 +1，否则已安装的用户拿不到更新。
+
+   注意：入口文件是 index.html（不是 app-prototype.html）——
+   两者内容相同，index.html 是访问 /digital-shelf/ 时实际加载的那个。
+   预缓存和离线回落都必须指向 index.html，否则断网时打不开。 */
+const CACHE = 'digital-shelf-v9';
 
 const ASSETS = [
-  './app-prototype.html',
+  './',
+  './index.html',
   './manifest.json',
   './fonts/zcoolkuaile.woff2',
   './fonts/kalam700.woff2',
@@ -14,11 +19,17 @@ const ASSETS = [
   './icons/apple-touch-icon.png'
 ];
 
+// 版本变化时重新预缓存。用 cache:'reload' 绕开浏览器自己的 HTTP 缓存 ——
+// GitHub Pages 给静态资源发了 max-age=600，不绕开的话装上的还是旧文件。
+// 串行抓取：并发十几个请求在弱网下容易整批失败，而这里总共也就几十KB。
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(ASSETS).catch(() => {}))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then(c =>
+      ASSETS.reduce((chain, url) =>
+        chain.then(() => fetch(url, { cache: 'reload' }).then(res => {
+          if (res && res.ok) return c.put(url, res);
+        }).catch(() => {})), Promise.resolve())
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -35,9 +46,10 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return;   // 鍙鏈珯璧勬簮
+  if (url.origin !== location.origin) return;   // 只管本站资源
 
-  // 瀵艰埅璇锋眰锛氫紭鍏堢敤缃戠粶锛屾柇缃戝洖钀藉埌缂撳瓨鐨勯〉闈?  if (req.mode === 'navigate'){
+  // 导航请求：优先用网络，断网回落到缓存的页面
+  if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
         .then(res => {
@@ -45,16 +57,17 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match('./app-prototype.html').then(r => r || caches.match(req)))
+        .catch(() => caches.match('./index.html').then(r => r || caches.match(req)))
     );
     return;
   }
 
-  // 闈欐�佽祫婧愶細缂撳瓨浼樺厛锛屽洖钀藉埌缃戠粶骞跺啓鍏ョ紦瀛?  e.respondWith(
+  // 静态资源：缓存优先，回落到网络并写入缓存
+  e.respondWith(
     caches.match(req).then(hit => {
       if (hit) return hit;
       return fetch(req).then(res => {
-        if (res && res.status === 200 && res.type === 'basic'){
+        if (res && res.status === 200 && res.type === 'basic') {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
         }
