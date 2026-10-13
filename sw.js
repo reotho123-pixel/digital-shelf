@@ -4,7 +4,7 @@
    注意：入口文件是 index.html（不是 app-prototype.html）——
    两者内容相同，index.html 是访问 /digital-shelf/ 时实际加载的那个。
    预缓存和离线回落都必须指向 index.html，否则断网时打不开。 */
-const CACHE = 'digital-shelf-v9';
+const CACHE = 'digital-shelf-v17';
 
 const ASSETS = [
   './',
