@@ -223,6 +223,18 @@ body{
 .chipRow{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .chipRow .lb{font-family:var(--f-cn);font-size:11.5px;color:var(--sub);flex:0 0 auto;width:26px}
 .chipRow .chips{flex:1;padding-bottom:7px}
+/* 分类行的可折叠标题：点它整行收起/展开 */
+.chipRow .lb-toggle{flex:0 0 auto;display:flex;align-items:center;gap:3px;
+  border:none;background:none;padding:0 2px 7px 0;cursor:pointer;
+  font-family:var(--f-cn);font-size:11.5px;color:var(--sub)}
+.chipRow .lb-toggle .cv{max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--accent-deep)}
+.chipRow .lb-toggle .cv:empty{display:none}
+.chipRow .lb-toggle .cv-arrow{width:11px;height:11px;flex:0 0 auto;
+  transition:transform .22s cubic-bezier(.22,.9,.24,1)}
+/* 收起态：箭头转向左、只留标题与当前分类名 */
+.chipRow.collapsed .lb-toggle .cv-arrow{transform:rotate(-90deg)}
+.chipRow.collapsed .chips{display:none}
 .count-row{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 11px}
 .count-row b{font-family:var(--f-cn);font-size:14.5px;font-weight:400}
 .count-row span{font-size:12.5px;color:var(--sub);font-family:'PatrickHand',sans-serif}
@@ -530,6 +542,9 @@ body{
 .st-row.danger .tx b{color:#b8465f}
 .st-row:active{background:rgba(22,23,27,.04)}
 /* 分类列表（可编辑） */
+.st-cat-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  padding:2px 0 9px;font-family:var(--f-cn);font-size:12.5px;color:var(--ink2)}
+.st-cat-head .hint{font-size:11px;color:var(--sub)}
 .st-cat{display:flex;align-items:center;gap:10px;padding:10px 0;
   border-bottom:1.7px dashed rgba(22,23,27,.16)}
 .st-cat:last-child{border-bottom:none}
@@ -840,16 +855,8 @@ body{
           </div>
         </div>
         <!-- 以下三行只在「在用中 / 收纳中」时出现：
-             消耗品和待处理的东西没必要再按分类/季节/喜欢去筛 -->
+             消耗品和待处理的东西没必要再按喜欢/位置/分类去筛 -->
         <div id="filterGroup">
-          <div class="chipRow">
-            <span class="lb">分类</span>
-            <div class="chips" id="catChips"></div>
-          </div>
-          <div class="chipRow" id="seasonRow" style="display:none">
-            <span class="lb">季节</span>
-            <div class="chips small" id="seasonChips"></div>
-          </div>
           <div class="chipRow">
             <span class="lb">喜欢</span>
             <div class="chips small" id="likeChips">
@@ -862,6 +869,19 @@ body{
         <div class="chipRow" id="locRow" style="display:none">
           <span class="lb">位置</span>
           <div class="chips small" id="locChips"></div>
+        </div>
+        <div class="chipRow" id="seasonRow" style="display:none">
+          <span class="lb">季节</span>
+          <div class="chips small" id="seasonChips"></div>
+        </div>
+        <!-- 分类放最后一行：点左边标题可折叠隐藏 -->
+        <div class="chipRow" id="catRow">
+          <button class="lb-toggle" id="catToggle" title="折叠 / 展开分类">
+            <span class="lb">分类</span>
+            <span class="cv" id="catCur"></span>
+            <svg class="cv-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5 12 15.5 18 9.5"/></svg>
+          </button>
+          <div class="chips" id="catChips"></div>
         </div>
 
         <div class="count-row">
@@ -896,10 +916,6 @@ body{
             <button class="chip" data-need="temp">暂用</button>
             <button class="chip" data-need="todel">待删</button>
           </div>
-        </div>
-        <div class="chipRow">
-          <span class="lb">分类</span>
-          <div class="chips" id="appCatChips"></div>
         </div>
 
         <div class="count-row">
@@ -1218,7 +1234,7 @@ const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
 const LIKE_FILL  = { like:'#f6ddb4', neutral:'#dfe1e8', dislike:'#f6d3de' };
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 
-const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'' };
+const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'', catCollapsed:false };
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 /* 安全绑定：元素不存在时跳过，避免一处缺失就中断整个脚本（曾因此导致页面空白） */
@@ -1271,7 +1287,7 @@ function renderHome(){
       <div class="cat add" id="catAddTile" style="grid-column:1/-1;min-height:150px;gap:10px">
         <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#16171b" stroke-width="1.7" stroke-linejoin="round" style="width:34px;height:34px"><path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/></svg>
         <span style="font-size:15px">先拍下你的第一件物品</span>
-        <small>点上面的「添加物品」，或直接点这里</small>
+        <small>点右下角的加号，或直接点这里</small>
       </div>`;
     saveSoon();
     return;
@@ -1306,12 +1322,8 @@ function renderHome(){
     </div>`;
   }).join('');
 
-  const addTile = `<div class="cat add" id="catAddTile">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.4" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
-    <span>新建分类</span><small>比如 厨房、文具</small>
-  </div>`;
-
-  $('#catGrid').innerHTML = cards + addTile;
+  // 「新建分类」不再放在桌面（用户要求）：改到「设置 → 分类管理」里
+  $('#catGrid').innerHTML = cards;
   saveSoon();
 }
 
@@ -1404,32 +1416,56 @@ function renderHome(){
 })();
 
 /* ================= 物品列表 ================= */
-/* 筛选组显隐：只有「在用中 / 收纳中」需要按分类/季节/喜欢再筛；
+/* 筛选行显隐：只有「在用中 / 收纳中」需要按喜欢/位置/季节/分类再筛；
    消耗中（会用完）和待处理（准备处理）不显示这些行。 */
+function filtersAllowed(){
+  return (state.st === 'all' || state.st === 'inuse' || state.st === 'stored');
+}
+
 function syncFilterGroup(){
+  const show = filtersAllowed();
   const g = $('#filterGroup');
-  if (!g) return;
-  const show = (state.st === 'all' || state.st === 'inuse' || state.st === 'stored');
-  g.style.display = show ? '' : 'none';
+  if (g) g.style.display = show ? '' : 'none';
+  // 分类行（现在在最下面，可折叠）
+  const catRow = $('#catRow');
+  if (catRow) catRow.style.display = show ? 'flex' : 'none';
   if (!show){
     // 隐藏时同步清掉这些筛选，避免「看不见却仍在生效」
-    state.cat = 'all'; state.season = 'all'; state.like = 'all';
+    state.cat = 'all'; state.season = 'all'; state.like = 'all'; state.loc = 'all';
     $$('#likeChips .chip').forEach(c => c.classList.remove('on'));
     renderCatChips();
   }
+  // 套用用户对分类行的折叠偏好
+  toggleCatRow(!!state.catCollapsed);
 }
 
 function renderCatChips(){
   // 不再有「全部」按钮：默认不筛选，点某个分类才筛
+  // 也不再有「＋ 新建」：新建/改名/删除都移到「设置 → 分类管理」
   const list = CATS.map(c => ({ ...c, qty: catQty(c.id) }));
   $('#catChips').innerHTML = list.map(c =>
     `<button class="chip${state.cat === c.id ? ' on' : ''}" data-cat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
-  ).join('') + `<button class="chip plus" id="chipAddCat">＋ 新建</button>`;
+  ).join('');
+  // 收起时标题旁边显示「当前筛的是哪个分类」，点了再点一次可取消
+  const cur = $('#catCur');
+  if (cur){
+    const sel = CATS.find(c => c.id === state.cat);
+    cur.textContent = (sel && state.cat !== 'all') ? `· ${sel.name}` : '';
+  }
+}
+
+/* 分类行折叠 / 展开（选择记在 state 里，重绘后保持） */
+function toggleCatRow(force){
+  const row = $('#catRow'); if (!row) return;
+  const next = (typeof force === 'boolean') ? force : !row.classList.contains('collapsed');
+  row.classList.toggle('collapsed', next);
+  const arrow = $('#catToggle .cv-arrow');
+  state.catCollapsed = next;
 }
 
 function renderSeasonChips(){
   const row = $('#seasonRow');
-  if (state.cat !== 'cloth'){ row.style.display = 'none'; return; }
+  if (!filtersAllowed() || state.cat !== 'cloth'){ row.style.display = 'none'; return; }
   row.style.display = 'flex';
   const base = ITEMS.filter(i => i.c === 'cloth');
   const list = SEASONS.map(s => ({ ...s, qty: sumQty(base.filter(i => i.season === s.id)) }));
@@ -1441,6 +1477,7 @@ function renderSeasonChips(){
 /* 位置筛选：列出当前分类下出现过的位置（有位置的才列） */
 function renderLocChips(){
   const row = $('#locRow');
+  if (!filtersAllowed()){ row.style.display = 'none'; state.loc = 'all'; return; }
   const base = ITEMS.filter(i => state.cat === 'all' || i.c === state.cat);
   const counts = new Map();
   base.forEach(i => {
@@ -1651,7 +1688,8 @@ function newCatModal(){
     const tone = NEW_TONES[CATS.length % NEW_TONES.length];
     CATS.push({ id:'c' + Date.now(), name, tone, goal });
     closeModal();
-    renderHome(); renderCatChips(); renderItems();
+    // 设置页的分类列表也要跟着刷新（新建入口现在就在这里）
+    renderSettings(); renderHome(); renderCatChips(); renderItems();
     toast(`已新建分类「${name}」`);
   });
 }
@@ -1704,7 +1742,7 @@ function newItemModal(){
     const item = { id:'i' + (uid++), n:name, c:cat, q:qty, like:'neutral', loc:'', st:'inuse', ic:'ic-box' };
     ITEMS.push(item);
     closeModal();
-    renderHome(); renderCatChips(); renderItems();
+    renderSettings(); renderHome(); renderCatChips(); renderItems();
     if (state.tab === 'items') setTimeout(() => {
       const el = document.querySelector(`[data-item="${item.id}"]`);
       if (el) el.scrollIntoView({ block:'center', behavior:'smooth' });
@@ -1794,10 +1832,11 @@ function openPop(anchor, kind, id){
 function deleteItem(id){
   const idx = ITEMS.findIndex(i => i.id === id); if (idx < 0) return;
   const removed = ITEMS.splice(idx, 1)[0];
-  renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+  // 设置页的分类计数也要跟着变
+  renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
   toastUndo(`已删除「${removed.n}」`, () => {
     ITEMS.splice(idx, 0, removed);
-    renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
     toast('已恢复');
   });
 }
@@ -2013,43 +2052,40 @@ const NEED_COLOR = { need:'#cfe4f4', temp:'#e6e6ea', todel:'#f3c9d8' };
 let APPS = [];
 APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
 
-const appState = { cat:'all', need:'all', q:'' };
-const appCatOf = id => APP_CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
+const appState = { need:'all', q:'' };
 
-function renderAppCatChips(){
-  const list = APP_CATS.map(c => ({ ...c, qty: APPS.filter(a => a.c === c.id).length }));
-  $('#appCatChips').innerHTML = list.map(c =>
-    `<button class="chip${appState.cat === c.id ? ' on' : ''}" data-acat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
-  ).join('') + `<button class="chip plus" id="chipAddAppCat">＋ 新建</button>`;
+/* 软件不再分门别类（用户要求）：图标底色按软件名算一个稳定的淡彩，
+   同一款软件每次都同色，但不需要用户去维护分类。 */
+const APP_TONES = ['#ded0f0','#bcd9ee','#f5d7a8','#f8d8c0','#f2cfcf','#cfe4f4','#d9d9e8'];
+function appTone(a){
+  const s = a.n || '';
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return APP_TONES[h % APP_TONES.length];
 }
 
 function renderApps(){
   const q = appState.q.trim().toLowerCase();
   const rows = APPS.filter(a =>
-    (appState.cat === 'all' || a.c === appState.cat) &&
     (appState.need === 'all' || a.need === appState.need) &&
-    (!q || a.n.toLowerCase().includes(q) || (a.note || '').toLowerCase().includes(q))
+    (!q || a.n.toLowerCase().includes(q) || (a.note || '').toLowerCase().includes(q) || (a.loc || '').toLowerCase().includes(q))
   );
   // 按用户拖拽排的顺序显示
   rows.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
-  const catName = appState.cat === 'all' ? '全部软件' : appCatOf(appState.cat).name;
   const needName = appState.need === 'all' ? '' : ` · ${NEED_TEXT[appState.need]}`;
-  $('#appResTitle').textContent = catName + needName;
+  $('#appResTitle').textContent = '全部软件' + needName;
   $('#appResCnt').textContent = `${rows.length} 个`;
   $('#appCnt').textContent = `${APPS.length} 个 · 待删 ${APPS.filter(a => a.need === 'todel').length}`;
   $('#tabAppBadge').textContent = APPS.length;
 
   const cards = rows.map(a => {
-    const c = appCatOf(a.c);
     const iconInner = a.photo
       ? `<img src="${a.photo}" alt="">`
       : `<span style="color:${a.need === 'todel' ? '#8b8c94' : '#3b3d45'}">${a.n.slice(0, 1)}</span>`;
-    // 位置里已经含分类名时（如「工具文件夹」），副行不再重复分类
-    const locHasCat = a.loc && a.loc.includes(c.name);
-    const sub = [locHasCat ? null : c.name, a.loc, a.note].filter(Boolean).join(' · ');
+    const sub = [a.loc, a.note].filter(Boolean).join(' · ');
     return `<div class="arow${a.need === 'todel' ? ' todel' : ''}" data-app="${a.id}">
-      <div class="ic" style="background:${a.photo ? '#fff' : c.tone}" data-appphoto="${a.id}">${iconInner}</div>
+      <div class="ic" style="background:${a.photo ? '#fff' : appTone(a)}" data-appphoto="${a.id}">${iconInner}</div>
       <div class="tx"><b>${a.n}</b><span>${sub}</span></div>
       <span class="need" data-appneed="${a.id}" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
       <button class="del" data-delapp="${a.id}" title="删除软件">
@@ -2090,22 +2126,14 @@ function openAppPop(anchor, id){
   };
 }
 
-/* 软件：新增 */
+/* 软件：新增（不再问分类——软件不分门别类） */
 function newAppModal(){
-  let cat = (appState.cat !== 'all' ? appState.cat : APP_CATS[0].id);
-  const catChips = () => APP_CATS.map(c =>
-    `<button class="chip${cat === c.id ? ' on' : ''}" data-pick="${c.id}">${c.name}</button>`).join('');
-
   openModal(`
     <h3>添加软件</h3>
     <p class="mhint">只有名称是必填的，其他都能以后再补</p>
     <div class="fld">
       <label>软件名</label>
       <input type="text" id="naName" placeholder="比如 微信" maxlength="14">
-    </div>
-    <div class="fld">
-      <label>分类</label>
-      <div class="chips" id="naCat" style="padding-bottom:2px">${catChips()}</div>
     </div>
     <div class="fld">
       <label>在手机上的位置</label>
@@ -2119,18 +2147,14 @@ function newAppModal(){
   const nameIn = $('#naName'), okBtn = $('#naOk');
   nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
   setTimeout(() => nameIn.focus(), 60);
-  $('#naCat').addEventListener('click', e => {
-    const b = e.target.closest('[data-pick]'); if (!b) return;
-    cat = b.dataset.pick; $('#naCat').innerHTML = catChips();
-  });
   $('#naCancel').addEventListener('click', closeModal);
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
     if (!name) return;
-    const a = { id:'a' + Date.now(), n:name, c:cat, need:'temp',
+    const a = { id:'a' + Date.now(), n:name, need:'temp',
       loc:$('#naLoc').value.trim(), note:'', photo:null };
     APPS.push(a);
-    closeModal(); renderAppCatChips(); renderApps();
+    closeModal(); renderApps();
     setTimeout(() => {
       const el = document.querySelector(`[data-app="${a.id}"]`);
       if (el) el.scrollIntoView({ block:'center', behavior:'smooth' });
@@ -2143,10 +2167,10 @@ function newAppModal(){
 function deleteApp(id){
   const idx = APPS.findIndex(x => x.id === id); if (idx < 0) return;
   const removed = APPS.splice(idx, 1)[0];
-  renderAppCatChips(); renderApps();
+  renderSettings(); renderApps();
   toastUndo(`已删除「${removed.n}」`, () => {
     APPS.splice(idx, 0, removed);
-    renderAppCatChips(); renderApps();
+    renderSettings(); renderApps();
     toast('已恢复');
   });
 }
@@ -2175,31 +2199,22 @@ function normalizeUses(){
 }
 
 /* ================= 设置 ================= */
-/* 分类管理当前正在编辑哪一类（item / app） */
-let stCatKind = 'item';
-
-const stCatList  = () => (stCatKind === 'item' ? CATS : APP_CATS);
-const stCatCount = c => (stCatKind === 'item'
-  ? ITEMS.filter(i => i.c === c.id).length
-  : APPS.filter(a => a.c === c.id).length);
-const stCatUnit  = () => (stCatKind === 'item' ? '条物品' : '个软件');
+/* 分类管理只针对物品分类（软件不需要分类） */
+const stCatCount = c => ITEMS.filter(i => i.c === c.id).length;
 
 function renderSettings(){
-  const curItems = sumItems();
-  const curApps = countApps();
-
   // 估算占用：按条数与图片数粗算（正式版从 IndexedDB 取真实值）
   const photoCount = ITEMS.filter(i => i.photo).length + APPS.filter(a => a.photo).length;
   const estMB = ((ITEMS.length + APPS.length) * 0.004 + photoCount * 0.11).toFixed(1);
   const QUOTA = 120;   // 浏览器大致可用空间，仅作示意
 
-  const catRows = stCatList().map(c => {
+  const catRows = CATS.map(c => {
     const n = stCatCount(c);
-    const goalTxt = (stCatKind === 'item' && c.goal) ? `目标 ${c.goal}` : '';
+    const goalTxt = c.goal ? `目标 ${c.goal}` : '';
     return `<div class="st-cat" data-scat="${c.id}">
       <span class="dot" style="background:${c.tone}"></span>
       <span class="nm">${c.name}</span>
-      <span class="cnt">${n} ${stCatUnit()}${goalTxt ? ' · ' + goalTxt : ''}</span>
+      <span class="cnt">${n} 条物品${goalTxt ? ' · ' + goalTxt : ''}</span>
       <button class="mini" data-renamecat="${c.id}" title="改名">
         <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg>
       </button>
@@ -2210,6 +2225,21 @@ function renderSettings(){
   }).join('');
 
   $('#stBody').innerHTML = `
+    <!-- 分类管理 -->
+    <div class="st-group">分类管理</div>
+    <div class="st-sec">
+      <div class="st-cat-head">
+        <span>物品分类</span>
+        <span class="hint">共 ${CATS.length} 个 · 长按分类卡也能改顺序</span>
+      </div>
+      ${catRows || '<div class="st-note" style="padding:6px 0 8px">还没有分类，点下面新建一个</div>'}
+      <div class="st-row" id="stAddCat" style="border-bottom:none;padding-top:10px">
+        <span class="ic" style="background:var(--hl)"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>
+        <span class="tx"><b>新建分类</b><span>比如 厨房、文具、工具</span></span>
+        <span class="go">›</span>
+      </div>
+    </div>
+
     <!-- 外观 -->
     <div class="st-group">外观</div>
     <div class="st-sec">
@@ -2453,10 +2483,6 @@ on('#stBack', 'click', () => closeSettings());
 })();
 
 on('#stBody', 'click', e => {
-  // 分类：切物品/软件
-  const kind = e.target.closest('[data-catkind]');
-  if (kind){ stCatKind = kind.dataset.catkind; renderSettings(); return; }
-
   // 分类改名
   const rn = e.target.closest('[data-renamecat]');
   if (rn){ renameCatModal(rn.dataset.renamecat); return; }
@@ -2466,10 +2492,7 @@ on('#stBody', 'click', e => {
   if (rm){ delCatModal(rm.dataset.delcat); return; }
 
   // 新增分类
-  if (e.target.closest('#stAddCat')){
-    if (stCatKind === 'item') newCatModal(); else newAppCatModal();
-    return;
-  }
+  if (e.target.closest('#stAddCat')){ newCatModal(); return; }
 
   // 主色
   const sw = e.target.closest('[data-accent]');
@@ -2483,7 +2506,7 @@ on('#stBody', 'click', e => {
 
 /* --- 分类改名 --- */
 function renameCatModal(id){
-  const c = stCatList().find(x => x.id === id);
+  const c = CATS.find(x => x.id === id);
   if (!c) return;
   openModal(`
     <h3>重命名分类</h3>
@@ -2504,21 +2527,21 @@ function renameCatModal(id){
     const v = inp.value.trim();
     if (!v) return;
     c.name = v;
-    closeModal(); renderSettings(); renderHome(); renderCatChips(); renderAppCatChips(); renderItems(); renderApps();
+    closeModal(); renderSettings(); renderHome(); renderCatChips(); renderItems();
     toast(`已改名为「${v}」`);
   });
 }
 
 /* --- 分类删除（条目归入未分类） --- */
 function delCatModal(id){
-  const c = stCatList().find(x => x.id === id);
+  const c = CATS.find(x => x.id === id);
   if (!c) return;
   const n = stCatCount(c);
   openModal(`
     <h3>删除「${c.name}」？</h3>
     <p class="mhint">${n > 0
-      ? `这个分类下有 ${n} ${stCatUnit()}，删除后会归入「未分类」，不会丢。`
-      : '这个分类下还没有条目，可以放心删。'}</p>
+      ? `这个分类下有 ${n} 条物品，删除后会归入「未分类」，不会丢。`
+      : '这个分类下还没有物品，可以放心删。'}</p>
     <div class="mrow">
       <button class="btn" id="dcCancel">取消</button>
       <button class="btn dan" id="dcOk">删除</button>
@@ -2526,20 +2549,17 @@ function delCatModal(id){
   `);
   $('#dcCancel').addEventListener('click', closeModal);
   $('#dcOk').addEventListener('click', () => {
-    if (stCatKind === 'item'){
-      ITEMS.forEach(i => { if (i.c === c.id) i.c = 'none'; });
-      const list = CATS;
-      // 保留一个「未分类」兜底
-      if (!list.some(x => x.id === 'none')) list.push({ id:'none', name:'未分类', tone:'#e6e6ea', goal:0 });
-      list.splice(list.findIndex(x => x.id === c.id), 1);
-    } else {
-      APPS.forEach(a => { if (a.c === c.id) a.c = 'none'; });
-      const list = APP_CATS;
-      if (!list.some(x => x.id === 'none')) list.push({ id:'none', name:'未分类', tone:'#e6e6ea' });
-      list.splice(list.findIndex(x => x.id === c.id), 1);
+    const orphans = ITEMS.filter(i => i.c === c.id);
+    orphans.forEach(i => { i.c = 'none'; });
+    // 只有真有物品要安置时才补「未分类」，空删除不留垃圾分类
+    if (orphans.length && !CATS.some(x => x.id === 'none')){
+      CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea', goal:0 });
     }
+    CATS.splice(CATS.findIndex(x => x.id === c.id), 1);
+    // 删掉的正好是当前筛选的分类 → 回到不筛选
+    if (state.cat === c.id) state.cat = 'all';
     closeModal();
-    renderSettings(); renderHome(); renderCatChips(); renderAppCatChips(); renderItems(); renderApps();
+    renderSettings(); renderHome(); renderCatChips(); renderItems();
     toast(`已删除分类「${c.name}」`);
   });
 }
@@ -2733,29 +2753,26 @@ function applyBackup(d, mode){
       }
     });
 
-    // 3) 软件：同名 → 跳过；否则新增
+    // 3) 软件：同名 → 跳过；否则新增（软件不分分类）
     inApps.forEach(ia => {
-      const cName = ((d.appCats || []).find(c => c.id === ia.c) || {}).name;
-      const targetCat = APP_CATS.find(c => c.name === cName) || APP_CATS.find(c => c.id === ia.c);
       const dup = APPS.find(x => x.n === ia.n);
       if (dup){
         if (!dup.photo && ia.photo) dup.photo = ia.photo;
         if (!dup.note && ia.note) dup.note = ia.note;
         if (!dup.loc && ia.loc) dup.loc = ia.loc;
       } else {
-        APPS.push({ ...ia, id: 'mg-a' + Math.random().toString(36).slice(2, 8),
-          c: targetCat ? targetCat.id : ia.c });
+        APPS.push({ ...ia, id: 'mg-a' + Math.random().toString(36).slice(2, 8) });
         added++;
       }
     });
 
-    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderAppCatChips();
+    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips();
     renderItems(); renderApps();
     saveSoon();
     return { added, merged };
   }
 
-  renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderAppCatChips();
+  renderSettings(); renderHome(); renderCatChips(); renderSeasonChips();
   renderItems(); renderApps();
   saveSoon();
   return { added: inItems.length, merged: 0 };
@@ -2786,7 +2803,7 @@ function clearAllModal(){
     GOAL_TOTAL = 0;
     GOAL_APPS = 0;
     closeModal();
-    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderAppCatChips();
+    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips();
     renderItems(); renderApps();
     toast('已清空全部数据');
   });
@@ -3021,18 +3038,17 @@ document.addEventListener('click', e => {
 
 // 首页分类卡
 on('#catGrid', 'click', e => {
-  if (e.target.closest('#catAddTile')){ newCatModal(); return; }
+  // 空状态那张引导卡：直接开「添加物品」（不是新建分类）
+  if (e.target.closest('#catAddTile')){ newItemModal(); return; }
   const card = e.target.closest('[data-cat]');
   if (card) goItems(card.dataset.cat);
 });
-on('#qNewCat', 'click', newCatModal);
 on('#qAddItem', 'click', newItemModal);
-on('#qAddApp', 'click', () => { renderAppCatChips(); renderApps(); showTab('apps'); newAppModal(); });
+on('#qAddApp', 'click', () => { renderApps(); showTab('apps'); newAppModal(); });
 on('#backHome', 'click', () => showTab('home'));
 
 // 列表页筛选
 on('#catChips', 'click', e => {
-  if (e.target.closest('#chipAddCat')){ newCatModal(); return; }
   const chip = e.target.closest('[data-cat]'); if (!chip) return;
   const k = chip.dataset.cat;
   // 再点一次已选中的分类 = 取消筛选（代替原来的「全部」按钮）
@@ -3041,6 +3057,8 @@ on('#catChips', 'click', e => {
   state.loc = 'all';
   renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
 });
+// 点分类行标题 → 整行折叠 / 展开
+on('#catToggle', 'click', () => toggleCatRow());
 on('#seasonChips', 'click', e => {
   const chip = e.target.closest('[data-season]'); if (!chip) return;
   const k = chip.dataset.season;
@@ -3461,7 +3479,7 @@ on('#fab', 'click', newItemModal);
 // 底部 Tab
 function activateTab(t){
   if (t === 'items') goItems();
-  else if (t === 'apps'){ renderAppCatChips(); renderApps(); showTab('apps'); $('#scr-apps').scrollTop = 0; }
+  else if (t === 'apps'){ renderApps(); showTab('apps'); $('#scr-apps').scrollTop = 0; }
   else showTab('home');
 }
 $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
@@ -3547,13 +3565,7 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
 })();
 
 /* ================= 软件页事件 ================= */
-on('#appCatChips', 'click', e => {
-  if (e.target.closest('#chipAddAppCat')){ newAppCatModal(); return; }
-  const chip = e.target.closest('[data-acat]'); if (!chip) return;
-  const k = chip.dataset.acat;
-  appState.cat = (appState.cat === k && k !== 'all') ? 'all' : k;
-  renderAppCatChips(); renderApps();
-});
+/* 软件不再有分类行（用户要求）：只按必需程度筛选 + 搜索 */
 on('#needChips', 'click', e => {
   const chip = e.target.closest('[data-need]'); if (!chip) return;
   const k = chip.dataset.need;
@@ -3562,7 +3574,6 @@ on('#needChips', 'click', e => {
   renderApps();
 });
 on('#aq', 'input', e => { appState.q = e.target.value; renderApps(); });
-on('#appNewCat', 'click', newAppCatModal);
 
 on('#alist', 'click', e => {
   const delBtn = e.target.closest('[data-delapp]');
@@ -3577,34 +3588,6 @@ on('#alist', 'click', e => {
 
 on('#fabApp', 'click', newAppModal);
 
-/* 软件分类新建 */
-function newAppCatModal(){
-  openModal(`
-    <h3>新建软件分类</h3>
-    <p class="mhint">给这一类软件起个名字</p>
-    <div class="fld">
-      <label>分类名称</label>
-      <input type="text" id="nacName" placeholder="比如 记账、健康" maxlength="8">
-    </div>
-    <div class="mrow">
-      <button class="btn" id="nacCancel">取消</button>
-      <button class="btn pri" id="nacOk" disabled>创建</button>
-    </div>
-  `);
-  const nameIn = $('#nacName'), okBtn = $('#nacOk');
-  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
-  setTimeout(() => nameIn.focus(), 60);
-  $('#nacCancel').addEventListener('click', closeModal);
-  okBtn.addEventListener('click', () => {
-    const name = nameIn.value.trim();
-    if (!name) return;
-    const tone = NEW_TONES[APP_CATS.length % NEW_TONES.length];
-    APP_CATS.push({ id:'ac' + Date.now(), name, tone });
-    closeModal(); renderAppCatChips(); renderApps();
-    toast(`已新建分类「${name}」`);
-  });
-}
-
 /* ================= 初始化 ================= */
 function renderAll(){
   applyAccent(accentId);
@@ -3612,7 +3595,6 @@ function renderAll(){
   renderCatChips();
   renderSeasonChips();
   renderItems();
-  renderAppCatChips();
   renderApps();
   // 新渲染出来的按钮也要有按压反馈
   bindPressFeedback();
