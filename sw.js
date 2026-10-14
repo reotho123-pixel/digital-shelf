@@ -4,7 +4,7 @@
    ע�⣺����ļ��� index.html������ app-prototype.html������
    ����������ͬ��index.html �Ƿ��� /digital-shelf/ ʱʵ�ʼ��ص��Ǹ���
    Ԥ��������߻��䶼����ָ�� index.html���������ʱ�򲻿��� */
-const CACHE = 'digital-shelf-v19';
+const CACHE = 'digital-shelf-v20';
 
 const ASSETS = [
   './',
