@@ -1,6 +1,6 @@
 {
-  "name": "电子收纳",
-  "short_name": "收纳",
+  "name": "极简",
+  "short_name": "极简",
   "description": "把所有物品和手机软件统计归类，并记录喜欢程度",
   "lang": "zh-CN",
   "start_url": "./app-prototype.html",
