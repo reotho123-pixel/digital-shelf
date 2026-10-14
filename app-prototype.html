@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#fdfaf1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="电子收纳">
+<meta name="apple-mobile-web-app-title" content="极简">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>电子收纳</title>
+<title>极简</title>
 <style>
 @font-face{font-family:'ZCOOLKuaiLe';src:url('./fonts/zcoolkuaile.woff2') format('woff2');font-display:swap}
 @font-face{font-family:'ZCOOLQingKe';src:url('./fonts/zcoolqingke.woff2') format('woff2');font-display:swap}
@@ -2250,7 +2250,7 @@ function renderSettings(){
     <!-- 关于 -->
     <div class="st-sec" style="padding:14px 15px">
       <div class="st-ver">
-        电子收纳 v0.2<br>
+        极简 v0.2<br>
         所有数据只保存在这台设备上，不会上传到任何服务器<br>
         建议每月导出一次备份
       </div>
@@ -3627,7 +3627,7 @@ async function boot(){
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
   } catch (e) {
     // 渲染失败也不能让页面空着：把错误显示出来便于排查
-    console.error('[电子收纳] 首次渲染失败', e);
+    console.error('[极简] 首次渲染失败', e);
     document.body.insertAdjacentHTML('afterbegin',
       '<div style="position:fixed;left:8px;right:8px;top:8px;z-index:9999;background:#fff;border:2px solid #c33f5c;border-radius:10px;padding:10px;font:12px/1.5 monospace;white-space:pre-wrap">渲染出错：' + (e && e.message) + '</div>');
     return;
@@ -3640,13 +3640,13 @@ async function boot(){
     if (had){
       renderAll();
       syncTabInd();
-      console.log('[电子收纳] 已从本地存储恢复', ITEMS.length, '条物品 /', APPS.length, '个软件');
+      console.log('[极简] 已从本地存储恢复', ITEMS.length, '条物品 /', APPS.length, '个软件');
     } else {
-      console.log(dbReady ? '[电子收纳] 首次使用' : '[电子收纳] 当前环境不支持本地存储，改动不会保存');
+      console.log(dbReady ? '[极简] 首次使用' : '[极简] 当前环境不支持本地存储，改动不会保存');
     }
   } catch (e) {
     suppressSave = false;
-    console.warn('[电子收纳] 读取本地数据失败，使用当前数据', e);
+    console.warn('[极简] 读取本地数据失败，使用当前数据', e);
   }
 }
 boot();
@@ -3655,8 +3655,8 @@ boot();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(
-      reg => console.log('[电子收纳] 离线缓存已就绪', reg.scope),
-      err => console.warn('[电子收纳] 离线缓存注册失败', err)
+      reg => console.log('[极简] 离线缓存已就绪', reg.scope),
+      err => console.warn('[极简] 离线缓存注册失败', err)
     );
   });
 }
