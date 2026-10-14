@@ -58,7 +58,10 @@ body{
 /* 真机全屏：手机上直接铺满，桌面上才画一个手机框便于预览 */
 .phone{position:relative;width:100%;height:100%;background:var(--screen);overflow:hidden}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
-  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 104px);
+  /* 底部留白写死 104px，不叠加 env(safe-area-inset-bottom)：
+     加到主屏后可视区已铺满整屏（含 Home Indicator 段），
+     再按 safe-area 补一次等于留两遍，底部会空出一条。 */
+  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px 104px;
   scrollbar-width:none;display:none;-webkit-overflow-scrolling:touch}
 .screen::-webkit-scrollbar{display:none}
 .screen.on{display:block}
@@ -344,9 +347,9 @@ body{
 .empty b{display:block;font-family:var(--f-cn);font-size:15px;font-weight:400;margin-bottom:7px}
 .empty span{font-size:13px;color:var(--sub)}
 
-/* 悬浮添加（贴安全区之上） */
+/* 悬浮添加（在底栏之上） */
 .fab{position:absolute;right:20px;width:56px;height:56px;background:var(--accent);
-  bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+  bottom:96px;
   border:2.4px solid var(--ink);display:none;place-items:center;cursor:pointer;z-index:12;
   border-radius:50% 46% 52% 48%/48% 52% 46% 50%;box-shadow:3px 4px 0 rgba(22,23,27,.2)}
 .fab svg{width:24px;height:24px}
@@ -354,7 +357,8 @@ body{
 
 /* ===== 底部 Tab：胶囊容器 + 滑动选中块 ===== */
 .tabbar{position:absolute;left:15px;right:15px;z-index:14;
-  bottom:calc(env(safe-area-inset-bottom,0px) + 17px);
+  /* 距屏幕底写死 17px，不叠加 safe-area（理由同 .screen） */
+  bottom:17px;
   background:rgba(253,250,241,.98);border:2.6px solid var(--ink);
   border-radius:999px;box-shadow:4px 5px 0 rgba(22,23,27,.17);
   padding:5px;display:flex;gap:3px;transform:rotate(-.35deg);
@@ -639,7 +643,7 @@ body{
 
 /* 轻提示 */
 .toast{position:absolute;left:50%;transform:translateX(-50%) translateY(8px);
-  bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
+  bottom:104px;
   background:var(--ink);color:#fdfaf1;font-family:var(--f-cn);font-size:13px;padding:9px 12px 9px 16px;
   border-radius:13px 5px 14px 6px/6px 14px 5px 13px;opacity:0;pointer-events:none;
   transition:opacity .2s,transform .2s;z-index:40;display:flex;align-items:center;gap:11px;
