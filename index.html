@@ -226,18 +226,6 @@ body{
 .chipRow{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .chipRow .lb{font-family:var(--f-cn);font-size:11.5px;color:var(--sub);flex:0 0 auto;width:26px}
 .chipRow .chips{flex:1;padding-bottom:7px}
-/* 分类行的可折叠标题：点它整行收起/展开 */
-.chipRow .lb-toggle{flex:0 0 auto;display:flex;align-items:center;gap:3px;
-  border:none;background:none;padding:0 2px 7px 0;cursor:pointer;
-  font-family:var(--f-cn);font-size:11.5px;color:var(--sub)}
-.chipRow .lb-toggle .cv{max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  color:var(--accent-deep)}
-.chipRow .lb-toggle .cv:empty{display:none}
-.chipRow .lb-toggle .cv-arrow{width:11px;height:11px;flex:0 0 auto;
-  transition:transform .22s cubic-bezier(.22,.9,.24,1)}
-/* 收起态：箭头转向左、只留标题与当前分类名 */
-.chipRow.collapsed .lb-toggle .cv-arrow{transform:rotate(-90deg)}
-.chipRow.collapsed .chips{display:none}
 .count-row{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 11px}
 .count-row b{font-family:var(--f-cn);font-size:14.5px;font-weight:400}
 .count-row span{font-size:12.5px;color:var(--sub);font-family:'PatrickHand',sans-serif}
@@ -878,13 +866,11 @@ body{
           <span class="lb">季节</span>
           <div class="chips small" id="seasonChips"></div>
         </div>
-        <!-- 分类放最后一行：点左边标题可折叠隐藏 -->
-        <div class="chipRow" id="catRow">
-          <button class="lb-toggle" id="catToggle" title="折叠 / 展开分类">
-            <span class="lb">分类</span>
-            <span class="cv" id="catCur"></span>
-            <svg class="cv-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5 12 15.5 18 9.5"/></svg>
-          </button>
+        <!-- 分类行：平时不显示（跟季节行一样按条件出现）。
+             只有从总览点了某个分类进来、或正在按分类筛的时候才出现，
+             方便切换 / 取消。 -->
+        <div class="chipRow" id="catRow" style="display:none">
+          <span class="lb">分类</span>
           <div class="chips" id="catChips"></div>
         </div>
 
@@ -1238,7 +1224,7 @@ const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
 const LIKE_FILL  = { like:'#f6ddb4', neutral:'#dfe1e8', dislike:'#f6d3de' };
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 
-const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'', catCollapsed:false };
+const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'' };
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 /* 安全绑定：元素不存在时跳过，避免一处缺失就中断整个脚本（曾因此导致页面空白） */
@@ -1430,41 +1416,27 @@ function syncFilterGroup(){
   const show = filtersAllowed();
   const g = $('#filterGroup');
   if (g) g.style.display = show ? '' : 'none';
-  // 分类行（现在在最下面，可折叠）
-  const catRow = $('#catRow');
-  if (catRow) catRow.style.display = show ? 'flex' : 'none';
   if (!show){
     // 隐藏时同步清掉这些筛选，避免「看不见却仍在生效」
     state.cat = 'all'; state.season = 'all'; state.like = 'all'; state.loc = 'all';
     $$('#likeChips .chip').forEach(c => c.classList.remove('on'));
-    renderCatChips();
   }
-  // 套用用户对分类行的折叠偏好
-  toggleCatRow(!!state.catCollapsed);
+  renderCatChips();   // 分类行的显隐由这里统一决定
 }
 
 function renderCatChips(){
-  // 不再有「全部」按钮：默认不筛选，点某个分类才筛
-  // 也不再有「＋ 新建」：新建/改名/删除都移到「设置 → 分类管理」
+  // 分类行跟季节行一样是「按需出现」：平时不显示。
+  // 只有正在按分类筛（从总览点了某个分类进来）时才出现，方便切换或取消。
+  // 新建/改名/删除都在「设置 → 分类管理」里。
   const list = CATS.map(c => ({ ...c, qty: catQty(c.id) }));
   $('#catChips').innerHTML = list.map(c =>
     `<button class="chip${state.cat === c.id ? ' on' : ''}" data-cat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
   ).join('');
-  // 收起时标题旁边显示「当前筛的是哪个分类」，点了再点一次可取消
-  const cur = $('#catCur');
-  if (cur){
-    const sel = CATS.find(c => c.id === state.cat);
-    cur.textContent = (sel && state.cat !== 'all') ? `· ${sel.name}` : '';
+  const row = $('#catRow');
+  if (row){
+    const active = state.cat !== 'all';
+    row.style.display = (filtersAllowed() && active) ? 'flex' : 'none';
   }
-}
-
-/* 分类行折叠 / 展开（选择记在 state 里，重绘后保持） */
-function toggleCatRow(force){
-  const row = $('#catRow'); if (!row) return;
-  const next = (typeof force === 'boolean') ? force : !row.classList.contains('collapsed');
-  row.classList.toggle('collapsed', next);
-  const arrow = $('#catToggle .cv-arrow');
-  state.catCollapsed = next;
 }
 
 function renderSeasonChips(){
@@ -3061,8 +3033,6 @@ on('#catChips', 'click', e => {
   state.loc = 'all';
   renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
 });
-// 点分类行标题 → 整行折叠 / 展开
-on('#catToggle', 'click', () => toggleCatRow());
 on('#seasonChips', 'click', e => {
   const chip = e.target.closest('[data-season]'); if (!chip) return;
   const k = chip.dataset.season;
