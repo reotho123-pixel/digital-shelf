@@ -267,9 +267,6 @@ body{
 .pop .pi .mk svg{width:18px;height:18px;overflow:visible;
   fill:var(--lkc,#fff);stroke:var(--ink);stroke-width:2;stroke-linejoin:round;paint-order:stroke fill}
 .pop .pi .ck{margin-left:auto;font-family:'PatrickHand',sans-serif;font-size:13px;color:var(--ink2)}
-.icard .ph .delph{position:absolute;top:7px;left:7px;width:23px;height:23px;border-radius:50%;
-  background:#fff;border:1.9px solid var(--ink);display:grid;place-items:center;cursor:pointer;z-index:4}
-.icard .ph .delph svg{width:12px;height:12px;opacity:1}
 .icard .meta{padding:8px 9px 9px}
 /* 收起态：名称 + 位置并排，紧凑 */
 .icard .meta .row-name{display:flex;align-items:center;gap:6px}
@@ -1133,6 +1130,11 @@ function morphFromButton(panel, btnEl, done, opts){
   return anim;
 }
 
+/* 全局：取消所有正在等待的长按（弹面板、切页等情况要主动调用，
+   否则松手后计时器仍会触发，凭空冒出一个跟手的拖拽浮层） */
+const pendingHoldCancels = [];
+function cancelAllHolds(){ pendingHoldCancels.forEach(fn => { try { fn(); } catch(e){} }); }
+
 /* ================= 全局状态（必须最先声明，后面的渲染函数会用到） ================= */
 let accentId = 'green';       // 主色预设 id
 let photoStyle = 1;           // 0 = 原图  1 = 插画（轻）  2 = 插画（强）
@@ -1320,8 +1322,17 @@ function renderHome(){
   let ghost = null, offsetX = 0, offsetY = 0, lastSwap = null;
 
   const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+  // 长按还没触发就被打断（弹面板/切页）→ 清干净，别让 ghost 凭空冒出来
+  if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
+    clearHold();
+    if (ghost){ ghost.remove(); ghost = null; }
+    if (card){ card.classList.remove('dragging-src'); card = null; }
+    id = null; started = false; lastSwap = null;
+  });
 
   const begin = (x, y) => {
+    // 兜底：卡片已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
+    if (!card || !card.isConnected) return;
     started = true;
     const r = card.getBoundingClientRect();
     offsetX = x - r.left; offsetY = y - r.top;
@@ -1387,7 +1398,9 @@ function renderHome(){
   grid.addEventListener('touchcancel', end);
   grid.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
   window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
-  window.addEventListener('mouseup', () => { if (started) end(); });
+  // ★ 松手无条件收尾：即使没进入拖拽，也要清掉长按计时器，
+  //   否则"点一下卡片"之后计时器仍会触发，凭空冒出一个跟手浮层
+  window.addEventListener('mouseup', end);
 })();
 
 /* ================= 物品列表 ================= */
@@ -1477,10 +1490,7 @@ function renderItems(){
     const locTxt = [i.loc, seasonTxt].filter(Boolean).join(' · ');
 
     const phInner = i.photo
-      ? `<img src="${i.photo}" alt="">
-         <span class="delph" data-delphoto="${i.id}" title="删除照片">
-           <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-         </span>`
+      ? `<img src="${i.photo}" alt="">`
       : `<span class="addph">
            <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"><path d="M12 7v10M7 12h10"/></svg>
            加照片
@@ -1535,6 +1545,8 @@ const TAB_ORDER = ['items', 'home', 'apps'];
 function showTab(tab, opts){
   const prevTab = state.tab;
   state.tab = tab;
+  // 切页会打断正在等待的长按：先掐掉，别让 ghost 浮层跟到新页面上
+  cancelAllHolds();
   // 设置是覆盖层（overlay），不参与 Tab 切换
   const map = { items:'scr-items', apps:'scr-apps', home:'scr-home' };
   const screenId = map[tab] || 'scr-home';
@@ -1587,6 +1599,9 @@ const mask = $('#mask'), modal = $('#modal');
 let modalAnim = null;
 
 function openModal(html, anchorEl){
+  // 弹面板说明用户已经松手了：先把还挂着的长按计时器掐掉，
+  // 否则 420ms 后 begin() 会照着已松手的位置克隆一张卡飘在屏幕上（去不掉）
+  cancelAllHolds();
   modal.innerHTML = html;
   // 关掉 CSS 里的默认弹出动画，改由 Trigger Morph 接管
   modal.style.animation = 'none';
@@ -1727,6 +1742,7 @@ function closePop(){ pop.classList.remove('on'); popOpen = false; }
 
 /* kind: 'st' 状态 | 'like' 喜欢程度 */
 function openPop(anchor, kind, id){
+  cancelAllHolds();
   const it = ITEMS.find(x => x.id === id); if (!it) return;
   const map = kind === 'st'
     ? Object.keys(ST_TEXT).map(k => ({ k, name: ST_TEXT[k], color: ST_COLOR[k], shape:'dot' }))
@@ -2290,6 +2306,7 @@ function goSettings(){
 
 function openOverlay(scr){
   const phone = $('.phone');
+  cancelAllHolds();
   overlayAnimating = true;
   // 基础状态先落到位（万一动画不执行，元素也是正确位置，不会卡在屏外）
   scr.style.transform = '';
@@ -3057,13 +3074,6 @@ on('#q', 'input', e => { state.q = e.target.value; renderItems(); });
 on('#igrid', 'click', e => {
   if (e.target.closest('#gridAdd')){ newItemModal(); return; }
 
-  const delPh = e.target.closest('[data-delphoto]');
-  if (delPh){
-    const it = ITEMS.find(x => x.id === delPh.dataset.delphoto);
-    if (it){ it.photo = null; renderItems(); toast('照片已删除'); }
-    return;
-  }
-
   // 点喜欢圆点 → 归类喜欢程度
   const lk = e.target.closest('.lk');
   if (lk){
@@ -3133,6 +3143,13 @@ function editItemModal(id, anchorEl){
         ${it.buy ? '<button class="btn" id="eiBuyClear" style="flex:0 0 auto;padding:8px 12px;font-size:12.5px">清除</button>' : ''}
       </div>
     </div>
+    <div class="fld">
+      <label>照片</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:12.5px;color:var(--sub)">${it.photo ? '已有照片，点卡片图片可换一张' : '点卡片上的「加照片」上传'}</span>
+        ${it.photo ? '<button class="btn" id="eiDelPh" style="flex:0 0 auto;padding:8px 12px;font-size:12.5px">删除照片</button>' : ''}
+      </div>
+    </div>
     <div class="mrow">
       <button class="btn dan" id="eiDel">删除</button>
       <button class="btn pri" id="eiOk">保存</button>
@@ -3140,6 +3157,8 @@ function editItemModal(id, anchorEl){
   `, anchorEl);
   const nameIn = $('#eiName');
   setTimeout(() => { nameIn.focus(); nameIn.select(); }, 320);
+  const delPhBtn = $('#eiDelPh');
+  if (delPhBtn) delPhBtn.addEventListener('click', () => { it.photo = null; closeModal(); renderItems(); toast('照片已删除'); });
   const clearBtn = $('#eiBuyClear');
   if (clearBtn) clearBtn.addEventListener('click', () => { $('#eiBuy').value = ''; });
   $('#eiDel').addEventListener('click', () => { closeModal(); deleteItem(it.id); });
@@ -3162,8 +3181,17 @@ function editItemModal(id, anchorEl){
   const tracker = makeVelocityTracker();
 
   const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+  // 长按还没触发就被打断（弹面板/切页）→ 清干净，别让 ghost 凭空冒出来
+  if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
+    clearHold();
+    if (ghost){ ghost.remove(); ghost = null; }
+    if (card){ card.classList.remove('dragging-src'); card = null; }
+    id = null; started = false; lastSwapEl = null;
+  });
 
   const begin = (x, y) => {
+    // 兜底：卡片已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
+    if (!card || !card.isConnected) return;
     started = true;
     tracker.reset(x, y);
     const r = card.getBoundingClientRect();
@@ -3253,7 +3281,9 @@ function editItemModal(id, anchorEl){
 
   grid.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
   window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
-  window.addEventListener('mouseup', () => { if (started) end(); });
+  // ★ 松手无条件收尾：即使没进入拖拽，也要清掉长按计时器，
+  //   否则"点一下卡片"之后计时器仍会触发，凭空冒出一个跟手浮层
+  window.addEventListener('mouseup', end);
 })();
 
 /* 软件列表：同样的长按拖拽排序（行是上下排列的） */
@@ -3264,8 +3294,17 @@ function editItemModal(id, anchorEl){
   const tracker = makeVelocityTracker();
 
   const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+  // 长按还没触发就被打断（弹面板/切页）→ 清干净，别让 ghost 凭空冒出来
+  if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
+    clearHold();
+    if (ghost){ ghost.remove(); ghost = null; }
+    if (row){ row.classList.remove('dragging-src'); row = null; }
+    started = false;
+  });
 
   const begin = (x, y) => {
+    // 兜底：行已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
+    if (!row || !row.isConnected) return;
     started = true;
     tracker.reset(x, y);
     const r = row.getBoundingClientRect();
@@ -3334,7 +3373,7 @@ function editItemModal(id, anchorEl){
   list.addEventListener('touchcancel', end);
   list.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
   window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
-  window.addEventListener('mouseup', () => { if (started) end(); });
+  window.addEventListener('mouseup', end);
 })();
 
 /* ---------- 液态形变：拖动中的卡片跟着速度「鼓起来」 ----------
