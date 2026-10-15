@@ -906,9 +906,10 @@ body{
           <span class="lb">季节</span>
           <div class="chips small" id="seasonChips"></div>
         </div>
-        <!-- 分类行：平时不显示（跟季节行一样按条件出现）。
-             只有从总览点了某个分类进来、或正在按分类筛的时候才出现，
-             方便切换 / 取消。 -->
+        <!-- 分类行：平时就显示（浏览时也能一眼看到有哪些分类）。
+             只有切到「消耗中 / 待处理」才收起来（那两种状态不按分类看），
+             显隐由 renderCatChips() 统一控制。
+             新建/改名/删除在「设置 → 分类管理」里。 -->
         <div class="chipRow" id="catRow" style="display:none">
           <span class="lb">分类</span>
           <div class="chips" id="catChips"></div>
@@ -1514,18 +1515,16 @@ function syncFilterGroup(){
 }
 
 function renderCatChips(){
-  // 分类行跟季节行一样是「按需出现」：平时不显示。
-  // 只有正在按分类筛（从总览点了某个分类进来）时才出现，方便切换或取消。
-  // 新建/改名/删除都在「设置 → 分类管理」里。
+  // 分类行平时就显示（浏览时也能一眼看到有哪些分类）。
+  // 只有切到「消耗中 / 待处理」才跟着喜欢/位置/季节一起收起来 ——
+  // 那两种状态本来就不按分类看（filtersAllowed() 统一判断）。
+  // 新建/改名/删除在「设置 → 分类管理」里。
   const list = CATS.map(c => ({ ...c, qty: catQty(c.id) }));
   $('#catChips').innerHTML = list.map(c =>
     `<button class="chip${state.cat === c.id ? ' on' : ''}" data-cat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
   ).join('');
   const row = $('#catRow');
-  if (row){
-    const active = state.cat !== 'all';
-    row.style.display = (filtersAllowed() && active) ? 'flex' : 'none';
-  }
+  if (row) row.style.display = (filtersAllowed() && CATS.length) ? 'flex' : 'none';
 }
 
 function renderSeasonChips(){
