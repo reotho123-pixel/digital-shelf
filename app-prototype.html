@@ -249,6 +249,17 @@ body{
   box-shadow:4px 5px 0 rgba(22,23,27,.14);transition:transform .12s,box-shadow .12s;position:relative}
 .icard:nth-child(odd){transform:rotate(-.5deg)}
 .icard:nth-child(even){transform:rotate(.5deg)}
+/* 改了状态 → 卡片「离开这里、落到别处」的两段动画。
+   注意卡片自身带轻微旋转（奇偶 ±0.5°），所以动效里要把旋转写进去，
+   否则动画期间会把那张卡的倾斜抹平，看起来会"正"一下再回去。 */
+.icard.leaving{opacity:0;transform:scale(.88) rotate(0deg);
+  transition:opacity .2s ease,transform .2s cubic-bezier(.4,0,1,1)}
+.icard.arriving{animation:cardArrive .42s cubic-bezier(.22,1.15,.36,1)}
+@keyframes cardArrive{
+  0%{opacity:0;transform:translateY(14px) scale(.9)}
+  60%{opacity:1;transform:translateY(-2px) scale(1.015)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
 .icard .ph{position:relative;aspect-ratio:1/1;display:grid;place-items:center;
   border-bottom:2.2px solid var(--ink);cursor:pointer;overflow:hidden}
 .icard .ph svg{width:52%;height:52%;color:var(--ink);opacity:.82}
@@ -1302,7 +1313,7 @@ const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
 const LIKE_FILL  = { like:'#f6ddb4', neutral:'#dfe1e8', dislike:'#f6d3de' };
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 
-const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'' };
+const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'', justMovedId:null };
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 /* 安全绑定：元素不存在时跳过，避免一处缺失就中断整个脚本（曾因此导致页面空白） */
@@ -1559,8 +1570,15 @@ function renderItems(){
     (state.loc === 'all' || (i.loc || '').trim() === state.loc) &&
     (!q || i.n.toLowerCase().includes(q) || (i.loc || '').toLowerCase().includes(q))
   );
-  // 按用户排的顺序显示（拖拽排序）
-  rows.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+  // 排序：先按状态聚在一起（在用中 → 收纳中 → 消耗中 → 待处理），
+  // 状态内部再按用户拖拽的顺序。这样改了状态的卡片是真会挪到另一堆里去，
+  // 而不是留在原地不动。
+  const ST_ORDER = { inuse:0, stored:1, consuming:2, todo:3 };
+  rows.sort((a, b) => {
+    const d = (ST_ORDER[a.st] ?? 9) - (ST_ORDER[b.st] ?? 9);
+    if (d) return d;
+    return (a.order ?? 9999) - (b.order ?? 9999);
+  });
   const qty = sumQty(rows);
 
   const catName = state.cat === 'all' ? '全部物品' : catOf(state.cat).name;
@@ -1627,6 +1645,19 @@ function renderItems(){
   if (!rows.length){
     $('#igrid').innerHTML = `<div class="empty" style="grid-column:1/-1">
       <b>没有符合条件的物品</b><span>换个筛选，或者点右下角的加号添加</span></div>`;
+  }
+
+  // 刚改完状态的那张卡：在新位置上播一个"落位"动画并滚到可见处，
+  // 让人看清它到底挪到哪里去了
+  if (state.justMovedId){
+    const movedId = state.justMovedId;
+    state.justMovedId = null;
+    const el = $('#igrid').querySelector(`.icard[data-item="${movedId}"]`);
+    if (el){
+      el.classList.add('arriving');
+      setTimeout(() => el.classList.remove('arriving'), 480);
+      if (!FX.motionOff) setTimeout(() => el.scrollIntoView({ block:'nearest', behavior:'smooth' }), 60);
+    }
   }
   saveSoon();
 }
@@ -1813,27 +1844,6 @@ function newItemModal(){
   });
 }
 
-/* --- 状态选择 --- */
-function statusModal(id){
-  const it = ITEMS.find(i => i.id === id); if (!it) return;
-  const opts = Object.keys(ST_TEXT).map(k =>
-    `<div class="opt${it.st === k ? ' sel' : ''}" data-st="${k}">
-       <span class="dot" style="background:${ST_COLOR[k]}"></span>${ST_TEXT[k]}
-       <span class="sub">${k === 'inuse' ? '正在用' : k === 'stored' ? '收起来' : k === 'consuming' ? '在用会变少' : '准备处理'}</span>
-     </div>`).join('');
-  openModal(`
-    <h3>${it.n}</h3>
-    <p class="mhint">这件东西现在是什么状态</p>
-    <div class="optlist">${opts}</div>
-  `);
-  $('#modal .optlist').addEventListener('click', e => {
-    const o = e.target.closest('[data-st]'); if (!o) return;
-    it.st = o.dataset.st;
-    closeModal(); renderHome(); renderItems();
-    toast(`「${it.n}」改为${ST_TEXT[it.st]}`);
-  });
-}
-
 /* ================= 卡片上的归类小菜单 ================= */
 const pop = $('#pop');
 let popOpen = false;
@@ -1879,9 +1889,24 @@ function openPop(anchor, kind, id){
   pop.onclick = e => {
     const p = e.target.closest('[data-pick]'); if (!p) return;
     if (kind === 'st'){
-      it.st = p.dataset.pick;
-      closePop(); renderHome(); renderItems();
-      toast(`「${it.n}」已归到「${ST_TEXT[it.st]}」`);
+      const from = it.st, to = p.dataset.pick;
+      closePop();
+      if (from === to){ renderHome(); renderItems(); return; }
+      // 两段式：先在原位置淡出缩小（让人看清"这一张要走了"），
+      // 再重排到新位置并播落位动画（renderItems 会读 justMovedId）
+      const cardEl = document.querySelector(`#igrid .icard[data-item="${it.id}"]`);
+      const commit = () => {
+        it.st = to;
+        state.justMovedId = it.id;
+        renderHome(); renderItems();
+        toast(`「${it.n}」已归到「${ST_TEXT[to]}」`);
+      };
+      if (cardEl && !FX.motionOff){
+        cardEl.classList.add('leaving');
+        setTimeout(commit, 190);
+      } else {
+        commit();
+      }
     } else {
       it.like = p.dataset.pick;
       closePop(); renderHome(); renderItems();
@@ -3225,11 +3250,16 @@ function editItemModal(id, anchorEl){
       applyLiquidDeform(ghost, vx, vy, dt, true);
     }
 
-    // 找手指下面的那张卡，实时换位
+    // 找手指下面的那张卡，实时换位。
+    // 网格现在按状态聚堆，所以只跟「同一状态」的卡片换位 ——
+    // 否则把卡拖到别的状态堆里，松手重排又会弹回原堆，看着像失灵。
     ghost.style.display = 'none';
     const el = document.elementFromPoint(x, y);
     ghost.style.display = '';
-    const over = el && el.closest('#igrid .icard[data-item]');
+    const overRaw = el && el.closest('#igrid .icard[data-item]');
+    const selfItem = ITEMS.find(i => i.id === id);
+    const over = (overRaw && selfItem && ITEMS.find(i => i.id === overRaw.dataset.item)?.st === selfItem.st)
+      ? overRaw : null;
     if (over && over !== card && over !== lastSwapEl){
       lastSwapEl = over;
       const a = ITEMS.find(i => i.id === id);
@@ -3252,9 +3282,17 @@ function editItemModal(id, anchorEl){
     if (ghost){ ghost.remove(); ghost = null; }
     if (card){ card.classList.remove('dragging-src'); }
     if (started){
-      // 固化顺序：按当前 DOM 顺序重写 order
-      const ids = [...grid.querySelectorAll('.icard[data-item]')].map(el => el.dataset.item);
-      ids.forEach((iid, n) => { const it = ITEMS.find(x => x.id === iid); if (it) it.order = n; });
+      // 固化顺序：按当前 DOM 顺序重写 order。
+      // 每种状态各自从 0 开始编号 —— 排序时是「先按状态堆、堆内再按 order」，
+      // 共用一个全局序号会让不同堆之间互相干扰。
+      const bySt = {};
+      [...grid.querySelectorAll('.icard[data-item]')].forEach(el => {
+        const it = ITEMS.find(x => x.id === el.dataset.item);
+        if (!it) return;
+        const k = it.st || 'inuse';
+        bySt[k] = bySt[k] || 0;
+        it.order = bySt[k]++;
+      });
       renderItems();
       toast('顺序已保存');
       // ★ 拖拽已经发生 → 抑制紧随其后的 click，避免误触展开编辑
