@@ -1183,7 +1183,6 @@ function focusInputWhenSettled(input, opts){
 
 /* ================= 全局状态（必须最先声明，后面的渲染函数会用到） ================= */
 let accentId = 'green';       // 主色预设 id
-let photoStyle = 1;           // 0 = 原图  1 = 插画（轻）  2 = 插画（强）
 let dbReady = false;          // IndexedDB 是否可用
 let db = null;                // IndexedDB 句柄
 let saveTimer = null;         // 防抖保存的定时器
@@ -1862,108 +1861,6 @@ function deleteItem(id){
   });
 }
 
-/* ================= 照片：插画化处理（方案一，纯前端） =================
-   流程：降采样 → 提饱和 + 色彩量化（平涂色块）→ 在小图上找边缘 → 放大叠加描边 → 提亮
-   关键点：必须「先提饱和再量化」，否则低饱和的颜色（如深绿）会被量化压成灰色。
-   全部在本地 canvas 完成，照片不出设备。 */
-function illustrate(srcCanvas, level){
-  const w = srcCanvas.width, h = srcCanvas.height;
-  const strong = level >= 2;
-
-  // 1) 降采样到小块（块越小 → 色块越明显）
-  const dScale = strong ? 0.14 : 0.28;
-  const dw = Math.max(12, Math.round(w * dScale)), dh = Math.max(12, Math.round(h * dScale));
-  const down = document.createElement('canvas');
-  down.width = dw; down.height = dh;
-  const dctx = down.getContext('2d', { willReadFrequently: true });
-  dctx.imageSmoothingEnabled = true;
-  dctx.imageSmoothingQuality = 'high';
-  dctx.drawImage(srcCanvas, 0, 0, dw, dh);
-
-  // 2) 在小图上提饱和 + 量化
-  const idata = dctx.getImageData(0, 0, dw, dh);
-  const d = idata.data;
-  const sat = strong ? 1.55 : 1.25;
-  const steps = strong ? 5 : 7;
-  const q = 255 / (steps - 1);
-  for (let i = 0; i < d.length; i += 4){
-    let r = d[i], g = d[i+1], b = d[i+2];
-    const gray = 0.299*r + 0.587*g + 0.114*b;
-    r = gray + (r - gray) * sat;
-    g = gray + (g - gray) * sat;
-    b = gray + (b - gray) * sat;
-    r = r < 0 ? 0 : r > 255 ? 255 : r;
-    g = g < 0 ? 0 : g > 255 ? 255 : g;
-    b = b < 0 ? 0 : b > 255 ? 255 : b;
-    d[i]   = Math.round(Math.round(r / q) * q);
-    d[i+1] = Math.round(Math.round(g / q) * q);
-    d[i+2] = Math.round(Math.round(b / q) * q);
-  }
-  dctx.putImageData(idata, 0, 0);
-
-  // 3) 在小图上算边缘（此时边界是硬边，梯度干净 → 线条连续）
-  const lum = new Float32Array(dw * dh);
-  for (let i = 0, p = 0; i < d.length; i += 4, p++){
-    lum[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-  }
-  const mask = document.createElement('canvas');
-  mask.width = dw; mask.height = dh;
-  const mctx = mask.getContext('2d', { willReadFrequently: true });
-  const mdata = mctx.createImageData(dw, dh);
-  const m = mdata.data;
-  const thr = strong ? 20 : 28;
-  const raw = new Uint8Array(dw * dh);
-  for (let y = 1; y < dh - 1; y++){
-    for (let x = 1; x < dw - 1; x++){
-      const p = y * dw + x;
-      const gx = lum[p+1] - lum[p-1];
-      const gy = lum[p+dw] - lum[p-dw];
-      if (Math.sqrt(gx*gx + gy*gy) > thr) raw[p] = 1;
-    }
-  }
-  // 去噪：孤立点（周围没有邻居）不算边缘，避免背景出现麻点
-  for (let y = 1; y < dh - 1; y++){
-    for (let x = 1; x < dw - 1; x++){
-      const p = y * dw + x;
-      if (!raw[p]) continue;
-      const n = raw[p-1] + raw[p+1] + raw[p-dw] + raw[p+dw]
-              + raw[p-dw-1] + raw[p-dw+1] + raw[p+dw-1] + raw[p+dw+1];
-      if (n < 2) continue;                       // 邻居太少 → 丢弃
-      const i = p * 4;
-      m[i] = m[i+1] = m[i+2] = 0;
-      m[i+3] = 255;
-    }
-  }
-  mctx.putImageData(mdata, 0, 0);
-
-  // 4) 色块放大回原尺寸
-  const cv = document.createElement('canvas');
-  cv.width = w; cv.height = h;
-  const ctx = cv.getContext('2d', { willReadFrequently: true });
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(down, 0, 0, w, h);
-
-  // 5) 叠描边（轻微模糊 → 像手绘线条而不是像素边）
-  ctx.globalAlpha = strong ? 0.5 : 0.34;
-  ctx.filter = 'blur(0.8px)';
-  ctx.drawImage(mask, 0, 0, w, h);
-  ctx.filter = 'none';
-  ctx.globalAlpha = 1;
-
-  // 6) 轻微提亮
-  const out = ctx.getImageData(0, 0, w, h);
-  const o = out.data;
-  const lift = strong ? 12 : 8;
-  for (let i = 0; i < o.length; i += 4){
-    o[i]   = Math.min(255, o[i]   + lift);
-    o[i+1] = Math.min(255, o[i+1] + lift);
-    o[i+2] = Math.min(255, o[i+2] + lift);
-  }
-  ctx.putImageData(out, 0, 0);
-
-  return cv;
-}
 
 /* ================= 照片 ================= */
 let photoTargetId = null;
@@ -2008,6 +1905,7 @@ on('#filePick', 'change', e => {
   fr.onload = ev => {
     const img = new Image();
     img.onload = () => {
+      // 只做压缩（长边 1000px），不做任何风格化处理：照片原样保存
       const MAX = 1000;
       let w = img.naturalWidth, h = img.naturalHeight;
       const scale = Math.min(1, MAX / Math.max(w, h));
@@ -2016,12 +1914,11 @@ on('#filePick', 'change', e => {
       cv.width = w; cv.height = h;
       cv.getContext('2d').drawImage(img, 0, 0, w, h);
 
-      const out = photoStyle > 0 ? illustrate(cv, photoStyle) : cv;
       const it = ITEMS.find(x => x.id === id);
       if (it){
-        it.photo = out.toDataURL('image/jpeg', .78);
+        it.photo = cv.toDataURL('image/jpeg', .78);
         renderItems();
-        toast(photoStyle > 0 ? '照片已插画化并保存' : '照片已保存');
+        toast('照片已保存');
       }
     };
     img.onerror = () => toast('这张图读不出来，换一张试试');
@@ -2029,32 +1926,6 @@ on('#filePick', 'change', e => {
   };
   fr.readAsDataURL(file);
 });
-
-/* ================= 照片风格选择 ================= */
-function styleModal(after){
-  const opts = [
-    { v:0, name:'原图',      desc:'照片原样保存' },
-    { v:1, name:'插画 · 轻', desc:'描边 + 微提亮，还看得出原样' },
-    { v:2, name:'插画 · 强', desc:'明显色块化，最像插画' }
-  ];
-  openModal(`
-    <h3>照片风格</h3>
-    <p class="mhint">新上传的照片会按这个风格处理，已经传过的不会变</p>
-    <div class="optlist">
-      ${opts.map(o => `<div class="opt${photoStyle === o.v ? ' sel' : ''}" data-style="${o.v}">
-        <span style="font-family:var(--f-cn)">${o.name}</span>
-        <span class="sub">${o.desc}</span>
-      </div>`).join('')}
-    </div>
-  `);
-  $('#modal .optlist').addEventListener('click', e => {
-    const o = e.target.closest('[data-style]'); if (!o) return;
-    photoStyle = Number(o.dataset.style);
-    closeModal();
-    if (typeof after === 'function') after();
-    toast(`照片风格：${opts.find(x => x.v === photoStyle).name}`);
-  });
-}
 
 /* ================= 软件数据 ================= */
 let APP_CATS = [
@@ -2868,7 +2739,6 @@ function snapshotState(){
     version: 1,
     savedAt: Date.now(),
     accentId,
-    photoStyle,
     lastSnapAt,
     goals: { total: GOAL_TOTAL, apps: GOAL_APPS },
     cats: CATS.map(c => ({ ...c })),
@@ -2977,7 +2847,6 @@ async function loadFromDB(){
     GOAL_TOTAL = (state.goals && state.goals.total) || 0;
     GOAL_APPS  = (state.goals && state.goals.apps) || 0;
     if (typeof state.accentId === 'string') accentId = state.accentId;
-    if (typeof state.photoStyle === 'number') photoStyle = state.photoStyle;
     if (typeof state.lastSnapAt === 'number') lastSnapAt = state.lastSnapAt;
     if (Array.isArray(state.snapshots) && state.snapshots.length) SNAPSHOTS = state.snapshots;
 
@@ -3496,8 +3365,6 @@ document.addEventListener('click', e => {
   closePop();
 }, true);
 on('#scr-items', 'scroll', closePop);
-
-on('#styleBtn', 'click', styleModal);
 
 on('#fab', 'click', newItemModal);
 
