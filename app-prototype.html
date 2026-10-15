@@ -1141,6 +1141,32 @@ function morphFromButton(panel, btnEl, done, opts){
 const pendingHoldCancels = [];
 function cancelAllHolds(){ pendingHoldCancels.forEach(fn => { try { fn(); } catch(e){} }); }
 
+/* 面板里聚焦输入框：必须等形变展开动画结束再 focus。
+   动画进行中 focus 会让 iOS 在「元素还在缩放/位移」时把输入法唤起来，
+   中文输入法的候选词条会因此不显示（打字能看到字，但选词栏是空的）。
+   这里等动画真正落地（onfinish）再聚焦，并兜一个超时保险。*/
+function focusInputWhenSettled(input, opts){
+  if (!input) return;
+  const o = opts || {};
+  const doFocus = () => {
+    try {
+      input.focus({ preventScroll: true });
+      if (o.select) input.select();
+    } catch (e) { /* 忽略：某些环境不支持 preventScroll */ }
+  };
+  const anims = (typeof modal !== 'undefined' && modal && modal.getAnimations)
+    ? modal.getAnimations() : [];
+  if (!anims.length){ setTimeout(doFocus, 40); return; }
+
+  let settled = false;
+  const once = () => { if (settled) return; settled = true; doFocus(); };
+  anims.forEach(a => {
+    try { a.finished.then(once).catch(once); } catch (e) { once(); }
+  });
+  // 保险：动画最长 620ms，700ms 后无论怎样都聚焦
+  setTimeout(once, 700);
+}
+
 /* ================= 全局状态（必须最先声明，后面的渲染函数会用到） ================= */
 let accentId = 'green';       // 主色预设 id
 let photoStyle = 1;           // 0 = 原图  1 = 插画（轻）  2 = 插画（强）
@@ -1654,7 +1680,7 @@ function newCatModal(){
   `);
   const nameIn = $('#newCatName'), okBtn = $('#catOk');
   nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
-  setTimeout(() => nameIn.focus(), 60);
+  focusInputWhenSettled(nameIn);
   $('#catCancel').addEventListener('click', closeModal);
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
@@ -1672,7 +1698,12 @@ function newCatModal(){
 
 /* --- 添加物品 --- */
 function newItemModal(){
+  // 分类可能一个都不剩（用户可以在设置里全删光）：
+  // 读 CATS[0].id 会抛异常 → 整个按钮静默失效。这里兜一个「未分类」。
+  if (!CATS.length) CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea', goal:0 });
   let qty = 1, cat = (state.cat !== 'all' ? state.cat : CATS[0].id);
+  // 当前筛选的分类可能刚被删掉 → 回落到第一个可用的
+  if (!CATS.some(c => c.id === cat)) cat = CATS[0].id;
   const catChips = () => CATS.map(c =>
     `<button class="chip${cat === c.id ? ' on' : ''}" data-pick="${c.id}">${c.name}</button>`).join('');
 
@@ -1703,7 +1734,7 @@ function newItemModal(){
 
   const nameIn = $('#niName'), okBtn = $('#niOk');
   nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
-  setTimeout(() => nameIn.focus(), 60);
+  focusInputWhenSettled(nameIn);
   $('#niMinus').addEventListener('click', () => { qty = Math.max(1, qty - 1); $('#niQty').textContent = qty; });
   $('#niPlus').addEventListener('click', () => { qty = Math.min(999, qty + 1); $('#niQty').textContent = qty; });
   $('#niCat').addEventListener('click', e => {
@@ -2102,8 +2133,12 @@ function openAppPop(anchor, id){
   };
 }
 
-/* 软件：新增（不再问分类——软件不分门别类） */
+/* 软件：新增（不再问分类；「必需/暂用/待删」直接在这里选） */
 function newAppModal(){
+  let need = 'temp';
+  const needChips = () => Object.keys(NEED_TEXT).map(k =>
+    `<button class="chip${need === k ? ' on' : ''}" data-pick="${k}">${NEED_TEXT[k]}</button>`).join('');
+
   openModal(`
     <h3>添加软件</h3>
     <p class="mhint">只有名称是必填的，其他都能以后再补</p>
@@ -2112,8 +2147,8 @@ function newAppModal(){
       <input type="text" id="naName" placeholder="比如 微信" maxlength="14">
     </div>
     <div class="fld">
-      <label>在手机上的位置</label>
-      <input type="text" id="naLoc" placeholder="比如 第二屏、工具文件夹" maxlength="16">
+      <label>要不要留</label>
+      <div class="chips" id="naNeed" style="padding-bottom:2px">${needChips()}</div>
     </div>
     <div class="mrow">
       <button class="btn" id="naCancel">取消</button>
@@ -2122,13 +2157,17 @@ function newAppModal(){
   `);
   const nameIn = $('#naName'), okBtn = $('#naOk');
   nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
-  setTimeout(() => nameIn.focus(), 60);
+  focusInputWhenSettled(nameIn);
+  $('#naNeed').addEventListener('click', e => {
+    const b = e.target.closest('[data-pick]'); if (!b) return;
+    need = b.dataset.pick;
+    $('#naNeed').innerHTML = needChips();
+  });
   $('#naCancel').addEventListener('click', closeModal);
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
     if (!name) return;
-    const a = { id:'a' + Date.now(), n:name, need:'temp',
-      loc:$('#naLoc').value.trim(), note:'', photo:null };
+    const a = { id:'a' + Date.now(), n:name, need, loc:'', note:'', photo:null };
     APPS.push(a);
     closeModal(); renderApps();
     setTimeout(() => {
@@ -2497,7 +2536,7 @@ function renameCatModal(id){
     </div>
   `);
   const inp = $('#rcName');
-  setTimeout(() => { inp.focus(); inp.select(); }, 60);
+  focusInputWhenSettled(inp, { select:true });
   $('#rcCancel').addEventListener('click', closeModal);
   $('#rcOk').addEventListener('click', () => {
     const v = inp.value.trim();
@@ -2770,7 +2809,7 @@ function clearAllModal(){
   `);
   const inp = $('#caConfirm'), ok = $('#caOk');
   inp.addEventListener('input', () => { ok.disabled = inp.value.trim() !== '清空'; });
-  setTimeout(() => inp.focus(), 60);
+  focusInputWhenSettled(inp);
   $('#caCancel').addEventListener('click', closeModal);
   ok.addEventListener('click', () => {
     ITEMS.length = 0;
@@ -3148,7 +3187,7 @@ function editItemModal(id, anchorEl){
     </div>
   `, anchorEl);
   const nameIn = $('#eiName');
-  setTimeout(() => { nameIn.focus(); nameIn.select(); }, 320);
+  focusInputWhenSettled(nameIn, { select:true });
   const delPhBtn = $('#eiDelPh');
   if (delPhBtn) delPhBtn.addEventListener('click', () => { it.photo = null; closeModal(); renderItems(); toast('照片已删除'); });
   const clearBtn = $('#eiBuyClear');
@@ -3278,12 +3317,13 @@ function editItemModal(id, anchorEl){
   window.addEventListener('mouseup', end);
 })();
 
-/* 软件列表：同样的长按拖拽排序（行是上下排列的） */
+/* 软件列表：长按拖动排序（行上下排列）。
+   这里刻意不加液态形变动效——用户要求「长按可以拖动排序就行」，
+   软件行是横向信息条，跟着速度鼓起反而显得晃，素面拖动更稳。 */
 (function initAppDrag(){
   const list = $('#alist');
   let holdTimer = null, row = null, started = false;
   let ghost = null, offsetX = 0, offsetY = 0;
-  const tracker = makeVelocityTracker();
 
   const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
   // 长按还没触发就被打断（弹面板/切页）→ 清干净，别让 ghost 凭空冒出来
@@ -3298,7 +3338,6 @@ function editItemModal(id, anchorEl){
     // 兜底：行已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
     if (!row || !row.isConnected) return;
     started = true;
-    tracker.reset(x, y);
     const r = row.getBoundingClientRect();
     offsetX = x - r.left;
     offsetY = y - r.top;
@@ -3315,11 +3354,9 @@ function editItemModal(id, anchorEl){
 
   const move = (x, y) => {
     if (!ghost) return;
+    // 1:1 跟手，无附加形变
     ghost.style.left = (x - offsetX) + 'px';
     ghost.style.top = (y - offsetY) + 'px';
-    // 液态形变
-    const { vx, vy, dt } = tracker.sample(x, y);
-    applyLiquidDeform(ghost, vx, vy, dt, true);
     ghost.style.display = 'none';
     const el = document.elementFromPoint(x, y);
     ghost.style.display = '';
