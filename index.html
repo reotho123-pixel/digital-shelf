@@ -335,9 +335,24 @@ body{
 .icard .loc-in:focus,.icard .date-in:focus{border-bottom-color:var(--ink);color:var(--ink)}
 .icard .loc-in::placeholder{color:#c2c3c9}
 .icard .date-in{color:#8b8c94}
-.icard .ph .use{position:absolute;right:7px;bottom:7px;font-family:var(--f-cn);font-size:10px;
-  background:rgba(255,255,255,.94);border:1.7px solid var(--ink);
-  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:1px 6px;z-index:3}
+/* 「用过 N 次」角标：可点，点一下减 1（误点勾选后的回退口）。
+   放图片下方中间 —— 四个角已被占用：左上日期、右上爱心、左下状态、右下数量 ×N，
+   再挤右下会和 ×N 叠在一起。 */
+.icard .ph .use{position:absolute;left:50%;bottom:7px;transform:translateX(-50%);
+  font-family:var(--f-cn);font-size:10px;
+  background:rgba(255,255,255,.94);border:1.7px solid var(--ink);color:var(--ink);
+  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:2px 7px;z-index:4;cursor:pointer;
+  line-height:1.35;white-space:nowrap}
+.icard .ph .use:active{transform:translateX(-50%) translate(1px,1px);background:var(--accent)}
+/* 点勾选后从按钮位置飘一个 +1，飘完自动消失 */
+.use-pop{position:fixed;z-index:9999;pointer-events:none;font-family:var(--f-num);font-weight:700;
+  font-size:19px;color:var(--accent-deep);text-shadow:0 1px 0 #fff,0 -1px 0 #fff,1px 0 0 #fff,-1px 0 0 #fff;
+  animation:usePop .78s cubic-bezier(.22,.9,.24,1) forwards}
+@keyframes usePop{
+  0%{opacity:0;transform:translate(-50%,0) scale(.7)}
+  22%{opacity:1;transform:translate(-50%,-14px) scale(1.18)}
+  100%{opacity:0;transform:translate(-50%,-44px) scale(1)}
+}
 .icard.todo .ph{filter:saturate(.35)}
 .icard.add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
   min-height:180px;border-style:dashed;background:rgba(255,255,255,.6);
@@ -1551,7 +1566,10 @@ function renderItems(){
 
     const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
     const useCount = i.uses || 0;
-    const useBadge = useCount > 0 ? `<span class="use">今天用过 ${useCount}</span>` : '';
+    // 「用过 N 次」角标：可点，点一下减 1（防止误点勾选后没法回退）
+    const useBadge = useCount > 0
+      ? `<button class="use" data-useundo="${i.id}" title="点一下减 1 次">用过 ${useCount} 次</button>`
+      : '';
 
     // 日期角标放图片左上角（没有日期就不显示）
     const dateBadge = i.buy ? `<span class="buy">${i.buy.slice(5).replace('-', '/')}</span>` : '';
@@ -2096,6 +2114,22 @@ function normalizeUses(){
     }
   });
   return changed;
+}
+
+/* 点勾选后飘一个「+1」：从按钮位置向上飘并淡出，飘完自己删掉。
+   必须在 renderItems() 之前调用 —— 重绘会把卡片整个换掉，
+   换掉之后原按钮已脱离文档，量不到位置了。 */
+function popUsePlusOne(anchorEl){
+  if (!anchorEl) return;
+  if (FX && FX.motionOff) return;              // 关动效的用户不飘
+  const r = anchorEl.getBoundingClientRect();
+  const el = document.createElement('span');
+  el.className = 'use-pop';
+  el.textContent = '+1';
+  el.style.left = (r.left + r.width / 2) + 'px';
+  el.style.top = (r.top - 2) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
 }
 
 /* ================= 设置 ================= */
@@ -2999,6 +3033,20 @@ on('#igrid', 'click', e => {
   const stBtn = e.target.closest('[data-status]');
   if (stBtn){ openPop(stBtn, 'st', stBtn.dataset.status); return; }
 
+  // 点「用过 N 次」角标 → 减 1 次（误点勾选后的回退口）
+  const undoBtn = e.target.closest('[data-useundo]');
+  if (undoBtn){
+    const it = ITEMS.find(x => x.id === undoBtn.dataset.useundo);
+    if (it && (it.uses || 0) > 0){
+      it.uses -= 1;
+      if (it.uses <= 0){ it.uses = 0; }
+      it.lastUse = todayStr();
+      renderItems(); renderHome();
+      toast(it.uses > 0 ? `「${it.n}」今天用过 ${it.uses} 次` : `已撤销「${it.n}」今天的记录`);
+    }
+    return;
+  }
+
   // 点「记一次使用」
   const useBtn = e.target.closest('[data-usebtn]');
   if (useBtn){
@@ -3007,8 +3055,10 @@ on('#igrid', 'click', e => {
       it.uses = (it.uses || 0) + 1;
       it.lastUse = todayStr();
       useBtn.classList.add('bump');
+      // ★ 飘字要在 renderItems() 之前量位置：重绘会把这张卡整个换掉，
+      //   换掉之后 useBtn 已经脱离文档，量不到矩形了
+      popUsePlusOne(useBtn);
       renderItems(); renderHome();
-      toast(`「${it.n}」今天用了 ${it.uses} 次`);
     }
     return;
   }
