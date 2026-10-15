@@ -1263,11 +1263,35 @@ let ITEMS = [
   { n:'牙刷',        c:'care',  q:4, like:'neutral', loc:'浴室台面',   ic:'ic-bottle' }
 ];
 
-let uid = 1;
+/* 物品 id：必须全局唯一且跨会话稳定。
+   ★ 不要用「内存计数器」生成（如 let uid=1; 'i'+(uid++)）—— 计数器不会存进数据库，
+   重开页面后它又从头开始，新物品就会拿到一个已被占用的 id；
+   而 ITEMS.find(x => x.id === id) 只会返回数组里靠前的那个，
+   于是照片/编辑会"跳到"另一件同 id 的物品上。用时间戳+随机数即可避免。 */
+function newItemId(){
+  return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* 修复历史数据里已经存在的重复 id：保留第一条，后面的重新分配。
+   这样用户库里已经撞车的条目会在下次打开时自动恢复。 */
+function repairDuplicateItemIds(){
+  const seen = new Set();
+  let fixed = 0;
+  ITEMS.forEach(i => {
+    if (!i.id || seen.has(i.id)){
+      i.id = newItemId();
+      fixed++;
+    }
+    seen.add(i.id);
+  });
+  return fixed;
+}
+
 ITEMS.forEach(i => {
-  i.id = 'i' + (uid++);
+  if (!i.id) i.id = newItemId();
   if (!i.st) i.st = 'inuse';
 });
+repairDuplicateItemIds();
 
 const ST_TEXT  = { inuse:'在用中', stored:'收纳中', consuming:'消耗中', todo:'待处理' };
 const ST_COLOR = { inuse:'#fdfaf1', stored:'#dbeaf7', consuming:'#d9eddd', todo:'#f7d9e4' };
@@ -1777,7 +1801,7 @@ function newItemModal(){
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
     if (!name) return;
-    const item = { id:'i' + (uid++), n:name, c:cat, q:qty, like:'neutral', loc:'', st:'inuse', ic:'ic-box' };
+    const item = { id:newItemId(), n:name, c:cat, q:qty, like:'neutral', loc:'', st:'inuse', ic:'ic-box' };
     ITEMS.push(item);
     closeModal();
     renderSettings(); renderHome(); renderCatChips(); renderItems();
@@ -2640,8 +2664,14 @@ function applyBackup(d, mode){
   // 备份里图片是 dataURL 直接带着的，不用额外处理
   const inItems = (d.items || []).map(i => ({ ...i }));
   const inApps  = (d.apps  || []).map(a => ({ ...a }));
-  inItems.forEach((i, n) => { if (!i.id) i.id = 'bk-i' + (n + 1); if (!i.st) i.st = 'inuse'; });
-  inApps.forEach((a, n) => { if (!a.id) a.id = 'bk-a' + (n + 1); });
+  // id 用唯一生成器，不要用 'bk-i'+序号：合并模式下会和库里已有的撞车
+  const inIds = new Set();
+  inItems.forEach(i => {
+    if (!i.id || inIds.has(i.id)) i.id = newItemId();
+    inIds.add(i.id);
+    if (!i.st) i.st = 'inuse';
+  });
+  inApps.forEach(a => { if (!a.id) a.id = 'bk-a' + Math.random().toString(36).slice(2, 8); });
 
   if (mode === 'replace'){
     CATS     = (d.cats || []).map(c => ({ ...c }));
@@ -2900,6 +2930,16 @@ async function loadFromDB(){
         if (b) a.photo = await blobToDataURL(b);
       })
     ]);
+
+    // 图片取回之后再修重复 id：改 id 会让 photos 里的键对不上，
+    // 所以必须等图都进内存了再改。改完的下一次保存会把新 id 落盘。
+    const fixedDup = repairDuplicateItemIds();
+    if (fixedDup){
+      suppressSave = false;
+      saveNow();
+      suppressSave = true;
+      console.warn('[极简] 修复了 ' + fixedDup + ' 条重复 id 的物品');
+    }
 
     suppressSave = false;
     return true;
