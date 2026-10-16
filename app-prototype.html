@@ -226,27 +226,50 @@ body{
 .search input{border:none;outline:none;background:none;font-family:'PatrickHand',sans-serif;
   font-size:14px;width:100%;color:var(--ink)}
 .search input::placeholder{color:#a9aab2}
-.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:none}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:none;position:relative}
 .chips::-webkit-scrollbar{display:none}
-/* 变换统一走 CSS 变量拼装：--flipx 是「标签让位」的位移，
-   --rotd/--sel 是手写倾斜与选中放大。这样 FLIP 只改变量、
-   不会把倾斜和缩放整个覆盖掉（直接写 transform 就会）。 */
+/* 行内选中的滑动指示器（液态Tab：前后边缘各一个弹簧，切换时先拉长再收缩） */
+.chip-ind{position:absolute;left:0;top:0;width:0;height:0;z-index:0;opacity:0;
+  background:var(--accent);pointer-events:none;will-change:transform,width;
+  border-radius:13px 5px 14px 6px/6px 14px 5px 13px}
+.chip-ind.on{opacity:1}
+/* 「状态/必需」这两行居中显示（用户要求）；内容超宽时自动退回左对齐，免得首项被裁掉 */
+/* 居中行（物品页/软件页的状态行）：写成 .chipRow .chips.center，
+   否则会被下面同优先级的 .chipRow .chips{justify-content:flex-start} 压掉 */
+.chipRow .chips.center{justify-content:center}
+.chipRow .chips.center.overflowing{justify-content:flex-start}
+/* 变换不用 CSS 变量中转：几何（让位位移 / 指示块宽高）一律由 WAAPI 和
+   弹簧直接写 style.transform，免得 --flipx 这类变量与 .on 的 rotate 互相覆盖。 */
+/* ★ 这里**不能**给 padding / transform 加 transition：
+   「标签让位」的 FLIP 和「液态Tab」的指示块都是在 class 切换后**立刻**量
+   getBoundingClientRect()。若 padding 还在过渡中，量到的是**过渡起点**的旧几何，
+   FLIP 的位移动画为 0（邻项不动）、指示块也会停在旧位置不动。
+   所以几何变化一律交给 WAAPI（FLIP / 弹簧）负责，CSS 只管颜色。 */
 .chip{flex:0 0 auto;border:2.1px solid var(--ink);background:#fff;font-family:var(--f-cn);
-  font-size:13px;padding:6px 13px;cursor:pointer;color:var(--ink2);
+  font-size:13px;padding:6px 13px;cursor:pointer;color:var(--ink2);position:relative;z-index:1;
   border-radius:13px 5px 14px 6px/6px 14px 5px 13px;box-shadow:2px 2px 0 rgba(22,23,27,.12);
-  transition:background .12s,padding .22s cubic-bezier(.22,1,.36,1),transform .18s,box-shadow .12s}
+  transition:background .12s,box-shadow .12s}
 /* 标签让位：选中项**真的变宽**（加大内边距，会改布局 → 邻项被推开），
    再配一点手写倾斜。★ 不能用 transform:scale 来"放大" ——
-   scale 不参与布局，邻项不会被推开，也就没有"让位"这回事。 */
-.chip.on{background:var(--accent);color:var(--ink);
+   scale 不参与布局，邻项不会被推开，也就没有"让位"这回事。
+   ★ 样式必须写成 `.chips .chip.on`：小号行用 `.chips.small .chip`（两个类），
+   写成 `.chip.on`（一个类）会被它压掉，选中项就不变大、邻项也没得让位
+   —— 这正是原先"只有分类行有效"的原因。
+   ★ 选中块的底色由 .chip-ind 指示器提供，所以这里背景透明。 */
+.chips .chip.on{background:transparent;color:var(--ink);
   padding:7px 17px;font-size:13.5px;
   transform:rotate(-1.2deg);
   box-shadow:2px 3px 0 rgba(22,23,27,.18)}
+.chips .chip.on:active{transform:rotate(-1.2deg) scale(.96)}
 .chip:active{transform:scale(.96);box-shadow:1px 1px 0 rgba(22,23,27,.12)}
 .chip .n{font-family:'PatrickHand',sans-serif;font-size:11.5px;opacity:.62;margin-left:3px}
+/* 小号行的基准尺寸（必须排在下面那条 .on 之前，否则同特异性时会被它盖回去） */
 .chips.small .chip{font-size:12px;padding:5px 11px}
+/* 小号行的选中项也要比同排的略大一号（基准是 5px 11px / 12px） */
+.chips.small .chip.on{padding:6px 15px;font-size:12.5px}
 .chip.plus{border-style:dashed;color:var(--sub);background:rgba(255,255,255,.55)}
-/* 筛选行：按钮直接左对齐（不再有前面的「分类/状态」小字占位） */
+/* 筛选行：按钮直接左对齐（不再有前面的「分类/状态」小字占位）；
+   加了 .center 的行居中显示（内容超宽时 JS 会补 .overflowing 退回左对齐） */
 .chipRow{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .chipRow .chips{flex:1;padding-bottom:7px;justify-content:flex-start}
 .count-row{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 11px}
@@ -916,9 +939,9 @@ body{
         </div>
 
         <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <!-- 状态行排第一（用户要求跟分类行互换） -->
+        <!-- 状态行排第一（用户要求跟分类行互换），并居中显示 -->
         <div class="chipRow">
-          <div class="chips small" id="stChips"></div>
+          <div class="chips small center" id="stChips"></div>
         </div>
 
         <!-- 分类行（一直显示） -->
@@ -953,9 +976,9 @@ body{
         </div>
 
         <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <!-- 必需行排第一（跟物品页一样，状态/必需在上、分类在下） -->
+        <!-- 必需行排第一（跟物品页一样），并居中显示 -->
         <div class="chipRow">
-          <div class="chips small" id="needChips"></div>
+          <div class="chips small center" id="needChips"></div>
         </div>
         <div class="chipRow" id="appCatRow">
           <div class="chips" id="appCatChips"></div>
@@ -1214,21 +1237,29 @@ function chipsReflow(chipRow, sel, mutate){
   const all = [...chipRow.querySelectorAll(sel || '.chip')];
   if (!all.length){ mutate(); return; }
 
-  const before = all.map(c => c.getBoundingClientRect());
-  const prevSel = all.map(c => c.classList.contains('on'));
+  // ★ 量位置一律用 offsetLeft/offsetTop（布局盒），不能用 getBoundingClientRect：
+  //   选中项带 rotate(-1.2deg)，它的 bbox 比真实盒子大 ~2px 还偏上，
+  //   既会把「同一排」的判断顶出阈值，也会算错让位位移。
+  const before = all.map(c => ({ l: c.offsetLeft, t: c.offsetTop }));
 
   mutate();   // 切换选中态：会真正改变布局
 
-  const after = all.map(c => c.getBoundingClientRect());
+  // 液态Tab 指示块：跟着新的选中项跑（双弹簧，会先拉长再收缩）
+  syncChipInd(chipRow, true);
+
+  const after = all.map(c => ({ l: c.offsetLeft, t: c.offsetTop }));
   if (FX && FX.motionOff) return;
 
   // 只让「同一排」的 chip 让位：折行时纵向位移会像整块重排，手感很差
-  const top0 = before[0].top;
+  const top0 = before[0].t;
   all.forEach((c, i) => {
-    if (Math.abs(before[i].top - top0) > 2) return;
-    const dx = before[i].left - after[i].left;
-    // 刚被选中的那个自己不再平移（它是"被点"的一方，不是"让位"的一方）
-    if (!dx || Math.abs(dx) < 0.5 || (c.classList.contains('on') && !prevSel[i])) return;
+    if (Math.abs(before[i].t - top0) > 2) return;
+    const dx = before[i].l - after[i].l;
+    // ★ 不能豁免「刚被选中的那个」：左对齐的行里它只是右边缘变宽、左边缘不动，
+    //   本来就会被下面的 0.5px 阈值挡掉；但**居中**的行（状态行 / 必需行）里
+    //   它是被推着走的那个 —— 左边那项一下缩窄 ~10px，整排重新居中，
+    //   它的左边缘真的会移 ~10px。豁免它 = 这一行完全没有让位动画。
+    if (!dx || Math.abs(dx) < 0.5) return;
     // 先无动画落回旧位置，再滑到新位置
     const anim = c.animate(
       [{ transform: `translateX(${dx.toFixed(2)}px) rotate(${c.classList.contains('on') ? '-1.2deg' : '0deg'})` },
@@ -1240,13 +1271,143 @@ function chipsReflow(chipRow, sel, mutate){
   });
 }
 
+/* ---------- 液态Tab 指示块（skill 的 Liquid Tab Indicator）----------
+   每行放一个 .chip-ind 作为「选中背景块」，它跟着选中项跑。
+   关键在**前后边缘各用一个独立弹簧**、并按本次移动方向动态指派：
+     · 前沿（朝着移动方向的边缘）用更硬的弹簧 → 先冲出去
+     · 后沿用更软的 → 稍后跟上
+   于是过渡中块会被**拉长**（实测能到 +50% 宽），过中点后收缩，末尾轻微回弹。
+   如果两个边缘用同一套参数、或固定不管方向，就会退化成"整块平移"，
+   或者向左切时顺序颠倒（先缩后长）—— 都是错的。
+
+   ★ 只操作 transform/width，不碰布局；文字与点击区完全不动（指示块 z-index 在下面）。
+   ★ 首帧同步定位一次（不能等 rAF），字体加载完再量一次（手写字体宽度会变）。*/
+const IND_LEAD  = { k: 240, d: 14 };    // 前沿：冲得快
+const IND_TRAIL = { k: 165, d: 12.5 };  // 后沿：跟得慢
+const chipInds = new Map();             // containerId -> {el, L, R, active}
+
+function ensureChipInd(container){
+  if (!container || !container.id) return null;
+  let rec = chipInds.get(container.id);
+  if (rec && rec.el && rec.el.isConnected) return rec;
+  // 复用或新建指示块
+  let el = container.querySelector(':scope > .chip-ind');
+  if (!el){
+    el = document.createElement('span');
+    el.className = 'chip-ind';
+    container.insertBefore(el, container.firstChild);
+  }
+  rec = {
+    el,
+    L: makeSpring(0, IND_LEAD.k, IND_LEAD.d),
+    R: makeSpring(0, IND_TRAIL.k, IND_TRAIL.d),
+    active: false
+  };
+  chipInds.set(container.id, rec);
+  el.style.width = '0px';
+  el.style.height = '0px';
+  return rec;
+}
+
+/* 把指示块同步（或动画）到当前选中项。
+   animate=false 用于首帧/重绘后的即时对齐；true 用于切换时播液态过渡。 */
+function syncChipInd(container, animate){
+  const rec = ensureChipInd(container);
+  if (!rec) return;
+
+  // 居中行：内容比容器宽时退回左对齐（否则 justify-content:center 会把首项裁掉一截）。
+  // ★ clientWidth 为 0 说明这一页此刻是 display:none，量不出真实宽度。
+  //   此时**不能**下判断 —— 否则会算成"溢出"并把 .overflowing 一直挂住，
+  //   等页面显示出来就变成左对齐，看着像居中没生效。等下一次可量的同步再说。
+  if (container.classList.contains('center') && container.clientWidth > 0){
+    const kids = [...container.querySelectorAll('.chip')];
+    const total = kids.reduce((s, c) => s + c.offsetWidth, 0) + 7 * Math.max(0, kids.length - 1);
+    container.classList.toggle('overflowing', total > container.clientWidth - 6);
+  }
+
+  const on = container.querySelector('.chip.on');
+  const el = rec.el;
+  if (!on || !on.offsetWidth){
+    el.classList.remove('on');
+    rec.active = false;
+    return;
+  }
+  el.classList.add('on');
+
+  // 目标几何：直接用 offsetLeft/Top/Width/Height（都是相对容器 padding 盒的布局盒尺寸），
+  // 与 .chip-ind{position:absolute;left:0;top:0} 的坐标系一致。
+  // ★ 不要用 getBoundingClientRect：选中项的 rotate(-1.2deg) 会把 bbox 撑大 ~2px 且偏上，
+  //   指示块会明显比按钮大一圈、还偏一点。
+  const r = { left: on.offsetLeft, top: on.offsetTop, width: on.offsetWidth, height: on.offsetHeight };
+
+  const targetL = r.left, targetR = r.left + r.width;
+  el.style.height = r.height + 'px';
+  el.style.top = r.top + 'px';
+
+  if (!animate || (FX && FX.motionOff)){
+    // ★ 若弹簧正在跑（用户刚点了别的标签，而重绘又跑了一次静态对齐），
+    //   这里绝不能直接把 x 钉到目标 —— 那会把液体动画瞬间掐断成"跳变"。
+    //   改成只更新目标，让已经在跑的弹簧自己滑过去。
+    if (rec.active && FX && !FX.motionOff){ rec.L.t = targetL; rec.R.t = targetR; return; }
+    rec.L.x = rec.L.t = targetL;
+    rec.R.x = rec.R.t = targetR;
+    rec.L.v = rec.R.v = 0;
+    el.style.width = r.width + 'px';
+    el.style.transform = `translateX(${targetL.toFixed(1)}px)`;
+    rec.active = false;
+    return;
+  }
+
+  // 前进方向决定谁是前沿、谁是后沿（每次都按本次方向重新指派）
+  const toward = (targetL + targetR) / 2 >= (rec.L.x + rec.R.x) / 2 ? 1 : -1;
+  const leadSpring  = toward > 0 ? rec.R : rec.L;   // 向右走：前沿是右边缘
+  const trailSpring = toward > 0 ? rec.L : rec.R;
+  leadSpring.k  = IND_LEAD.k;  leadSpring.d  = IND_LEAD.d;
+  trailSpring.k = IND_TRAIL.k; trailSpring.d = IND_TRAIL.d;
+  rec.L.t = targetL; rec.R.t = targetR;
+
+  if (!rec.active){
+    rec.active = true;
+    const updater = {
+      active: true,
+      fn(dt){
+        stepSpring(rec.L, dt); stepSpring(rec.R, dt);
+        let l = rec.L.x, r = rec.R.x;
+        if (r < l + 4) r = l + 4;                 // 防止宽度为负
+        el.style.width = (r - l).toFixed(1) + 'px';
+        el.style.transform = `translateX(${l.toFixed(1)}px)`;
+        const settled = Math.abs(rec.L.v) < 0.6 && Math.abs(rec.R.v) < 0.6
+          && Math.abs(rec.L.t - rec.L.x) < 0.3 && Math.abs(rec.R.t - rec.R.x) < 0.3;
+        if (settled){
+          rec.L.x = rec.L.t; rec.R.x = rec.R.t; rec.L.v = rec.R.v = 0;
+          el.style.width = (rec.R.x - rec.L.x).toFixed(1) + 'px';
+          el.style.transform = `translateX(${rec.L.x.toFixed(1)}px)`;
+          updater.active = false;
+          rec.active = false;
+        }
+      }
+    };
+    fxUpdaters.push(updater);
+  }
+  // 已在跑 → 只更新目标（弹簧保留当前 x/v，快速连点自然从当前形态接续）
+}
+
+/* 给页里所有 chip 行都挂上指示块；rows 为空则扫全部 */
+function syncAllChipInds(animate){
+  $$('.chips').forEach(c => { if (c.querySelector('.chip')) syncChipInd(c, !!animate); });
+}
+
 /* 按 key 复用已有的 chip 节点，只更新文案/计数/选中态。
    ★ 为什么要复用：标签让位靠 FLIP，而 FLIP 要求「同一批 DOM 节点」跨越改动前后。
    如果每次都 innerHTML 重建，节点全换了，动画无从谈起。
    返回 true 表示复用了已有节点。 */
 function syncChips(container, keys, htmlOf, clsOf){
   if (!container) return false;
-  const kids = [...container.children];
+  // ★ 只数 .chip：容器里还有一个 .chip-ind 指示块（是它的一级子元素）。
+  //   若直接用 container.children，指示块会被当成第 0 个 chip，
+  //   数量与 key 全都对不上 → 每次都走 innerHTML 重建，
+  //   既把指示块本身冲掉，又破坏了 FLIP 要求的「同一批 DOM 节点」。
+  const kids = [...container.children].filter(el => el.classList.contains('chip'));
   if (!kids.length) return false;                     // 首次渲染：交给调用方重建
   const keyAt = el => el.dataset.chipKey || '';
   if (kids.length !== keys.length) return false;
@@ -1817,6 +1978,11 @@ function renderItems(){
       if (!FX.motionOff) setTimeout(() => el.scrollIntoView({ block:'nearest', behavior:'smooth' }), 60);
     }
   }
+  // 物品页的四行 chip 都在这里渲染完 → 把指示块对齐到选中项
+  syncChipInd($('#stChips'), false);
+  syncChipInd($('#catChips'), false);
+  syncChipInd($('#locChips'), false);
+  syncChipInd($('#seasonChips'), false);
   saveSoon();
 }
 
@@ -1845,6 +2011,10 @@ function showTab(tab, opts){
 
   if (cur) cur.classList.remove('on');
   next.classList.add('on');
+
+  // 这一页刚从 display:none 变成可见 —— 之前的静态对齐是在"量不到宽度"时做的
+  // （居中行的溢出判断、指示块几何都会不准）。等布局落地后重新量一次。
+  requestAnimationFrame(() => syncAllChipInds(false));
 
   // 普通 Tab 切换：横向推移（往右滑入 / 往左滑入）
   const a = TAB_ORDER.indexOf(prevTab), b = TAB_ORDER.indexOf(tab);
@@ -2306,6 +2476,9 @@ function renderApps(){
       if (!FX.motionOff) setTimeout(() => w.scrollIntoView({ block:'nearest', behavior:'smooth' }), 60);
     }
   }
+  // 软件页两行 chip 也在这里渲染完 → 对齐指示块
+  syncChipInd($('#needChips'), false);
+  syncChipInd($('#appCatChips'), false);
   saveSoon();
 }
 
@@ -4214,11 +4387,11 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
   window.addEventListener('mouseup', e => { if (dragging) onUp(e); });
 
   // 尺寸/字体变化后重新对齐
-  window.addEventListener('resize', () => syncTabInd());
-  window.addEventListener('orientationchange', () => setTimeout(() => syncTabInd(), 200));
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
-  window.addEventListener('load', () => syncTabInd());
-  requestAnimationFrame(() => syncTabInd());
+  window.addEventListener('resize', () => { syncTabInd(); syncAllChipInds(false); });
+  window.addEventListener('orientationchange', () => setTimeout(() => { syncTabInd(); syncAllChipInds(false); }, 200));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { syncTabInd(); syncAllChipInds(false); });
+  window.addEventListener('load', () => { syncTabInd(); syncAllChipInds(false); });
+  requestAnimationFrame(() => { syncTabInd(); syncAllChipInds(false); });
   setTimeout(() => syncTabInd(), 120);
   setTimeout(() => syncTabInd(), 500);
 })();
@@ -4293,6 +4466,10 @@ function renderAll(){
   renderApps();
   // 新渲染出来的按钮也要有按压反馈
   bindPressFeedback();
+  // 指示块的落位：先同步对齐一次（不播动画），字体加载完再量一次
+  syncAllChipInds(false);
+  requestAnimationFrame(() => syncAllChipInds(false));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncAllChipInds(false));
 }
 
 async function boot(){
