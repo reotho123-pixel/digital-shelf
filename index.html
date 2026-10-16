@@ -347,6 +347,19 @@ body{
   transform:rotate(-1.4deg) scale(1.04);border:2.4px solid var(--ink);border-radius:14px;
   background:#fff;overflow:hidden;box-shadow:8px 12px 24px rgba(22,23,27,.28)}
 .icard.held{transform:scale(.97);box-shadow:0 0 0 2.4px var(--accent)}
+/* 长按期间被「提起来」的那一行：抬起 + 放大 + 投影变散（跟总览分类卡同一套观感）。
+   ★ 效果加在 .arow-wrap 上而不是行上 —— 外层有 overflow:hidden（左滑用的裁剪），
+   放大行会被裁掉；所以提到外层，并在长按时临时放开裁剪。 */
+.arow-wrap.held{overflow:visible;z-index:5;
+  transform:rotate(-.35deg) scale(1.035) translateY(-2px);
+  box-shadow:7px 10px 20px rgba(22,23,27,.24);
+  transition:transform .18s cubic-bezier(.22,1,.36,1),box-shadow .18s}
+.arow-wrap:nth-child(even).held{transform:rotate(.35deg) scale(1.035) translateY(-2px)}
+.arow-wrap.held .arow{box-shadow:none}
+/* 改分类时：旧位置淡出 → 新位置落位（跟物品卡改状态同一套两段动画） */
+.arow.leaving{opacity:0;transform:scale(.94);
+  transition:opacity .2s ease,transform .2s cubic-bezier(.4,0,1,1)}
+.arow-wrap.arriving .arow{animation:cardArrive .42s cubic-bezier(.22,1.15,.36,1)}
 /* 位置 / 日期 */
 .icard .loc-in,.icard .date-in{flex:1;min-width:0;border:none;background:transparent;padding:1px 0;
   font-size:11.5px;color:var(--sub);outline:none;
@@ -504,6 +517,12 @@ body{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .arow .tx span{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .tx span i{font-style:normal}
+/* 副行里可点的「分类」小标签：点它换分类（底色跟分类色） */
+.arow .appcat{display:inline-block;font-family:var(--f-cn);font-size:10.5px;color:var(--ink);
+  background:var(--c,#eee);border:1.6px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;
+  padding:0 5px;margin-right:3px;cursor:pointer;vertical-align:1px;line-height:1.5}
+.arow .appcat:active{transform:translate(1px,1px)}
 .arow .need{flex:0 0 auto;font-family:var(--f-cn);font-size:11px;padding:3px 9px;border:1.9px solid var(--ink);
   border-radius:10px 4px 11px 5px/5px 11px 4px 10px;cursor:pointer}
 .arow .need:active{transform:translate(1px,1px)}
@@ -908,26 +927,17 @@ body{
           <div class="chips" id="catChips"></div>
         </div>
 
-        <!-- 第二行 = 状态 -->
+        <!-- 第二行 = 状态（数量由 renderStChips 填） -->
         <div class="chipRow">
           <span class="lb">状态</span>
-          <div class="chips small" id="stChips">
-            <button class="chip" data-st="inuse">在用中</button>
-            <button class="chip" data-st="stored">收纳中</button>
-            <button class="chip" data-st="consuming">消耗中</button>
-            <button class="chip" data-st="todo">待处理</button>
-          </div>
+          <div class="chips small" id="stChips"></div>
         </div>
 
-        <!-- 第三行 = 喜欢。点「消耗中 / 待处理」时这一组收起（那两种不按喜欢看） -->
+        <!-- 第三行 = 喜欢（数量由 renderLikeChips 填）。点「消耗中 / 待处理」时这组收起 -->
         <div id="filterGroup">
           <div class="chipRow">
             <span class="lb">喜欢</span>
-            <div class="chips small" id="likeChips">
-              <button class="chip" data-like="like">喜欢</button>
-              <button class="chip" data-like="neutral">一般</button>
-              <button class="chip" data-like="dislike">不喜欢</button>
-            </div>
+            <div class="chips small" id="likeChips"></div>
           </div>
         </div>
         <div class="chipRow" id="locRow" style="display:none">
@@ -1163,6 +1173,8 @@ const MORPH_ANCHOR_SEL = [
   '.goal',
   '.st-row',
   '.mini',
+  '.need',        // 软件行的「必需/暂用/待删」标签
+  '.appcat',      // 软件行副行里的「分类」小标签
   '[data-morph-anchor]'
 ].join(',');
 document.addEventListener('pointerdown', e => {
@@ -1617,9 +1629,22 @@ function syncFilterGroup(){
   if (!show){
     // 收起时把喜欢也清掉，避免「看不见却仍在生效」
     state.like = 'all';
-    $$('#likeChips .chip').forEach(c => c.classList.remove('on'));
   }
+  renderStChips();
+  renderLikeChips();
   renderCatChips();
+}
+
+/* 默认筛选：第一个分类 + 在用中。进物品页 / 从总览点分类进来都走这里 */
+function resetItemFiltersToDefault(cat){
+  const first = CATS[0] ? CATS[0].id : 'all';
+  state.cat = cat || first;
+  state.st = 'inuse';
+  state.like = 'all';
+  state.loc = 'all';
+  state.season = 'all';
+  state.q = '';
+  const qEl = $('#q'); if (qEl) qEl.value = '';
 }
 
 function renderCatChips(){
@@ -1639,6 +1664,50 @@ function renderCatChips(){
   }
   const row = $('#catRow');
   if (row) row.style.display = CATS.length ? 'flex' : 'none';
+}
+
+/* 状态行：四档 + 各自数量 */
+function renderStChips(){
+  // 数量按「当前分类」范围统计（跟分类行同一个口径，才看得懂）
+  const base = ITEMS.filter(i => state.cat === 'all' || i.c === state.cat);
+  const sts = ['inuse', 'stored', 'consuming', 'todo'];
+  const keys = sts;
+  const reused = syncChips($('#stChips'), keys,
+    k => `${ST_TEXT[k]}<span class="n">${base.filter(i => i.st === k).length}</span>`,
+    k => 'chip' + (state.st === k ? ' on' : ''));
+  if (!reused){
+    $('#stChips').innerHTML = sts.map(k =>
+      `<button class="chip${state.st === k ? ' on' : ''}" data-st="${k}" data-chip-key="${k}">${ST_TEXT[k]}<span class="n">${base.filter(i => i.st === k).length}</span></button>`
+    ).join('');
+  }
+}
+
+/* 喜欢行：三档 + 各自数量 */
+function renderLikeChips(){
+  const base = ITEMS.filter(i => state.cat === 'all' || i.c === state.cat);
+  const lks = ['like', 'neutral', 'dislike'];
+  const reused = syncChips($('#likeChips'), lks,
+    k => `${LIKE_TEXT[k]}<span class="n">${base.filter(i => i.like === k).length}</span>`,
+    k => 'chip' + (state.like === k ? ' on' : ''));
+  if (!reused){
+    $('#likeChips').innerHTML = lks.map(k =>
+      `<button class="chip${state.like === k ? ' on' : ''}" data-like="${k}" data-chip-key="${k}">${LIKE_TEXT[k]}<span class="n">${base.filter(i => i.like === k).length}</span></button>`
+    ).join('');
+  }
+}
+
+/* 必需行：三档 + 各自数量（软件页） */
+function renderNeedChips(){
+  const base = APPS.filter(a => appState.cat === 'all' || !a.c || a.c === appState.cat);
+  const ks = ['need', 'temp', 'todel'];
+  const reused = syncChips($('#needChips'), ks,
+    k => `${NEED_TEXT[k]}<span class="n">${base.filter(a => a.need === k).length}</span>`,
+    k => 'chip' + (appState.need === k ? ' on' : ''));
+  if (!reused){
+    $('#needChips').innerHTML = ks.map(k =>
+      `<button class="chip${appState.need === k ? ' on' : ''}" data-need="${k}" data-chip-key="${k}">${NEED_TEXT[k]}<span class="n">${base.filter(a => a.need === k).length}</span></button>`
+    ).join('');
+  }
 }
 
 function renderSeasonChips(){
@@ -1834,23 +1903,6 @@ function syncTabInd(){
   const r = active.getBoundingClientRect();
   ind.style.width = r.width + 'px';
   ind.style.transform = `translateX(${r.left - bar.left - 5}px)`;
-}
-/* 进物品页的默认筛选：第一个分类 + 在用中。
-   每次切到物品 Tab 都重置到这套（用户要求的默认视图）。
-   「喜欢 / 位置 / 季节」一律清空 —— 默认只看「这个分类里正在用的东西」，
-   想再按喜欢挑的时候才去点喜欢那一行。 */
-function resetItemFiltersToDefault(cat){
-  const first = CATS[0] ? CATS[0].id : 'all';
-  state.cat = cat || first;
-  state.st = 'inuse';
-  state.like = 'all';
-  state.loc = 'all';
-  state.season = 'all';
-  state.q = '';
-  // 同步 chip 高亮
-  $$('#stChips .chip').forEach(c => c.classList.toggle('on', c.dataset.st === state.st));
-  $$('#likeChips .chip').forEach(c => c.classList.remove('on'));
-  const qEl = $('#q'); if (qEl) qEl.value = '';
 }
 
 function goItems(cat, opts){
@@ -2176,7 +2228,7 @@ const NEED_COLOR = { need:'#cfe4f4', temp:'#e6e6ea', todel:'#f3c9d8' };
 let APPS = [];
 APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
 
-const appState = { cat:'all', need:'all', q:'' };
+const appState = { cat:'all', need:'all', q:'', justMovedId:null };
 const appCatOf = id => APP_CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
 
 /* 软件分类行：跟物品页同一套规则 ——
@@ -2223,9 +2275,8 @@ function renderApps(){
     const iconInner = a.photo
       ? `<img src="${a.photo}" alt="">`
       : `<span style="color:${a.need === 'todel' ? '#8b8c94' : '#3b3d45'}">${a.n.slice(0, 1)}</span>`;
-    // 副行：位置里有分类名就不再重复显示分类（避免「社交 · 社交文件夹」）
-    const locHasCat = a.loc && a.loc.includes(c.name);
-    const sub = [locHasCat ? null : c.name, a.loc, a.note].filter(Boolean).join(' · ');
+    // 分类做成可点的小标签（点它换分类），后面跟位置 / 备注
+    const rest = [a.loc, a.note].filter(Boolean).join(' · ');
     return `<div class="arow-wrap${a.need === 'todel' ? ' todel' : ''}" data-appwrap="${a.id}">
       <button class="swipe-del" data-delapp="${a.id}" title="删除软件">
         <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
@@ -2233,7 +2284,10 @@ function renderApps(){
       </button>
       <div class="arow" data-app="${a.id}">
         <div class="ic" style="background:${a.photo ? '#fff' : c.tone}" data-appphoto="${a.id}">${iconInner}</div>
-        <div class="tx"><b>${a.n}</b><span>${sub}</span></div>
+        <div class="tx">
+          <b>${a.n}</b>
+          <span><button class="appcat" data-appcat="${a.id}" style="--c:${c.tone}">${c.name}</button>${rest ? '<i>' + rest + '</i>' : ''}</span>
+        </div>
         <span class="need" data-appneed="${a.id}" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
       </div>
     </div>`;
@@ -2255,11 +2309,25 @@ function renderApps(){
   }
   $('#alist').innerHTML = rows.length ? cards : emptyHTML;
   renderAppCatChips();
+  renderNeedChips();
+
+  // 刚改完分类的那张卡：在新位置播落位动画并滚到可见处
+  if (appState.justMovedId){
+    const movedId = appState.justMovedId;
+    appState.justMovedId = null;
+    const w = $('#alist').querySelector(`.arow-wrap[data-appwrap="${movedId}"]`);
+    if (w){
+      w.classList.add('arriving');
+      setTimeout(() => w.classList.remove('arriving'), 480);
+      if (!FX.motionOff) setTimeout(() => w.scrollIntoView({ block:'nearest', behavior:'smooth' }), 60);
+    }
+  }
   saveSoon();
 }
 
 /* 软件：归类（必需程度） */
 function openAppPop(anchor, id){
+  cancelAllHolds();
   const a = APPS.find(x => x.id === id); if (!a) return;
   pop.innerHTML = Object.keys(NEED_TEXT).map(k =>
     `<div class="pi${a.need === k ? ' sel' : ''}" data-apick="${k}">
@@ -2276,11 +2344,60 @@ function openAppPop(anchor, id){
   if (top + ph > phoneRect.height - 14) top = aRect.top - phoneRect.top - ph - 7;
   pop.style.left = left + 'px';
   pop.style.top = Math.max(8, top) + 'px';
+
+  // 形变展开：从「必需/暂用/待删」标签的真实矩形长出来（跟物品那边的归类菜单一致）
+  morphFromButton(pop, anchor, null, { duration: 380, radius: '14px' });
+
   pop.onclick = e => {
     const p = e.target.closest('[data-apick]'); if (!p) return;
     a.need = p.dataset.apick;
     closePop(); renderApps();
     toast(`「${a.n}」已归到「${NEED_TEXT[a.need]}」`);
+  };
+}
+
+/* 软件：点卡片上的分类标签 → 换分类（小菜单从该标签形变长出来，跟必需程度那套一致） */
+function openAppCatPop(anchor, id){
+  cancelAllHolds();
+  const a = APPS.find(x => x.id === id); if (!a) return;
+  if (!APP_CATS.length) { toast('还没有软件分类，去「设置 → 分类管理」新建一个'); return; }
+  pop.innerHTML = APP_CATS.map(c =>
+    `<div class="pi${a.c === c.id ? ' sel' : ''}" data-catpick="${c.id}">
+       <span class="mk" style="--lkc:${c.tone}"><svg viewBox="0 0 24 24"><use href="#mk-dot"/></svg></span>${c.name}
+       ${a.c === c.id ? '<span class="ck">✓</span>' : ''}
+     </div>`).join('');
+  pop.classList.add('on'); popOpen = true;
+
+  const phoneRect = $('.phone').getBoundingClientRect();
+  const aRect = anchor.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = aRect.left - phoneRect.left - 8;
+  left = Math.max(8, Math.min(left, phoneRect.width - pw - 8));
+  let top = aRect.bottom - phoneRect.top + 7;
+  if (top + ph > phoneRect.height - 14) top = aRect.top - phoneRect.top - ph - 7;
+  pop.style.left = left + 'px';
+  pop.style.top = Math.max(8, top) + 'px';
+
+  morphFromButton(pop, anchor, null, { duration: 380, radius: '14px' });
+
+  pop.onclick = e => {
+    const p = e.target.closest('[data-catpick]'); if (!p) return;
+    const nid = p.dataset.catpick;
+    const from = a.c, to = nid;
+    closePop();
+    if (from === to){ renderApps(); return; }
+    // 跟物品改状态一致：先让这张卡淡出，再在新分类里落位
+    const cardEl = document.querySelector(`#alist .arow-wrap[data-appwrap="${a.id}"] .arow`);
+    const commit = () => {
+      a.c = to;
+      appState.justMovedId = a.id;
+      renderApps();
+      toast(`「${a.n}」已归到「${appCatOf(to).name}」`);
+    };
+    if (cardEl && !FX.motionOff){
+      cardEl.classList.add('leaving');
+      setTimeout(commit, 190);
+    } else commit();
   };
 }
 
@@ -3730,9 +3847,14 @@ const APP_GESTURE = { swiping: false };
   let holdTimer = null, row = null, started = false;
   let ghost = null, offsetX = 0, offsetY = 0;
 
-  const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+  const clearHold = () => {
+    clearTimeout(holdTimer); holdTimer = null;
+    // 松手/取消时把「被提起来」的状态收回去
+    if (row) row.classList.remove('held');
+  };
   // 长按还没触发就被打断（弹面板/切页）→ 清干净，别让 ghost 凭空冒出来
   if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
+    if (row) row.classList.remove('held');
     clearHold();
     if (ghost){ ghost.remove(); ghost = null; }
     if (row){ row.classList.remove('dragging-src'); row = null; }
@@ -3743,7 +3865,7 @@ const APP_GESTURE = { swiping: false };
     // 兜底：行已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
     if (!row || !row.isConnected) return;
     // 手势已经被判定为左滑删除 → 不要再起拖动排序
-    if (APP_GESTURE.swiping) return;
+    if (APP_GESTURE.swiping){ row.classList.remove('held'); return; }
     started = true;
     const r = row.getBoundingClientRect();
     offsetX = x - r.left;
@@ -3756,6 +3878,7 @@ const APP_GESTURE = { swiping: false };
     ghost.style.top = r.top + 'px';
     document.body.appendChild(ghost);
     row.classList.add('dragging-src');
+    row.classList.remove('held');   // ghost 顶上来之后，原位不再需要「提起」的观感
     if (navigator.vibrate) navigator.vibrate(12);
   };
 
@@ -3794,8 +3917,11 @@ const APP_GESTURE = { swiping: false };
     // 拖动排序作用在「槽」(.arow-wrap) 上，因为它才是列表的直接子元素
     row = target.closest('#alist .arow-wrap');
     if (!row) return;
-    if (target.closest('input,button,.need,.swipe-del')){ row = null; return; }
+    // 分类标签（可点改分类）和 delete/换图 等按钮不参与长按拖动
+    if (target.closest('input,button,.need,.swipe-del,.appcat')){ row = null; return; }
     clearHold();
+    // 按住就立刻「提起来」（跟总览页分类卡同一个观感），到点才真正开始拖
+    row.classList.add('held');
     holdTimer = setTimeout(() => begin(x, y), 420);
   };
 
@@ -4025,7 +4151,6 @@ function activateTab(t){
     appState.cat = APP_CATS[0] ? APP_CATS[0].id : 'all';
     appState.q = '';
     const qEl = $('#aq'); if (qEl) qEl.value = '';
-    $$('#needChips .chip').forEach(c => c.classList.toggle('on', c.dataset.need === appState.need));
     renderApps();
     showTab('apps'); $('#scr-apps').scrollTop = 0;
   }
@@ -4122,8 +4247,7 @@ on('#needChips', 'click', e => {
     $$('#needChips .chip').forEach(c => c.classList.toggle('on', c.dataset.need === appState.need));
   });
   renderApps();
-});
-// 点分类 chip → 筛/取消（再点一次取消，跟物品页一致）
+});// 点分类 chip → 筛/取消（再点一次取消，跟物品页一致）
 on('#appCatChips', 'click', e => {
   const chip = e.target.closest('[data-acat]'); if (!chip) return;
   const k = chip.dataset.acat;
@@ -4164,6 +4288,10 @@ on('#alist', 'click', e => {
 
   const needBtn = e.target.closest('[data-appneed]');
   if (needBtn){ openAppPop(needBtn, needBtn.dataset.appneed); return; }
+
+  // 副行里的「分类」小标签 → 弹出分类选择（从该标签形变展开）
+  const catBtn = e.target.closest('[data-appcat]');
+  if (catBtn){ openAppCatPop(catBtn, catBtn.dataset.appcat); return; }
 
   const iconBtn = e.target.closest('[data-appphoto]');
   if (iconBtn){ appPhotoTargetId = iconBtn.dataset.appphoto; $('#filePick').click(); return; }
