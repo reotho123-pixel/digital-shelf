@@ -838,7 +838,7 @@ body{
     <g id="mk-like">
       <path d="M12 20.4c-.4 0-.8-.15-1.1-.42C6.3 15.9 3.4 13.2 3.4 9.9c0-2.6 2-4.6 4.5-4.6 1.6 0 3.1.8 4.1 2.2 1-1.4 2.5-2.2 4.1-2.2 2.5 0 4.5 2 4.5 4.6 0 3.3-2.9 6-7.5 10.1-.3.27-.7.42-1.1.42Z"/>
     </g>
-    <!-- 一般：手绘圆环 -->
+    <!-- 必备：手绘圆环 -->
     <g id="mk-neutral">
       <path d="M12 3.6c4.7 0 8.5 3.7 8.4 8.4 0 4.7-3.8 8.5-8.5 8.4-4.6 0-8.4-3.8-8.3-8.5C3.6 7.4 7.4 3.6 12 3.6Z"/>
     </g>
@@ -916,14 +916,14 @@ body{
         </div>
 
         <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
+        <!-- 状态行排第一（用户要求跟分类行互换） -->
+        <div class="chipRow">
+          <div class="chips small" id="stChips"></div>
+        </div>
+
         <!-- 分类行（一直显示） -->
         <div class="chipRow" id="catRow">
           <div class="chips" id="catChips"></div>
-        </div>
-
-        <!-- 状态行（数量由 renderStChips 填） -->
-        <div class="chipRow">
-          <div class="chips small" id="stChips"></div>
         </div>
 
         <div class="chipRow" id="locRow" style="display:none">
@@ -953,11 +953,12 @@ body{
         </div>
 
         <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <div class="chipRow" id="appCatRow">
-          <div class="chips" id="appCatChips"></div>
-        </div>
+        <!-- 必需行排第一（跟物品页一样，状态/必需在上、分类在下） -->
         <div class="chipRow">
           <div class="chips small" id="needChips"></div>
+        </div>
+        <div class="chipRow" id="appCatRow">
+          <div class="chips" id="appCatChips"></div>
         </div>
 
         <div class="count-row">
@@ -1402,9 +1403,9 @@ const ST_KEYS  = ['inuse', 'stored', 'consuming', 'todo'];
 /* 分段控件里的选中填充：在用也要看得出被选中，所以不用纯白 */
 const ST_FILL  = { inuse:'#e8e6dc', stored:'#cfe4f4', consuming:'#c9e8cf', todo:'#f3c9d8' };
 const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
-/* 选中态的填充色：比圆点色淡，避免「一般」看起来像禁用 */
+/* 选中态的填充色：比圆点色淡，避免「必备」看起来像禁用 */
 const LIKE_FILL  = { like:'#f6ddb4', neutral:'#dfe1e8', dislike:'#f6d3de' };
-const LIKE_TEXT  = { like:'喜欢', neutral:'一般', dislike:'不喜欢' };
+const LIKE_TEXT  = { like:'喜欢', neutral:'必备', dislike:'不喜欢' };
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 
 const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'', justMovedId:null };
@@ -1601,14 +1602,12 @@ function syncFilterGroup(){
   renderCatChips();
 }
 
-/* 默认筛选：第一个分类 + 在用中。进物品页 / 从总览点分类进来都走这里 */
-/* 进物品页的默认视图：只选中「分类行的第一个」，
-   状态/位置/季节都不筛（用户要求「进去只显示分类行第一个」）。
-   从总览点某个分类进来时用那个分类，其余同上。 */
+/* 进物品页的默认视图：只选中「状态行的第一个」= 在用中，
+   分类不预筛（用户要求「显示也换成显示状态行第一个」）。
+   从总览点某个分类进来时那个分类用上（不然点进去看不到自己想看的），其余同上。 */
 function resetItemFiltersToDefault(cat){
-  const first = CATS[0] ? CATS[0].id : 'all';
-  state.cat = cat || first;
-  state.st = 'all';
+  state.cat = cat || 'all';
+  state.st = ST_KEYS[0];            // 「在用中」
   state.like = 'all';
   state.loc = 'all';
   state.season = 'all';
@@ -1616,8 +1615,7 @@ function resetItemFiltersToDefault(cat){
 }
 
 function renderCatChips(){
-  // 分类行一直显示（不再随状态隐藏），并且排在最上面一行。
-  // 新建/改名/删除在「设置 → 分类管理」里。
+  // 分类行（现在排在状态行下面）。新建/改名/删除在「设置 → 分类管理」里。
   const list = CATS.map(c => ({ ...c, qty: catQty(c.id) }));
   const keys = list.map(c => c.id);
   // 复用已有节点（标签让位要求同一批 DOM 跨越改动前后）
@@ -1732,7 +1730,7 @@ function renderItems(){
   const qty = sumQty(rows);
 
   const catName = state.cat === 'all' ? '全部物品' : catOf(state.cat).name;
-  const likeName = { all:'', like:' · 喜欢', neutral:' · 一般', dislike:' · 不喜欢' }[state.like];
+  const likeName = state.like === 'all' ? '' : ` · ${LIKE_TEXT[state.like]}`;
   const stName = state.st === 'all' ? '' : ` · ${ST_TEXT[state.st]}`;
   const seName = (state.cat === 'cloth' && state.season !== 'all')
     ? ` · ${(SEASONS.find(s => s.id === state.season) || {}).name}` : '';
@@ -2015,7 +2013,7 @@ function newItemModal(){
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
     if (!name) return;
-    // 喜欢默认「一般」，之后在卡片上点爱心改
+    // 喜欢默认「必备」，之后在卡片上点爱心改
     const item = { id:newItemId(), n:name, c:cat, q:qty, like:'neutral', loc:'', st, ic:'ic-box' };
     ITEMS.push(item);
     closeModal();
@@ -2052,7 +2050,7 @@ function openPop(anchor, kind, id){
     ? Object.keys(ST_TEXT).map(k => ({ k, name: ST_TEXT[k], color: ST_COLOR[k], shape:'dot' }))
     : Object.keys(LIKE_FILL).map(k => ({
         k,
-        name: { like:'喜欢', neutral:'一般', dislike:'不喜欢' }[k],
+        name: LIKE_TEXT[k],              // 单一来源，别再手写一份（改名字会漏）
         color: LIKE_FILL[k],
         shape: k === 'like' ? 'like' : k === 'dislike' ? 'dislike' : 'neutral'
       }));
@@ -2104,7 +2102,7 @@ function openPop(anchor, kind, id){
     } else {
       it.like = p.dataset.pick;
       closePop(); renderHome(); renderItems();
-      toast(`「${it.n}」已归到「${{like:'喜欢',neutral:'一般',dislike:'不喜欢'}[it.like]}」`);
+      toast(`「${it.n}」已归到「${LIKE_TEXT[it.like]}」`);
     }
   };
 }
@@ -4133,9 +4131,10 @@ on('#fab', 'click', newItemModal);
 function activateTab(t){
   if (t === 'items') goItems();
   else if (t === 'apps'){
-    // 进软件页的默认视图：只选中「分类行的第一个」（须知程度不预筛，用户要求）
-    appState.need = 'all';
-    appState.cat = APP_CATS[0] ? APP_CATS[0].id : 'all';
+    // 进软件页的默认视图：只选中「必需行的第一个」= 必需，分类不预筛
+    // （跟物品页同一套思路：状态行在上、默认筛第一个）
+    appState.need = NEED_KEYS[0];       // 「必需」
+    appState.cat = 'all';
     appState.q = '';
     renderApps();
     showTab('apps'); $('#scr-apps').scrollTop = 0;
