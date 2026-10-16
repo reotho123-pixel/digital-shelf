@@ -1397,6 +1397,8 @@ repairDuplicateItemIds();
 
 const ST_TEXT  = { inuse:'在用中', stored:'收纳中', consuming:'消耗中', todo:'待处理' };
 const ST_COLOR = { inuse:'#fdfaf1', stored:'#dbeaf7', consuming:'#d9eddd', todo:'#f7d9e4' };
+/* 状态的固定顺序（列表排序、筛选 chip、添加弹窗都用这一份，别各写各的） */
+const ST_KEYS  = ['inuse', 'stored', 'consuming', 'todo'];
 /* 分段控件里的选中填充：在用也要看得出被选中，所以不用纯白 */
 const ST_FILL  = { inuse:'#e8e6dc', stored:'#cfe4f4', consuming:'#c9e8cf', todo:'#f3c9d8' };
 const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
@@ -1636,7 +1638,7 @@ function renderCatChips(){
 function renderStChips(){
   // 数量按「当前分类」范围统计（跟分类行同一个口径，才看得懂）
   const base = ITEMS.filter(i => state.cat === 'all' || i.c === state.cat);
-  const sts = ['inuse', 'stored', 'consuming', 'todo'];
+  const sts = ST_KEYS;
   const keys = sts;
   const reused = syncChips($('#stChips'), keys,
     k => `${ST_TEXT[k]}<span class="n">${base.filter(i => i.st === k).length}</span>`,
@@ -1791,8 +1793,18 @@ function renderItems(){
   $('#igrid').innerHTML = cards;
 
   if (!rows.length){
-    $('#igrid').innerHTML = `<div class="empty" style="grid-column:1/-1">
-      <b>没有符合条件的物品</b><span>换个筛选，或者点右下角的加号添加</span></div>`;
+    // 空状态分两种：库里真没有 vs 只是被当前筛选挡住了（后者给一键显示全部，
+    // 否则用户会以为"刚加的东西没进去"）
+    if (!ITEMS.length){
+      $('#igrid').innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <b>还没有物品</b><span>点右下角的加号添加</span></div>`;
+    } else {
+      $('#igrid').innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <b>当前筛选下没有物品</b>
+        <span>库里有 ${ITEMS.length} 条，只是被筛选挡住了</span>
+        <button class="btn pri" id="itemShowAll" style="max-width:170px;margin:12px auto 0">显示全部</button>
+      </div>`;
+    }
   }
 
   // 刚改完状态的那张卡：在新位置上播一个"落位"动画并滚到可见处，
@@ -1950,10 +1962,10 @@ function newItemModal(){
   if (!CATS.some(c => c.id === cat)) cat = CATS[0].id;
   const catChips = () => CATS.map(c =>
     `<button class="chip${cat === c.id ? ' on' : ''}" data-pick="${c.id}">${c.name}</button>`).join('');
-  // 喜欢程度：默认「一般」，可在这里就选好
-  let like = 'neutral';
-  const likeChips = () => Object.keys(LIKE_FILL).map(k =>
-    `<button class="chip${like === k ? ' on' : ''}" data-picklike="${k}">${LIKE_TEXT[k]}</button>`).join('');
+  // 状态：默认「在用中」（用户要求把原来这里的选择换掉）
+  let st = 'inuse';
+  const stChips = () => ST_KEYS.map(k =>
+    `<button class="chip${st === k ? ' on' : ''}" data-pickst="${k}">${ST_TEXT[k]}</button>`).join('');
 
   openModal(`
     <h3>添加物品</h3>
@@ -1967,8 +1979,8 @@ function newItemModal(){
       <div class="chips" id="niCat" style="padding-bottom:2px">${catChips()}</div>
     </div>
     <div class="fld">
-      <label>喜欢程度</label>
-      <div class="chips" id="niLike" style="padding-bottom:2px">${likeChips()}</div>
+      <label>状态</label>
+      <div class="chips" id="niSt" style="padding-bottom:2px">${stChips()}</div>
     </div>
     <div class="fld">
       <label>数量</label>
@@ -1994,24 +2006,35 @@ function newItemModal(){
     cat = b.dataset.pick;
     $('#niCat').innerHTML = catChips();
   });
-  $('#niLike').addEventListener('click', e => {
-    const b = e.target.closest('[data-picklike]'); if (!b) return;
-    like = b.dataset.picklike;
-    $('#niLike').innerHTML = likeChips();
+  $('#niSt').addEventListener('click', e => {
+    const b = e.target.closest('[data-pickst]'); if (!b) return;
+    st = b.dataset.pickst;
+    $('#niSt').innerHTML = stChips();
   });
   $('#niCancel').addEventListener('click', closeModal);
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
     if (!name) return;
-    const item = { id:newItemId(), n:name, c:cat, q:qty, like, loc:'', st:'inuse', ic:'ic-box' };
+    // 喜欢默认「一般」，之后在卡片上点爱心改
+    const item = { id:newItemId(), n:name, c:cat, q:qty, like:'neutral', loc:'', st, ic:'ic-box' };
     ITEMS.push(item);
     closeModal();
     renderSettings(); renderHome(); renderCatChips(); renderItems();
+    // ★ 归属透明：如果它不在当前视图里（分类/状态与当前筛选不符），
+    //   明确告诉用户去哪找，而不是让人以为"添加了却没生效"
+    const catName = (CATS.find(x => x.id === item.c) || {}).name || '';
+    const outsideCat = state.cat !== 'all' && state.cat !== item.c;
+    const outsideSt = state.st !== 'all' && state.st !== item.st;
+    if (outsideCat || outsideSt){
+      const where = [catName, ST_TEXT[item.st]].filter(Boolean).join(' · ');
+      toast(`已添加「${name}」（在「${where}」里，当前筛选看不到）`);
+    } else {
+      toast(`已添加「${name}」`);
+    }
     if (state.tab === 'items') setTimeout(() => {
       const el = document.querySelector(`[data-item="${item.id}"]`);
       if (el) el.scrollIntoView({ block:'center', behavior:'smooth' });
     }, 80);
-    toast(`已添加「${name}」`);
   });
 }
 
@@ -3545,6 +3568,18 @@ on('#stChips', 'click', e => {
 // 物品卡：照片 / 归类 / 删除 / 进详情
 on('#igrid', 'click', e => {
   if (e.target.closest('#gridAdd')){ newItemModal(); return; }
+
+  // 空状态里的「显示全部」：清掉分类/状态筛选，把物品都找回来
+  if (e.target.closest('#itemShowAll')){
+    state.cat = 'all';
+    state.st = 'all';
+    state.like = 'all';
+    state.loc = 'all';
+    state.season = 'all';
+    renderCatChips(); renderStChips(); renderLocChips(); renderSeasonChips(); renderItems();
+    toast('已显示全部物品');
+    return;
+  }
 
   // 点喜欢圆点 → 归类喜欢程度
   const lk = e.target.closest('.lk');
