@@ -948,6 +948,12 @@ body{
             <button class="chip" data-need="todel">待删</button>
           </div>
         </div>
+        <!-- 分类行：跟物品页同一套规则 —— 点「必需」或「暂用」才出现
+             （「待删」的东西不用再按分类挑）。新建/改名/删除在设置里。 -->
+        <div class="chipRow" id="appCatRow" style="display:none">
+          <span class="lb">分类</span>
+          <div class="chips" id="appCatChips"></div>
+        </div>
 
         <div class="count-row">
           <b id="appResTitle">全部软件</b>
@@ -1282,6 +1288,16 @@ let ITEMS = [
    于是照片/编辑会"跳到"另一件同 id 的物品上。用时间戳+随机数即可避免。 */
 function newItemId(){
   return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* 软件 id 同理（也别用 Date.now() —— 同一毫秒连加两条会撞车） */
+function newAppId(){
+  return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* 分类 id（物品 / 软件通用） */
+function newCatId(prefix){
+  return (prefix || 'c') + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
 /* 修复历史数据里已经存在的重复 id：保留第一条，后面的重新分配。
@@ -2014,40 +2030,53 @@ const NEED_COLOR = { need:'#cfe4f4', temp:'#e6e6ea', todel:'#f3c9d8' };
 let APPS = [];
 APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
 
-const appState = { need:'all', q:'' };
+const appState = { cat:'all', need:'all', q:'' };
+const appCatOf = id => APP_CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
 
-/* 软件不再分门别类（用户要求）：图标底色按软件名算一个稳定的淡彩，
-   同一款软件每次都同色，但不需要用户去维护分类。 */
-const APP_TONES = ['#ded0f0','#bcd9ee','#f5d7a8','#f8d8c0','#f2cfcf','#cfe4f4','#d9d9e8'];
-function appTone(a){
-  const s = a.n || '';
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return APP_TONES[h % APP_TONES.length];
+/* 软件分类行：跟物品页同一套规则 ——
+   点「必需」或「暂用」才出现（「待删」不用再按分类挑）；
+   另外从别处筛了分类时也显示，免得"筛了却看不到、取消不掉"。 */
+function renderAppCatChips(){
+  const list = APP_CATS.map(c => ({ ...c, qty: APPS.filter(a => a.c === c.id).length }));
+  $('#appCatChips').innerHTML = list.map(c =>
+    `<button class="chip${appState.cat === c.id ? ' on' : ''}" data-acat="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
+  ).join('');
+  const row = $('#appCatRow');
+  if (row){
+    const needPicked = (appState.need === 'need' || appState.need === 'temp');
+    const catFiltered = appState.cat !== 'all';
+    row.style.display = ((needPicked || catFiltered) && APP_CATS.length) ? 'flex' : 'none';
+  }
 }
 
 function renderApps(){
   const q = appState.q.trim().toLowerCase();
   const rows = APPS.filter(a =>
     (appState.need === 'all' || a.need === appState.need) &&
+    (appState.cat === 'all' || a.c === appState.cat) &&
     (!q || a.n.toLowerCase().includes(q) || (a.note || '').toLowerCase().includes(q) || (a.loc || '').toLowerCase().includes(q))
   );
   // 按用户拖拽排的顺序显示
   rows.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
+  const curCat = APP_CATS.find(c => c.id === appState.cat);
+  const catName = curCat ? curCat.name : '全部软件';
   const needName = appState.need === 'all' ? '' : ` · ${NEED_TEXT[appState.need]}`;
-  $('#appResTitle').textContent = '全部软件' + needName;
+  $('#appResTitle').textContent = catName + needName;
   $('#appResCnt').textContent = `${rows.length} 个`;
   $('#appCnt').textContent = `${APPS.length} 个 · 待删 ${APPS.filter(a => a.need === 'todel').length}`;
   $('#tabAppBadge').textContent = APPS.length;
 
   const cards = rows.map(a => {
+    const c = appCatOf(a.c);
     const iconInner = a.photo
       ? `<img src="${a.photo}" alt="">`
       : `<span style="color:${a.need === 'todel' ? '#8b8c94' : '#3b3d45'}">${a.n.slice(0, 1)}</span>`;
-    const sub = [a.loc, a.note].filter(Boolean).join(' · ');
+    // 副行：位置里有分类名就不再重复显示分类（避免「社交 · 社交文件夹」）
+    const locHasCat = a.loc && a.loc.includes(c.name);
+    const sub = [locHasCat ? null : c.name, a.loc, a.note].filter(Boolean).join(' · ');
     return `<div class="arow${a.need === 'todel' ? ' todel' : ''}" data-app="${a.id}">
-      <div class="ic" style="background:${a.photo ? '#fff' : appTone(a)}" data-appphoto="${a.id}">${iconInner}</div>
+      <div class="ic" style="background:${a.photo ? '#fff' : c.tone}" data-appphoto="${a.id}">${iconInner}</div>
       <div class="tx"><b>${a.n}</b><span>${sub}</span></div>
       <span class="need" data-appneed="${a.id}" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
       <button class="del" data-delapp="${a.id}" title="删除软件">
@@ -2059,6 +2088,7 @@ function renderApps(){
   // 不再放「添加软件」行——用右下角的加号按钮
   $('#alist').innerHTML = rows.length ? cards
     : `<div class="empty"><b>没有符合条件的软件</b><span>换个筛选，或者点右下角的加号添加</span></div>`;
+  renderAppCatChips();
   saveSoon();
 }
 
@@ -2093,6 +2123,11 @@ function newAppModal(){
   let need = 'temp';
   const needChips = () => Object.keys(NEED_TEXT).map(k =>
     `<button class="chip${need === k ? ' on' : ''}" data-pick="${k}">${NEED_TEXT[k]}</button>`).join('');
+  // 分类默认选中：当前正筛的那个分类，否则第一个
+  let cat = (appState.cat !== 'all' ? appState.cat : (APP_CATS[0] || {}).id);
+  if (!APP_CATS.some(c => c.id === cat)) cat = (APP_CATS[0] || {}).id;
+  const catChips = () => APP_CATS.map(c =>
+    `<button class="chip${cat === c.id ? ' on' : ''}" data-pickcat="${c.id}">${c.name}</button>`).join('');
 
   openModal(`
     <h3>添加软件</h3>
@@ -2104,6 +2139,10 @@ function newAppModal(){
     <div class="fld">
       <label>要不要留</label>
       <div class="chips" id="naNeed" style="padding-bottom:2px">${needChips()}</div>
+    </div>
+    <div class="fld">
+      <label>分类</label>
+      <div class="chips" id="naCat" style="padding-bottom:2px">${catChips()}</div>
     </div>
     <div class="mrow">
       <button class="btn" id="naCancel">取消</button>
@@ -2118,11 +2157,17 @@ function newAppModal(){
     need = b.dataset.pick;
     $('#naNeed').innerHTML = needChips();
   });
+  $('#naCat').addEventListener('click', e => {
+    const b = e.target.closest('[data-pickcat]'); if (!b) return;
+    cat = b.dataset.pickcat;
+    $('#naCat').innerHTML = catChips();
+  });
   $('#naCancel').addEventListener('click', closeModal);
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
     if (!name) return;
-    const a = { id:'a' + Date.now(), n:name, need, loc:'', note:'', photo:null };
+    // id 用唯一生成器（同物品那套思路）：不要用 Date.now()，同毫秒连加两条会撞车
+    const a = { id: newAppId(), n:name, need, c:cat, loc:'', note:'', photo:null };
     APPS.push(a);
     closeModal(); renderApps();
     setTimeout(() => {
@@ -2185,8 +2230,8 @@ function popUsePlusOne(anchorEl){
 }
 
 /* ================= 设置 ================= */
-/* 分类管理只针对物品分类（软件不需要分类） */
 const stCatCount = c => ITEMS.filter(i => i.c === c.id).length;
+const stAppCatCount = c => APPS.filter(a => a.c === c.id).length;
 
 function renderSettings(){
   // 估算占用：按条数与图片数粗算（正式版从 IndexedDB 取真实值）
@@ -2210,6 +2255,21 @@ function renderSettings(){
     </div>`;
   }).join('');
 
+  const appCatRows = APP_CATS.map(c => {
+    const n = stAppCatCount(c);
+    return `<div class="st-cat" data-sappcat="${c.id}">
+      <span class="dot" style="background:${c.tone}"></span>
+      <span class="nm">${c.name}</span>
+      <span class="cnt">${n} 个软件</span>
+      <button class="mini" data-renameappcat="${c.id}" title="改名">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg>
+      </button>
+      <button class="mini rm" data-delappcat="${c.id}" title="删除">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+
   $('#stBody').innerHTML = `
     <!-- 分类管理 -->
     <div class="st-group">分类管理</div>
@@ -2221,7 +2281,20 @@ function renderSettings(){
       ${catRows || '<div class="st-note" style="padding:6px 0 8px">还没有分类，点下面新建一个</div>'}
       <div class="st-row" id="stAddCat" style="border-bottom:none;padding-top:10px">
         <span class="ic" style="background:var(--hl)"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>
-        <span class="tx"><b>新建分类</b><span>比如 厨房、文具、工具</span></span>
+        <span class="tx"><b>新建物品分类</b><span>比如 厨房、文具、工具</span></span>
+        <span class="go">›</span>
+      </div>
+    </div>
+
+    <div class="st-sec">
+      <div class="st-cat-head">
+        <span>软件分类</span>
+        <span class="hint">共 ${APP_CATS.length} 个 · 图标底色跟着分类走</span>
+      </div>
+      ${appCatRows || '<div class="st-note" style="padding:6px 0 8px">还没有软件分类，点下面新建一个</div>'}
+      <div class="st-row" id="stAddAppCat" style="border-bottom:none;padding-top:10px">
+        <span class="ic" style="background:var(--hl)"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>
+        <span class="tx"><b>新建软件分类</b><span>比如 社交、工具、影音</span></span>
         <span class="go">›</span>
       </div>
     </div>
@@ -2469,16 +2542,19 @@ on('#stBack', 'click', () => closeSettings());
 })();
 
 on('#stBody', 'click', e => {
-  // 分类改名
+  // 物品分类改名 / 删除 / 新建
   const rn = e.target.closest('[data-renamecat]');
   if (rn){ renameCatModal(rn.dataset.renamecat); return; }
-
-  // 分类删除
   const rm = e.target.closest('[data-delcat]');
   if (rm){ delCatModal(rm.dataset.delcat); return; }
-
-  // 新增分类
   if (e.target.closest('#stAddCat')){ newCatModal(); return; }
+
+  // 软件分类改名 / 删除 / 新建
+  const rnA = e.target.closest('[data-renameappcat]');
+  if (rnA){ renameAppCatModal(rnA.dataset.renameappcat); return; }
+  const rmA = e.target.closest('[data-delappcat]');
+  if (rmA){ delAppCatModal(rmA.dataset.delappcat); return; }
+  if (e.target.closest('#stAddAppCat')){ newAppCatModal(); return; }
 
   // 主色
   const sw = e.target.closest('[data-accent]');
@@ -2489,6 +2565,90 @@ on('#stBody', 'click', e => {
   if (e.target.closest('#stImport')){ importBackup(); return; }
   if (e.target.closest('#stClear')){ clearAllModal(); return; }
 });
+
+/* --- 软件分类：新建 / 改名 / 删除（和物品分类同一套交互） --- */
+function newAppCatModal(){
+  openModal(`
+    <h3>新建软件分类</h3>
+    <p class="mhint">给这一类软件起个名字，之后可以随时改名</p>
+    <div class="fld">
+      <label>分类名称</label>
+      <input type="text" id="nacName" placeholder="比如 社交、工具、影音" maxlength="8">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="nacCancel">取消</button>
+      <button class="btn pri" id="nacOk" disabled>创建</button>
+    </div>
+  `);
+  const nameIn = $('#nacName'), okBtn = $('#nacOk');
+  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
+  focusInputWhenSettled(nameIn);
+  $('#nacCancel').addEventListener('click', closeModal);
+  okBtn.addEventListener('click', () => {
+    const name = nameIn.value.trim();
+    if (!name) return;
+    const tone = NEW_TONES[APP_CATS.length % NEW_TONES.length];
+    APP_CATS.push({ id: newCatId('ac'), name, tone });
+    closeModal();
+    renderSettings(); renderApps();
+    toast(`已新建分类「${name}」`);
+  });
+}
+
+function renameAppCatModal(id){
+  const c = APP_CATS.find(x => x.id === id); if (!c) return;
+  openModal(`
+    <h3>重命名分类</h3>
+    <p class="mhint">分类下的软件不会变，只是换个名字</p>
+    <div class="fld">
+      <label>分类名称</label>
+      <input type="text" id="racName" value="${c.name}" maxlength="8">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="racCancel">取消</button>
+      <button class="btn pri" id="racOk">保存</button>
+    </div>
+  `);
+  const inp = $('#racName');
+  focusInputWhenSettled(inp, { select:true });
+  $('#racCancel').addEventListener('click', closeModal);
+  $('#racOk').addEventListener('click', () => {
+    const v = inp.value.trim();
+    if (!v) return;
+    c.name = v;
+    closeModal(); renderSettings(); renderApps();
+    toast(`已改名为「${v}」`);
+  });
+}
+
+function delAppCatModal(id){
+  const c = APP_CATS.find(x => x.id === id); if (!c) return;
+  const n = stAppCatCount(c);
+  openModal(`
+    <h3>删除「${c.name}」？</h3>
+    <p class="mhint">${n > 0
+      ? `这个分类下有 ${n} 个软件，删除后会归入「未分类」，不会丢。`
+      : '这个分类下还没有软件，可以放心删。'}</p>
+    <div class="mrow">
+      <button class="btn" id="dacCancel">取消</button>
+      <button class="btn dan" id="dacOk">删除</button>
+    </div>
+  `);
+  $('#dacCancel').addEventListener('click', closeModal);
+  $('#dacOk').addEventListener('click', () => {
+    const orphans = APPS.filter(a => a.c === c.id);
+    orphans.forEach(a => { a.c = 'none'; });
+    // 只有真有软件要安置时才补「未分类」
+    if (orphans.length && !APP_CATS.some(x => x.id === 'none')){
+      APP_CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea' });
+    }
+    APP_CATS.splice(APP_CATS.findIndex(x => x.id === c.id), 1);
+    if (appState.cat === c.id) appState.cat = 'all';
+    closeModal();
+    renderSettings(); renderApps();
+    toast(`已删除分类「${c.name}」`);
+  });
+}
 
 /* --- 分类改名 --- */
 function renameCatModal(id){
@@ -3588,12 +3748,18 @@ $$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.t
 })();
 
 /* ================= 软件页事件 ================= */
-/* 软件不再有分类行（用户要求）：只按必需程度筛选 + 搜索 */
 on('#needChips', 'click', e => {
   const chip = e.target.closest('[data-need]'); if (!chip) return;
   const k = chip.dataset.need;
   appState.need = (appState.need === k) ? 'all' : k;
   $$('#needChips .chip').forEach(c => c.classList.toggle('on', c.dataset.need === appState.need));
+  renderApps();
+});
+// 点分类 chip → 筛/取消（再点一次取消，跟物品页一致）
+on('#appCatChips', 'click', e => {
+  const chip = e.target.closest('[data-acat]'); if (!chip) return;
+  const k = chip.dataset.acat;
+  appState.cat = (appState.cat === k) ? 'all' : k;
   renderApps();
 });
 on('#aq', 'input', e => { appState.q = e.target.value; renderApps(); });
