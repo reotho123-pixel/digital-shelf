@@ -472,11 +472,29 @@ body{
 
 /* ===== 软件列表 ===== */
 .alist{display:flex;flex-direction:column;gap:9px}
+/* 左滑删除：外层是「槽」，行在上面滑动露出底下的删除块。
+   注意行本身带轻微旋转（奇偶 ±0.35°），所以滑动用 translateX 叠在旋转上，
+   不能整串覆盖 transform。 */
+.arow-wrap{position:relative;border-radius:15px;overflow:hidden;
+  transform:rotate(-.35deg)}
+.arow-wrap:nth-child(even){transform:rotate(.35deg)}
+.arow-wrap .swipe-del{position:absolute;top:0;right:0;bottom:0;width:86px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  /* 不要左边框：行滑开后两层边框会贴在一起，看起来像多了一条黑竖线。
+     左边界直接用行的描边充当。 */
+  background:#f3c9d8;border:2.2px solid var(--ink);border-left:none;
+  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;
+  font-family:var(--f-cn);font-size:11.5px;color:var(--ink);cursor:pointer;
+  transform:translateX(100%);opacity:0}
+.arow-wrap .swipe-del svg{width:16px;height:16px}
+.arow-wrap .swipe-del:active{background:#eeb6cb}
+/* 滑开后：删除块就位 */
+.arow-wrap.open .swipe-del{transform:translateX(0);opacity:1;
+  transition:transform .24s cubic-bezier(.22,1,.36,1),opacity .16s}
 .arow{display:flex;align-items:center;gap:11px;background:#fff;border:2.2px solid var(--ink);
   border-radius:15px 6px 16px 7px/7px 16px 6px 15px;padding:10px 12px;
-  box-shadow:3px 4px 0 rgba(22,23,27,.13);position:relative}
-.arow:nth-child(odd){transform:rotate(-.35deg)}
-.arow:nth-child(even){transform:rotate(.35deg)}
+  box-shadow:3px 4px 0 rgba(22,23,27,.13);position:relative;
+  will-change:transform;touch-action:pan-y}
 .arow .ic{width:42px;height:42px;flex:0 0 auto;border:2.1px solid var(--ink);display:grid;place-items:center;
   border-radius:13px 5px 14px 6px/6px 14px 5px 13px;font-family:var(--f-cn);font-size:17px;
   overflow:hidden;cursor:pointer;position:relative}
@@ -489,11 +507,8 @@ body{
 .arow .need{flex:0 0 auto;font-family:var(--f-cn);font-size:11px;padding:3px 9px;border:1.9px solid var(--ink);
   border-radius:10px 4px 11px 5px/5px 11px 4px 10px;cursor:pointer}
 .arow .need:active{transform:translate(1px,1px)}
-.arow .del{width:24px;height:24px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
-  background:#fff;border:1.9px solid var(--ink);display:grid;place-items:center;cursor:pointer}
-.arow .del svg{width:13px;height:13px}
-.arow .del:active{background:#f3c9d8}
-.arow.todel{opacity:.72}
+/* 删除按钮已移除：改成左滑露出（见 .arow-wrap .swipe-del） */
+.arow-wrap.todel{opacity:.72}
 .alist .addrow{display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;
   border:2.2px dashed var(--ink);background:rgba(255,255,255,.6);border-radius:15px 6px 16px 7px/7px 16px 6px 15px;
   box-shadow:3px 4px 0 rgba(22,23,27,.1);cursor:pointer;font-family:var(--f-cn);font-size:13.5px;color:var(--ink2)}
@@ -2211,13 +2226,16 @@ function renderApps(){
     // 副行：位置里有分类名就不再重复显示分类（避免「社交 · 社交文件夹」）
     const locHasCat = a.loc && a.loc.includes(c.name);
     const sub = [locHasCat ? null : c.name, a.loc, a.note].filter(Boolean).join(' · ');
-    return `<div class="arow${a.need === 'todel' ? ' todel' : ''}" data-app="${a.id}">
-      <div class="ic" style="background:${a.photo ? '#fff' : c.tone}" data-appphoto="${a.id}">${iconInner}</div>
-      <div class="tx"><b>${a.n}</b><span>${sub}</span></div>
-      <span class="need" data-appneed="${a.id}" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
-      <button class="del" data-delapp="${a.id}" title="删除软件">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
+    return `<div class="arow-wrap${a.need === 'todel' ? ' todel' : ''}" data-appwrap="${a.id}">
+      <button class="swipe-del" data-delapp="${a.id}" title="删除软件">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
+        删除
       </button>
+      <div class="arow" data-app="${a.id}">
+        <div class="ic" style="background:${a.photo ? '#fff' : c.tone}" data-appphoto="${a.id}">${iconInner}</div>
+        <div class="tx"><b>${a.n}</b><span>${sub}</span></div>
+        <span class="need" data-appneed="${a.id}" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
+      </div>
     </div>`;
   }).join('');
 
@@ -3703,6 +3721,10 @@ function editItemModal(id, anchorEl){
 /* 软件列表：长按拖动排序（行上下排列）。
    这里刻意不加液态形变动效——用户要求「长按可以拖动排序就行」，
    软件行是横向信息条，跟着速度鼓起反而显得晃，素面拖动更稳。 */
+/* 软件列表上两套手势共用一个状态：横向滑动=左滑删除、长按=拖动排序。
+   swiping 由左滑那段置位，拖动排序的 begin() 见到就放弃。 */
+const APP_GESTURE = { swiping: false };
+
 (function initAppDrag(){
   const list = $('#alist');
   let holdTimer = null, row = null, started = false;
@@ -3720,6 +3742,8 @@ function editItemModal(id, anchorEl){
   const begin = (x, y) => {
     // 兜底：行已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
     if (!row || !row.isConnected) return;
+    // 手势已经被判定为左滑删除 → 不要再起拖动排序
+    if (APP_GESTURE.swiping) return;
     started = true;
     const r = row.getBoundingClientRect();
     offsetX = x - r.left;
@@ -3743,7 +3767,8 @@ function editItemModal(id, anchorEl){
     ghost.style.display = 'none';
     const el = document.elementFromPoint(x, y);
     ghost.style.display = '';
-    const over = el && el.closest('#alist .arow[data-app]');
+    // 换位对象是「槽」而不是行 —— 列表的直接子元素是 .arow-wrap
+    const over = el && el.closest('#alist .arow-wrap');
     if (over && over !== row){
       const kids = [...list.children];
       if (kids.indexOf(row) < kids.indexOf(over)) list.insertBefore(row, over.nextSibling);
@@ -3766,9 +3791,10 @@ function editItemModal(id, anchorEl){
   };
 
   const onStart = (x, y, target) => {
-    row = target.closest('#alist .arow[data-app]');
+    // 拖动排序作用在「槽」(.arow-wrap) 上，因为它才是列表的直接子元素
+    row = target.closest('#alist .arow-wrap');
     if (!row) return;
-    if (target.closest('input,button,.need')){ row = null; return; }
+    if (target.closest('input,button,.need,.swipe-del')){ row = null; return; }
     clearHold();
     holdTimer = setTimeout(() => begin(x, y), 420);
   };
@@ -3786,6 +3812,128 @@ function editItemModal(id, anchorEl){
   list.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
   window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
   window.addEventListener('mouseup', end);
+})();
+
+/* ---------- 软件行：左滑露出删除 ----------
+   原来的行尾小垃圾桶容易误触（用户反馈），改成左滑。
+   与「长按拖动排序」的分工：
+     · 长按 420ms → 拖动排序（上面那个 IIFE）
+     · 横向滑动 → 左滑删除（本段）
+   两者互斥靠**方向锁**：手指先明显横move（|dx|>8 且 |dx|>|dy|）→ 判定为左滑，
+   立刻取消长按计时器；先纵向动 → 交回列表滚动。
+   规范要点：1:1 跟手、越界橡皮筋 ×0.32、松手按位移阈值决定吸附还是弹回。 */
+(function initAppSwipe(){
+  const list = $('#alist');
+  if (!list) return;
+  const W = 86;              // 删除块宽度（跟 CSS 里 .swipe-del 的 width 一致）
+  const OPEN_AT = W * 0.45;  // 松手时超过这个位移就吸附打开
+
+  let wrap = null, rowEl = null, startX = 0, startY = 0;
+  let dx = 0, locked = null, tracking = false;
+  let openWrap = null;       // 当前打开的那一行（同时只允许一个）
+
+  const openOf = w => (w ? w : null);
+  const setX = (w, x, animate) => {
+    const r = w.querySelector('.arow');
+    if (!r) return;
+    r.style.transition = animate ? 'transform .24s cubic-bezier(.22,1,.36,1)' : 'none';
+    r.style.transform = `translateX(${x.toFixed(1)}px)`;
+    w.classList.toggle('open', x <= -W * 0.5);
+  };
+  const closeAll = (except) => {
+    [wrap, openWrap].forEach(w => {
+      if (!w || w === except || !w.isConnected) return;
+      setX(w, 0, true);
+    });
+    if (openWrap !== except) openWrap = null;
+  };
+
+  const onDown = (x, y, target) => {
+    const w = target.closest('#alist .arow-wrap');
+    if (!w) return;
+    // 点删除块自己不参与滑动（那是在点"确认删除"）
+    if (target.closest('.swipe-del')) return;
+    APP_GESTURE.swiping = false;      // 新手势开始，先复位
+    wrap = w;
+    rowEl = w.querySelector('.arow');
+    startX = x; startY = y; dx = 0; locked = null; tracking = true;
+  };
+
+  const onMove = (x, y, e) => {
+    if (!tracking || !wrap) return;
+    const ddx = x - startX, ddy = y - startY;
+
+    // 方向锁：先判断这次手势是横向还是纵向
+    if (locked === null){
+      if (Math.abs(ddx) > 8 && Math.abs(ddx) > Math.abs(ddy)) locked = 'x';
+      else if (Math.abs(ddy) > 8) { locked = 'y'; tracking = false; return; }
+      else return;
+    }
+    if (locked !== 'x') return;
+
+    // ★ 判定为左滑 → 标记一下，「长按拖动排序」的 begin() 见到就放弃，
+    //   否则手指横划满 420ms 时拖动排序会同时被触发，两套手势打架。
+    //   （这里不能调 cancelAllHolds()：那会把本次滑动自己的状态也一起清掉。）
+    APP_GESTURE.swiping = true;
+
+    if (e && e.cancelable) e.preventDefault();
+    // 初始位置：如果这一行是开着的，从 -W 起算
+    const base = wrap.classList.contains('open') ? -W : 0;
+    let next = base + ddx;
+    if (next > 0) next *= 0.32;            // 往右超出 → 橡皮筋
+    if (next < -W) next = -W + (next + W) * 0.32;  // 往左超出 → 橡皮筋
+    dx = next;
+    setX(wrap, next, false);
+  };
+
+  const onUp = () => {
+    if (!tracking || !wrap) { tracking = false; APP_GESTURE.swiping = false; return; }
+    const wasLocked = locked;
+    tracking = false;
+    const w = wrap;
+    const moved = Math.abs(dx);
+    wrap = null; rowEl = null; locked = null;
+    if (wasLocked !== 'x'){ APP_GESTURE.swiping = false; return; }
+
+    if (moved >= OPEN_AT){
+      closeAll(w);
+      openWrap = w;
+      setX(w, -W, true);
+      if (navigator.vibrate) navigator.vibrate(8);
+    } else {
+      setX(w, 0, true);
+      if (openWrap === w) openWrap = null;
+    }
+    // ★ 滑动过 → 抑制随后的 click，免得顺手把行当成"点击"（改状态/换图）
+    suppressCardClickUntil = Date.now() + 400;
+    // 手势结束，放开拖动排序的闸门（留一点点延迟，避开紧随其后的 click）
+    setTimeout(() => { APP_GESTURE.swiping = false; }, 450);
+  };
+
+  list.addEventListener('touchstart', e => {
+    const t = e.touches[0]; onDown(t.clientX, t.clientY, e.target);
+  }, { passive: true });
+  list.addEventListener('touchmove', e => {
+    const t = e.touches[0]; onMove(t.clientX, t.clientY, e);
+  }, { passive: false });
+  list.addEventListener('touchend', onUp);
+  list.addEventListener('touchcancel', onUp);
+  list.addEventListener('mousedown', e => onDown(e.clientX, e.clientY, e.target));
+  window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY, e));
+  window.addEventListener('mouseup', onUp);
+
+  // 点别处 / 滚动列表 → 收起已打开的那一行
+  document.addEventListener('click', e => {
+    if (e.target.closest('#alist .arow-wrap')) return;
+    closeAll(null);
+  }, true);
+  list.addEventListener('scroll', () => closeAll(null));
+
+  // 切页/重绘前也收起，避免残留 open 态
+  if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
+    closeAll(null);
+    wrap = null; rowEl = null; tracking = false; locked = null;
+  });
 })();
 
 /* ---------- 液态形变：拖动中的卡片跟着速度「鼓起来」 ----------
@@ -4002,6 +4150,17 @@ on('#alist', 'click', e => {
 
   const delBtn = e.target.closest('[data-delapp]');
   if (delBtn){ deleteApp(delBtn.dataset.delapp); return; }
+
+  // 有一行处于「左滑打开」状态时，点它本身 = 收起，而不是执行行上的动作
+  // （避免滑开想取消时，手一滑点到了状态标签改掉数据）
+  const openWrap = document.querySelector('#alist .arow-wrap.open');
+  if (openWrap && openWrap.contains(e.target)){
+    openWrap.classList.remove('open');
+    const r = openWrap.querySelector('.arow');
+    if (r){ r.style.transition = 'transform .24s cubic-bezier(.22,1,.36,1)'; r.style.transform = ''; }
+    suppressCardClickUntil = Date.now() + 200;
+    return;
+  }
 
   const needBtn = e.target.closest('[data-appneed]');
   if (needBtn){ openAppPop(needBtn, needBtn.dataset.appneed); return; }
