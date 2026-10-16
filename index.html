@@ -383,6 +383,8 @@ body{
 .empty{background:#fff;border:2.2px dashed var(--ink);border-radius:16px;padding:26px 18px;text-align:center}
 .empty b{display:block;font-family:var(--f-cn);font-size:15px;font-weight:400;margin-bottom:7px}
 .empty span{font-size:13px;color:var(--sub)}
+/* 空状态里的小按钮（如「显示全部」）：别继承 .btn 的 flex:1，否则会被拉满宽 */
+.empty .btn{flex:0 0 auto;margin:12px auto 0;padding:8px 16px;font-size:13px}
 
 /* 悬浮添加（在底栏之上） */
 .fab{position:absolute;right:20px;width:56px;height:56px;background:var(--accent);
@@ -2185,7 +2187,9 @@ function renderApps(){
   const q = appState.q.trim().toLowerCase();
   const rows = APPS.filter(a =>
     (appState.need === 'all' || a.need === appState.need) &&
-    (appState.cat === 'all' || a.c === appState.cat) &&
+    // ★ 没有分类的软件（分类是后加的，老数据没有这个字段）不该被筛选藏起来。
+    //   把它们当作「未分类」处理，视作匹配任意分类筛选 —— 否则用户会以为软件全没了。
+    (appState.cat === 'all' || !a.c || a.c === appState.cat) &&
     (!q || a.n.toLowerCase().includes(q) || (a.note || '').toLowerCase().includes(q) || (a.loc || '').toLowerCase().includes(q))
   );
   // 按用户拖拽排的顺序显示
@@ -2218,8 +2222,20 @@ function renderApps(){
   }).join('');
 
   // 不再放「添加软件」行——用右下角的加号按钮
-  $('#alist').innerHTML = rows.length ? cards
-    : `<div class="empty"><b>没有符合条件的软件</b><span>换个筛选，或者点右下角的加号添加</span></div>`;
+  // 空状态分两种：库里真没有软件 vs 只是被筛选挡住了。
+  // 后者的提示要给出「一键显示全部」，否则用户会以为数据丢了。
+  let emptyHTML;
+  if (!APPS.length){
+    emptyHTML = `<div class="empty"><b>还没有软件</b><span>点右下角的加号添加</span></div>`;
+  } else {
+    const total = APPS.length;
+    emptyHTML = `<div class="empty" style="grid-column:1/-1">
+      <b>当前筛选下没有软件</b>
+      <span>库里有 ${total} 个，只是被筛选挡住了</span>
+      <button class="btn pri" id="appShowAll" style="max-width:170px;margin:12px auto 0">显示全部</button>
+    </div>`;
+  }
+  $('#alist').innerHTML = rows.length ? cards : emptyHTML;
   renderAppCatChips();
   saveSoon();
 }
@@ -2461,6 +2477,11 @@ function renderSettings(){
         <span class="tx"><b>导入备份</b><span>会覆盖当前全部数据</span></span>
         <span class="go">›</span>
       </div>
+      <div class="st-row" id="stClearApps">
+        <span class="ic" style="background:#f9e6ec"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg></span>
+        <span class="tx"><b>只清空软件</b><span>物品、分类、目标都不动（现有 ${APPS.length} 个）</span></span>
+        <span class="go">›</span>
+      </div>
       <div class="st-row danger" id="stClear">
         <span class="ic" style="background:#f9e6ec"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg></span>
         <span class="tx"><b>清空全部数据</b><span>不可撤销，需要先导出备份</span></span>
@@ -2695,8 +2716,47 @@ on('#stBody', 'click', e => {
   // 数据
   if (e.target.closest('#stExport')){ exportBackup(); return; }
   if (e.target.closest('#stImport')){ importBackup(); return; }
+  if (e.target.closest('#stClearApps')){ clearAppsModal(); return; }
   if (e.target.closest('#stClear')){ clearAllModal(); return; }
 });
+
+/* --- 只清空软件（物品/分类/目标都不动）--- */
+function clearAppsModal(){
+  const n = APPS.length;
+  openModal(`
+    <h3>清空全部软件？</h3>
+    <p class="mhint">会把 ${n} 个软件全部删掉；<b>物品、分类、目标都不受影响</b>。此操作不可撤销，建议先导出备份。</p>
+    <div class="fld">
+      <label>输入「清空软件」四个字确认</label>
+      <input type="text" id="casConfirm" placeholder="清空软件">
+    </div>
+    <div class="mrow">
+      <button class="btn" id="casCancel">取消</button>
+      <button class="btn dan" id="casOk" disabled>清空软件</button>
+    </div>
+  `);
+  const inp = $('#casConfirm'), ok = $('#casOk');
+  inp.addEventListener('input', () => { ok.disabled = inp.value.trim() !== '清空软件'; });
+  focusInputWhenSettled(inp);
+  $('#casCancel').addEventListener('click', closeModal);
+  ok.addEventListener('click', () => {
+    const removed = [...APPS];
+    APPS.length = 0;
+    // 顺带复位软件页的筛选，免得停在「某个分类 + 必需」上看着像没清干净
+    appState.need = 'all';
+    appState.cat = 'all';
+    appState.q = '';
+    $$('#needChips .chip').forEach(c => c.classList.remove('on'));
+    const qEl = $('#aq'); if (qEl) qEl.value = '';
+    closeModal();
+    renderSettings(); renderApps();
+    toastUndo(`已清空 ${removed.length} 个软件`, () => {
+      APPS.push(...removed);
+      renderSettings(); renderApps();
+      toast('已恢复');
+    });
+  });
+}
 
 /* --- 软件分类：新建 / 改名 / 删除（和物品分类同一套交互） --- */
 function newAppCatModal(){
@@ -3928,6 +3988,18 @@ on('#appCatChips', 'click', e => {
 on('#aq', 'input', e => { appState.q = e.target.value; renderApps(); });
 
 on('#alist', 'click', e => {
+  // 空状态里的「显示全部」：一键把所有筛选清掉，把软件都找回来
+  if (e.target.closest('#appShowAll')){
+    appState.need = 'all';
+    appState.cat = 'all';
+    appState.q = '';
+    $$('#needChips .chip').forEach(c => c.classList.remove('on'));
+    const qEl = $('#aq'); if (qEl) qEl.value = '';
+    renderApps();
+    toast('已显示全部软件');
+    return;
+  }
+
   const delBtn = e.target.closest('[data-delapp]');
   if (delBtn){ deleteApp(delBtn.dataset.delapp); return; }
 
