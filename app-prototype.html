@@ -313,11 +313,19 @@ body{
 .count-row b{font-family:var(--f-cn);font-size:14.5px;font-weight:400}
 .count-row span{font-size:12.5px;color:var(--sub);font-family:'PatrickHand',sans-serif}
 
-.igrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-.icard{background:#fff;border:2.2px solid var(--ink);border-radius:14px;overflow:hidden;
-  box-shadow:4px 5px 0 rgba(22,23,27,.14);transition:transform .12s,box-shadow .12s;position:relative}
-.icard:nth-child(odd){transform:rotate(-.5deg)}
-.icard:nth-child(even){transform:rotate(.5deg)}
+/* ============ 物品卡：单列竖排（一行一张，图左文右） ============
+   用户从两个样板里选了方案 A。原来这里是两列网格（.igrid 1fr 1fr），
+   卡片是「上图下文」；现在改成单列，卡片内部横向排布：
+     左：方形缩略图（带日期/爱心/状态/数量的角标照旧压在图上）
+     右：名称 / 位置+状态 / 用过几次，最右边一列是数量·爱心·打勾
+   ★ 单列后卡片变宽，一屏能看到的张数反而更多（原来两列每屏约 4 张）。 */
+.igrid{display:flex;flex-direction:column;gap:10px}
+.icard{background:#fff;border:2.2px solid var(--ink);
+  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;overflow:hidden;
+  box-shadow:4px 5px 0 rgba(22,23,27,.14);transition:transform .12s,box-shadow .12s;position:relative;
+  display:flex;align-items:center;gap:11px;padding:9px 10px 9px 9px}
+.icard:nth-child(odd){transform:rotate(-.4deg)}
+.icard:nth-child(even){transform:rotate(.4deg)}
 /* 改了状态 → 卡片「离开这里、落到别处」的两段动画。
    注意卡片自身带轻微旋转（奇偶 ±0.5°），所以动效里要把旋转写进去，
    否则动画期间会把那张卡的倾斜抹平，看起来会"正"一下再回去。 */
@@ -329,28 +337,27 @@ body{
   60%{opacity:1;transform:translateY(-2px) scale(1.015)}
   100%{opacity:1;transform:translateY(0) scale(1)}
 }
-.icard .ph{position:relative;aspect-ratio:1/1;display:grid;place-items:center;
-  border-bottom:2.2px solid var(--ink);cursor:pointer;overflow:hidden}
-.icard .ph svg{width:52%;height:52%;color:var(--ink);opacity:.82}
+/* 方形缩略图（原来是占满卡宽的方图，现在缩成左侧固定 78×78） */
+.icard .ph{position:relative;width:78px;height:78px;flex:0 0 auto;display:grid;place-items:center;
+  border:2px solid var(--ink);border-radius:11px 4px 12px 5px/5px 12px 4px 11px;
+  cursor:pointer;overflow:hidden}
+.icard .ph svg{width:54%;height:54%;color:var(--ink);opacity:.82}
 .icard .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.icard .ph .addph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:5px;font-family:var(--f-cn);font-size:11px;color:var(--ink2);opacity:.72}
-.icard .ph .addph svg{width:22px;height:22px;opacity:.8}
-.icard .ph .qty{position:absolute;bottom:7px;right:7px;font-family:var(--f-num);font-weight:700;font-size:14px;
-  background:#fff;border:1.9px solid var(--ink);border-radius:9px 3px 10px 4px/4px 10px 3px 9px;padding:1px 7px;z-index:3}
-.icard .ph .lk{position:absolute;top:7px;right:7px;width:23px;height:23px;z-index:3;cursor:pointer;
+/* 无照片时：图标居中，"+"号做成右下角的小提示（79px 放不下"加照片"三个字） */
+.icard .ph .addph{position:absolute;right:3px;bottom:3px;width:17px;height:17px;z-index:2;
+  display:grid;place-items:center;background:rgba(255,255,255,.92);
+  border:1.5px solid var(--ink);border-radius:50% 46% 52% 48%;opacity:.85}
+.icard .ph .addph svg{width:11px;height:11px;opacity:.9}
+/* 缩略图只有 78px，四个角塞不下四样东西 → 日期 + 爱心留在图上（这两样要"一眼看到"），
+   状态标签和数量角标移到右侧文字区。 */
+.icard .ph .lk{position:absolute;top:4px;right:4px;width:19px;height:19px;z-index:3;cursor:pointer;
   display:grid;place-items:center;transition:transform .12s;background:none;border:none;padding:0}
 .icard .ph .lk:active{transform:scale(.86)}
 .icard .ph .lk::after{content:'';position:absolute;inset:-8px}
 /* <use> 影子树里外部类选择器无效，只能用继承属性：fill / stroke / stroke-width 写在外层 svg 上 */
-.icard .ph .lk svg{width:23px;height:23px;overflow:visible;
+.icard .ph .lk svg{width:19px;height:19px;overflow:visible;
   fill:var(--lkc,#fff);stroke:var(--ink);stroke-width:2;stroke-linejoin:round;
   paint-order:stroke fill}
-.icard .ph .st{position:absolute;bottom:7px;left:7px;font-family:var(--f-cn);font-size:10.5px;
-  background:rgba(255,255,255,.95);border:1.8px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;
-  padding:1px 7px;cursor:pointer;z-index:3;transition:transform .12s}
-.icard .ph .st:active{transform:translate(1px,1px)}
-.icard .ph .st::after{content:'';position:absolute;inset:-7px}
 /* 归类小菜单（浮在卡片上） */
 .pop{position:absolute;z-index:40;background:var(--screen);border:2.4px solid var(--ink);
   border-radius:14px 6px 15px 7px/7px 15px 6px 14px;box-shadow:5px 6px 0 rgba(22,23,27,.22);
@@ -364,18 +371,34 @@ body{
 .pop .pi .mk svg{width:18px;height:18px;overflow:visible;
   fill:var(--lkc,#fff);stroke:var(--ink);stroke-width:2;stroke-linejoin:round;paint-order:stroke fill}
 .pop .pi .ck{margin-left:auto;font-family:'PatrickHand',sans-serif;font-size:13px;color:var(--ink2)}
-.icard .meta{padding:8px 9px 9px}
-/* 收起态：名称 + 位置并排，紧凑 */
-.icard .meta .row-name{display:flex;align-items:center;gap:6px}
-.icard .nm-txt{font-family:var(--f-cn);font-size:14px;color:var(--ink);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
-.icard .loc-txt{font-size:11.5px;color:var(--sub);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+.icard .meta{padding:0;flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+/* 名称（单列变宽了，可以显示更长） */
+.icard .meta .nm{font-family:var(--f-cn);font-size:14.5px;color:var(--ink);line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 第二行：位置 + 状态标签 */
+.icard .meta .line2{display:flex;align-items:center;gap:6px;min-width:0}
+.icard .loc-txt{font-size:11px;color:var(--sub);min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .icard .loc-txt:empty{display:none}
-/* 购入日期角标（图片左上角） */
-.icard .ph .buy{position:absolute;top:7px;left:7px;font-family:'PatrickHand',sans-serif;
-  font-size:10.5px;background:rgba(255,255,255,.94);border:1.7px solid var(--ink);
-  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:1px 6px;z-index:3}
+/* 季节（只有衣物才有）单独一个小字，比拼在位置后面好截断 */
+.icard .se-txt{flex:0 0 auto;font-size:10.5px;color:#a3a4ab}
+/* 卡片上的状态小标签（缩略图里放不下，挪到文字区） */
+.icard .meta .st-tag{flex:0 0 auto;font-family:var(--f-cn);font-size:10px;padding:1px 7px;
+  border:1.7px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;cursor:pointer;
+  transition:transform .12s}
+.icard .meta .st-tag:active{transform:translate(1px,1px)}
+/* 第三行：用过 N 次（可点减 1） */
+.icard .meta .used{font-family:'PatrickHand',sans-serif;font-size:10.5px;color:var(--sub);
+  background:none;border:none;padding:0;text-align:left;cursor:pointer;align-self:flex-start}
+.icard .meta .used:active{color:var(--ink)}
+/* 右侧竖排：数量 / 爱心 / 打勾 */
+.icard .side{flex:0 0 auto;display:flex;align-items:center;gap:7px}
+.icard .side .qty{font-family:var(--f-num);font-weight:700;font-size:13px;color:var(--ink);
+  background:#fff;border:1.8px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:0 6px}
+/* 购入日期角标（缩略图左上角，字号收小） */
+.icard .ph .buy{position:absolute;top:4px;left:4px;font-family:'PatrickHand',sans-serif;
+  font-size:9px;background:rgba(255,255,255,.94);border:1.5px solid var(--ink);
+  border-radius:7px 3px 8px 4px/4px 8px 3px 7px;padding:0 4px;z-index:3}
 /* 展开态相关样式已移除：物品卡的编辑改为从卡片形变长出的面板 */
 .icard .nm-in,.icard .loc-in,.icard .date-in,.icard .del-btn,.icard .expand{display:none}
 .icard .nm-in{width:100%;border:none;background:transparent;padding:2px 0;
@@ -384,12 +407,10 @@ body{
 .icard .nm-in:focus{border-bottom-color:var(--ink)}
 .icard .nm-in::placeholder{color:#b5b6bd}
 .icard .date-row{display:flex;align-items:center;gap:6px}
-/* 使用次数按钮 */
-/* 使用次数按钮：钉在卡片最右侧（位置为空时也不会跑到名称旁边） */
-.icard .row-name .use-btn{margin-left:auto}
-.icard .use-btn{width:26px;height:26px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
-  background:var(--accent);border:1.9px solid var(--ink);display:grid;place-items:center;
-  cursor:pointer;box-shadow:1px 2px 0 rgba(22,23,27,.14);transition:transform .12s}
+/* 使用次数按钮：右侧竖排的最下面 */
+.icard .use-btn{width:27px;height:27px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
+  background:var(--accent);border:2px solid var(--ink);display:grid;place-items:center;
+  cursor:pointer;box-shadow:2px 2px 0 rgba(22,23,27,.12);transition:transform .12s}
 .icard .use-btn svg{width:14px;height:14px}
 .icard .use-btn:active{transform:scale(.86)}
 .icard .use-btn.bump{animation:useBump .45s}
@@ -428,15 +449,8 @@ body{
 .icard .loc-in:focus,.icard .date-in:focus{border-bottom-color:var(--ink);color:var(--ink)}
 .icard .loc-in::placeholder{color:#c2c3c9}
 .icard .date-in{color:#8b8c94}
-/* 「用过 N 次」角标：可点，点一下减 1（误点勾选后的回退口）。
-   放图片下方中间 —— 四个角已被占用：左上日期、右上爱心、左下状态、右下数量 ×N，
-   再挤右下会和 ×N 叠在一起。 */
-.icard .ph .use{position:absolute;left:50%;bottom:7px;transform:translateX(-50%);
-  font-family:var(--f-cn);font-size:10px;
-  background:rgba(255,255,255,.94);border:1.7px solid var(--ink);color:var(--ink);
-  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:2px 7px;z-index:4;cursor:pointer;
-  line-height:1.35;white-space:nowrap}
-.icard .ph .use:active{transform:translateX(-50%) translate(1px,1px);background:var(--accent)}
+/* 「用过 N 次」已从图片下方的角标改成文字区第三行（见 .icard .meta .used），
+   旧角标样式删除。 */
 /* 点勾选后从按钮位置飘一个 +1，飘完自动消失 */
 .use-pop{position:fixed;z-index:9999;pointer-events:none;font-family:var(--f-num);font-weight:700;
   font-size:19px;color:var(--accent-deep);text-shadow:0 1px 0 #fff,0 -1px 0 #fff,1px 0 0 #fff,-1px 0 0 #fff;
@@ -1964,45 +1978,52 @@ function renderItems(){
     const k = ITEMS.indexOf(i);
     const tint = TINTS[k % TINTS.length];
     const seasonTxt = i.season ? (SEASONS.find(s => s.id === i.season) || {}).name : '';
-    const locTxt = [i.loc, seasonTxt].filter(Boolean).join(' · ');
+    // 单列横卡的位置区很窄，位置和季节分开两个 span（比 "A · B" 更好截断）
+    const locOnly = i.loc || '';
 
+    // 缩略图只有 79px：「加照片」的文字放不下（会和图标叠在一起），
+    // 只留一个淡淡的 + 提示，具体文案靠点击后的行为表达。
     const phInner = i.photo
       ? `<img src="${i.photo}" alt="">`
       : `<span class="addph">
-           <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"><path d="M12 7v10M7 12h10"/></svg>
-           加照片
+           <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 7v10M7 12h10"/></svg>
          </span>
-         <svg><use href="#${i.ic || 'ic-box'}"/></svg>`;
+         <svg class="phic"><use href="#${i.ic || 'ic-box'}"/></svg>`;
 
     const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
     const useCount = i.uses || 0;
-    // 「用过 N 次」角标：可点，点一下减 1（防止误点勾选后没法回退）
+    // 「用过 N 次」：可点，点一下减 1（防止误点勾选后没法回退）
     const useBadge = useCount > 0
-      ? `<button class="use" data-useundo="${i.id}" title="点一下减 1 次">用过 ${useCount} 次</button>`
+      ? `<button class="used" data-useundo="${i.id}" title="点一下减 1 次">用过 ${useCount} 次</button>`
       : '';
 
-    // 日期角标放图片左上角（没有日期就不显示）
+    // 日期角标放缩略图左上角（没有日期就不显示）
     const dateBadge = i.buy ? `<span class="buy">${i.buy.slice(5).replace('-', '/')}</span>` : '';
 
+    // 单列横卡：左缩略图（只放日期 + 爱心角标）→ 右文字（名称/位置+状态/用过几次）→ 右侧竖排（数量/打勾）
+    // ★ 状态标签和数量都只在文字区/右侧出现一次，不再压在缩略图上（78px 的图塞四样太挤）
     return `<div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
       <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
         ${phInner}
-        ${qtyBadge}
         ${dateBadge}
         <span class="lk" data-lk="${i.id}" title="改喜欢程度" style="--lkc:${LIKE_FILL[i.like]}">
           <svg viewBox="0 0 24 24"><use href="#mk-${i.like === 'like' ? 'like' : i.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg>
         </span>
-        <span class="st" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
-        ${useBadge}
       </div>
       <div class="meta">
-        <div class="row-name">
-          <span class="nm-txt">${i.n}</span>
-          <span class="loc-txt">${i.loc || ''}</span>
-          <button class="use-btn" data-usebtn="${i.id}" title="记一次使用">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
-          </button>
+        <div class="nm">${i.n}</div>
+        <div class="line2">
+          <span class="loc-txt">${locOnly}</span>
+          ${seasonTxt ? `<span class="se-txt">${seasonTxt}</span>` : ''}
+          <span class="st-tag" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
         </div>
+        ${useBadge}
+      </div>
+      <div class="side">
+        ${qtyBadge}
+        <button class="use-btn" data-usebtn="${i.id}" title="记一次使用">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -2013,11 +2034,12 @@ function renderItems(){
   if (!rows.length){
     // 空状态分两种：库里真没有 vs 只是被当前筛选挡住了（后者给一键显示全部，
     // 否则用户会以为"刚加的东西没进去"）
+    // ★ 容器现在是 flex 单列，用 flex:0 0 auto + width:100% 占满（grid-column 在 flex 里无效）
     if (!ITEMS.length){
-      $('#igrid').innerHTML = `<div class="empty" style="grid-column:1/-1">
+      $('#igrid').innerHTML = `<div class="empty" style="flex:0 0 auto;width:100%">
         <b>还没有物品</b><span>点右下角的加号添加</span></div>`;
     } else {
-      $('#igrid').innerHTML = `<div class="empty" style="grid-column:1/-1">
+      $('#igrid').innerHTML = `<div class="empty" style="flex:0 0 auto;width:100%">
         <b>当前筛选下没有物品</b>
         <span>库里有 ${ITEMS.length} 条，只是被筛选挡住了</span>
         <button class="btn pri" id="itemShowAll" style="max-width:170px;margin:12px auto 0">显示全部</button>
