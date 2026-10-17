@@ -1871,12 +1871,20 @@ function syncFilterGroup(){
   renderCatChips();
 }
 
-/* 进物品页的默认视图：只选中「状态行的第一个」= 在用中，
-   分类不预筛（用户要求「显示也换成显示状态行第一个」）。
-   从总览点某个分类进来时那个分类用上（不然点进去看不到自己想看的），其余同上。 */
+/* 「分类行第一个」= 该状态下第一个真有东西的分类。
+   分类行只列 qty>0 的分类（见 renderCatChips），所以这里必须用同一口径，
+   否则会选中一个根本没显示出来的分类。 */
+function firstCatWithItems(st){
+  const c = CATS.find(x => catQtyIn(x.id, st) > 0);
+  return c ? c.id : 'all';
+}
+
+/* 进物品页的默认视图：状态行的第一个（在用中）+ **分类行的第一个**。
+   用户明确要求「进去物品页后先显示在用中和分类行第一个」。
+   从总览点某个分类进来时用那个分类（不然点进去看不到自己想看的）。 */
 function resetItemFiltersToDefault(cat){
-  state.cat = cat || 'all';
   state.st = ST_KEYS[0];            // 「在用中」
+  state.cat = cat || firstCatWithItems(state.st);
   state.like = 'all';
   state.loc = 'all';
   state.season = 'all';
@@ -1887,9 +1895,13 @@ function renderCatChips(){
   // 分类行 = 状态行的分支：只算「当前状态」里的物品，
   // 并且**只列出该状态下真有东西的分类**（数量为 0 的不出现，
   // 否则「收纳中只有 1 个」时下面还挂着 5 个 0，看不出从属关系）。
-  // ★ 筛选的分类在当前状态下已经空了 → 先取消筛选（放在建列表之前，
-  //   否则这一帧还会把它画成选中，下一帧才消失，看着像闪一下）。
-  if (state.cat !== 'all' && catQtyIn(state.cat, state.st) === 0) state.cat = 'all';
+  // ★ 筛选的分类在当前状态下已经空了 → 换成**该状态的第一个分类**
+  //   （跟进页面时的默认一致；直接退回「全部」会变成一行里一个都没选中，
+  //    用户就分不清当前在看什么了）。
+  //   放在建列表之前，否则这一帧还会把它画成选中，下一帧才消失，看着像闪一下。
+  if (state.cat !== 'all' && catQtyIn(state.cat, state.st) === 0){
+    state.cat = firstCatWithItems(state.st);
+  }
 
   const list = CATS
     .map(c => ({ ...c, qty: catQtyIn(c.id, state.st) }))
@@ -3791,6 +3803,91 @@ on('#catChips', 'click', e => {
   renderCatChips(); renderItems();
 });
 // 位置行 / 季节行的点击处理已删除（那两行筛选已按用户要求移除）
+
+/* ================= 分类行：左右滑动切换分类 =================
+   用户要求：左滑 → 下一个分类，右滑 → 上一个分类
+   （例：在日常物品 → 左滑到夏装 → 再左滑到第三个；右滑回上一个）。
+   ★ 分类行本身是 overflow-x:auto 的横向滚动容器，所以：
+     · 分类多到溢出时，**横向滑动交还给原生滚动**，不要抢（否则滑不到后面的分类）
+     · 只有内容放得下（不溢出）时，横滑才用来切换
+     · 纵向滑动一律放行（让页面能上下滚）
+   方向锁与阈值跟软件行左滑删除同一套：|dx|>8 且 |dx|>|dy| 判为横滑。 */
+(function initCatSwipe(){
+  const box = $('#catChips');
+  if (!box) return;
+  const row = $('#catRow');
+  let startX = 0, startY = 0, locked = null, tracking = false;
+
+  const chipsInOrder = () => [...box.querySelectorAll(':scope > .chip')];
+
+  const step = (dir) => {
+    const chips = chipsInOrder();
+    if (chips.length < 2) return false;
+    const curIdx = chips.findIndex(c => c.classList.contains('on'));
+    // 没有选中项时：左滑从第一个开始，右滑从最后一个开始
+    let next;
+    if (curIdx < 0) next = dir > 0 ? 0 : chips.length - 1;
+    else next = curIdx + dir;
+    if (next < 0 || next >= chips.length) return false;   // 到头了就不动（不循环）
+    const target = chips[next];
+    const k = target.dataset.cat;
+    if (!k) return false;
+    chipsReflow(box, '.chip', () => {
+      state.cat = k;
+      chips.forEach(c => c.classList.toggle('on', c.dataset.cat === state.cat));
+    });
+    renderCatChips(); renderItems();
+    // 让被选中的那个滚进可视区（分类多的时候很有用）
+    requestAnimationFrame(() => {
+      const on = box.querySelector('.chip.on');
+      if (on) on.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    });
+    return true;
+  };
+
+  const onDown = (x, y) => {
+    // 内容溢出 → 横滑留给原生滚动，不接管
+    if (box.scrollWidth > box.clientWidth + 2) return;
+    startX = x; startY = y; locked = null; tracking = true;
+  };
+  const onMove = (x, y, e) => {
+    if (!tracking) return;
+    const dx = x - startX, dy = y - startY;
+    if (locked === null){
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) locked = 'x';
+      else if (Math.abs(dy) > 8){ locked = 'y'; tracking = false; return; }
+      else return;
+    }
+    if (locked !== 'x') return;
+    if (e && e.cancelable) e.preventDefault();
+  };
+  const onUp = (x) => {
+    if (!tracking){ locked = null; return; }
+    const wasX = locked === 'x';
+    const dx = x - startX;
+    tracking = false; locked = null;
+    if (!wasX) return;
+    if (Math.abs(dx) < 34) return;           // 太短不算（防止误触）
+    step(dx < 0 ? 1 : -1);                    // 左滑 dx<0 → 下一个
+    suppressCardClickUntil = Date.now() + 350;
+  };
+
+  row.addEventListener('touchstart', e => {
+    const t = e.touches[0]; onDown(t.clientX, t.clientY);
+  }, { passive: true });
+  row.addEventListener('touchmove', e => {
+    const t = e.touches[0]; onMove(t.clientX, t.clientY, e);
+  }, { passive: false });
+  row.addEventListener('touchend', e => {
+    const t = e.changedTouches[0]; onUp(t ? t.clientX : startX);
+  });
+  row.addEventListener('touchcancel', () => { tracking = false; locked = null; });
+
+  // 桌面/无头环境也要能验：鼠标拖拽同效
+  row.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => { if (tracking) onMove(e.clientX, e.clientY, null); });
+  window.addEventListener('mouseup', e => { if (tracking) onUp(e.clientX); });
+})();
 on('#stChips', 'click', e => {
   const chip = e.target.closest('[data-st]'); if (!chip) return;
   const k = chip.dataset.st;
