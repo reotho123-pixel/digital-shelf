@@ -282,6 +282,23 @@ body{
    加了 .center 的行居中显示（内容超宽时 JS 会补 .overflowing 退回左对齐） */
 .chipRow{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .chipRow .chips{flex:1;padding-bottom:7px;justify-content:flex-start}
+/* ---------- 层级：状态行是「总行」，分类/位置/季节都是它的分支 ----------
+   用三处视觉差把父子关系说出来，不动任何交互：
+     ① 总行按钮略大、描边更重（看起来在"上一层"）
+     ② 分支行整体缩进、按钮小一号（像挂在总行下面）
+     ③ 分支行左侧一道渐变竖线，从总行底部往下引（真正的"从属"暗示） */
+.chipRow.master .chip{font-size:13px;padding:6px 14px;border-width:2.4px}
+.chips.small.master .chip{font-size:12.5px;padding:6px 13px;border-width:2.4px}
+.chips.small.master .chip.on{padding:7px 17px;font-size:13px}
+.chipRow.master .chip .n{opacity:.74;font-size:12px}
+.chipRow.branch{position:relative;padding-left:12px}
+.chipRow.branch::before{content:'';position:absolute;left:3.5px;top:-4px;bottom:10px;width:1.6px;
+  background:linear-gradient(to bottom,rgba(22,23,27,.32),rgba(22,23,27,.08));
+  border-radius:2px}
+.chipRow.branch .chip{font-size:12px;padding:5px 11px}
+.chips.small.branch .chip{font-size:11.5px;padding:4.5px 10px}
+.chipRow.branch .chip.on{font-size:12.5px;padding:6px 14px}
+.chips.small.branch .chip.on{font-size:12px;padding:5.5px 13px}
 .count-row{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 11px}
 .count-row b{font-family:var(--f-cn);font-size:14.5px;font-weight:400}
 .count-row span{font-size:12.5px;color:var(--sub);font-family:'PatrickHand',sans-serif}
@@ -949,20 +966,20 @@ body{
         </div>
 
         <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <!-- 状态行排第一（用户要求跟分类行互换），并居中显示 -->
-        <div class="chipRow">
-          <div class="chips small center" id="stChips"></div>
+        <!-- ★ 状态行是「总行」（.master），下面几行是它的分支（.branch） -->
+        <div class="chipRow master">
+          <div class="chips small center master" id="stChips"></div>
         </div>
 
         <!-- 分类行（一直显示）。★ .center 说明见 CSS：居中行在内容超宽时会自动退回左对齐 -->
-        <div class="chipRow" id="catRow">
+        <div class="chipRow branch" id="catRow">
           <div class="chips center" id="catChips"></div>
         </div>
 
-        <div class="chipRow" id="locRow" style="display:none">
+        <div class="chipRow branch" id="locRow" style="display:none">
           <div class="chips small center" id="locChips"></div>
         </div>
-        <div class="chipRow" id="seasonRow" style="display:none">
+        <div class="chipRow branch" id="seasonRow" style="display:none">
           <div class="chips small center" id="seasonChips"></div>
         </div>
 
@@ -986,11 +1003,11 @@ body{
         </div>
 
         <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <!-- 必需行排第一（跟物品页一样），并居中显示 -->
-        <div class="chipRow">
-          <div class="chips small center" id="needChips"></div>
+        <!-- ★ 必需行是「总行」（.master），分类行是它的分支（.branch） -->
+        <div class="chipRow master">
+          <div class="chips small center master" id="needChips"></div>
         </div>
-        <div class="chipRow" id="appCatRow">
+        <div class="chipRow branch" id="appCatRow">
           <div class="chips center" id="appCatChips"></div>
         </div>
 
@@ -1625,6 +1642,19 @@ const liveItems = () => ITEMS;
 function sumQty(rows){ return rows.reduce((s,i) => s + i.q, 0); }
 function catQty(cid){ return sumQty(ITEMS.filter(i => i.c === cid)); }
 
+/* ★ 筛选行的层级：状态行是「总行」，分类 / 位置 / 季节都是它的分支。
+   所以两套口径必须分开：
+     · 状态行 = 该状态下的**全部**物品（不受分类影响）—— 它才配叫"总"
+     · 分支行 = 只算「当前状态」里的物品
+   否则会出现用户实测报过的对不上：分类写着全部数量，可列表只显示
+   「状态 ∩ 分类」，看起来像数字在撒谎。
+   单位统一用**条数**（跟列表标题的「N 条」一致），不用件数——
+   否则一件 q=3 的东西会让"状态 1 / 分类 3"再次对不上。 */
+function itemsInSt(st){ return st === 'all' ? ITEMS : ITEMS.filter(i => i.st === st); }
+function catQtyIn(cid, st){ return itemsInSt(st).filter(i => i.c === cid).length; }
+/* 软件页同一套父子口径：必需行是总行，分类行是它的分支 */
+function appsInNeed(k){ return k === 'all' ? APPS : APPS.filter(a => a.need === k); }
+
 /* ================= 总览 ================= */
 function renderHome(){
   const held = sumQty(ITEMS.filter(i => i.st === 'inuse' || i.st === 'stored' || i.st === 'consuming'));
@@ -1820,8 +1850,16 @@ function resetItemFiltersToDefault(cat){
 }
 
 function renderCatChips(){
-  // 分类行（现在排在状态行下面）。新建/改名/删除在「设置 → 分类管理」里。
-  const list = CATS.map(c => ({ ...c, qty: catQty(c.id) }));
+  // 分类行 = 状态行的分支：只算「当前状态」里的物品，
+  // 并且**只列出该状态下真有东西的分类**（数量为 0 的不出现，
+  // 否则「收纳中只有 1 个」时下面还挂着 5 个 0，看不出从属关系）。
+  // ★ 筛选的分类在当前状态下已经空了 → 先取消筛选（放在建列表之前，
+  //   否则这一帧还会把它画成选中，下一帧才消失，看着像闪一下）。
+  if (state.cat !== 'all' && catQtyIn(state.cat, state.st) === 0) state.cat = 'all';
+
+  const list = CATS
+    .map(c => ({ ...c, qty: catQtyIn(c.id, state.st) }))
+    .filter(c => c.qty > 0 || state.cat === c.id);
   const keys = list.map(c => c.id);
   // 复用已有节点（标签让位要求同一批 DOM 跨越改动前后）
   const reused = syncChips($('#catChips'), keys,
@@ -1834,38 +1872,37 @@ function renderCatChips(){
     ).join('');
   }
   const row = $('#catRow');
-  if (row) row.style.display = CATS.length ? 'flex' : 'none';
+  if (row) row.style.display = list.length ? 'flex' : 'none';
 }
 
-/* 状态行：四档 + 各自数量 */
+/* 状态行 = 总行：每一档显示**该状态下的全部条数**（不受分类影响）。
+   这样它跟下面的分支行才是真正的父子关系：
+   状态 6 → 点进去，分类那行加起来正好是 6。 */
 function renderStChips(){
-  // 数量按「当前分类」范围统计（跟分类行同一个口径，才看得懂）
-  const base = ITEMS.filter(i => state.cat === 'all' || i.c === state.cat);
   const sts = ST_KEYS;
   const keys = sts;
   const reused = syncChips($('#stChips'), keys,
-    k => `${ST_TEXT[k]}<span class="n">${base.filter(i => i.st === k).length}</span>`,
+    k => `${ST_TEXT[k]}<span class="n">${itemsInSt(k).length}</span>`,
     k => 'chip' + (state.st === k ? ' on' : ''));
   if (!reused){
     $('#stChips').innerHTML = sts.map(k =>
-      `<button class="chip${state.st === k ? ' on' : ''}" data-st="${k}" data-chip-key="${k}">${ST_TEXT[k]}<span class="n">${base.filter(i => i.st === k).length}</span></button>`
+      `<button class="chip${state.st === k ? ' on' : ''}" data-st="${k}" data-chip-key="${k}">${ST_TEXT[k]}<span class="n">${itemsInSt(k).length}</span></button>`
     ).join('');
   }
 }
 
 /* 喜欢筛选行已删除（用户要求）；卡片上的喜欢圆点、编辑面板里的喜欢选择都保留 */
 
-/* 必需行：两档 + 各自数量（软件页）
+/* 必需行 = 软件页的总行：显示该档下的**全部**软件数（不受分类影响）。
    「待删」已去掉：库里标着 todel 的软件在启动时统一转到「暂用」，不会丢。 */
 function renderNeedChips(){
-  const base = APPS.filter(a => appState.cat === 'all' || !a.c || a.c === appState.cat);
   const ks = NEED_KEYS;
   const reused = syncChips($('#needChips'), ks,
-    k => `${NEED_TEXT[k]}<span class="n">${base.filter(a => a.need === k).length}</span>`,
+    k => `${NEED_TEXT[k]}<span class="n">${appsInNeed(k).length}</span>`,
     k => 'chip' + (appState.need === k ? ' on' : ''));
   if (!reused){
     $('#needChips').innerHTML = ks.map(k =>
-      `<button class="chip${appState.need === k ? ' on' : ''}" data-need="${k}" data-chip-key="${k}">${NEED_TEXT[k]}<span class="n">${base.filter(a => a.need === k).length}</span></button>`
+      `<button class="chip${appState.need === k ? ' on' : ''}" data-need="${k}" data-chip-key="${k}">${NEED_TEXT[k]}<span class="n">${appsInNeed(k).length}</span></button>`
     ).join('');
   }
 }
@@ -1874,8 +1911,11 @@ function renderSeasonChips(){
   const row = $('#seasonRow');
   if (!filtersAllowed() || state.cat !== 'cloth'){ row.style.display = 'none'; return; }
   row.style.display = 'flex';
-  const base = ITEMS.filter(i => i.c === 'cloth');
-  const list = SEASONS.map(s => ({ ...s, qty: sumQty(base.filter(i => i.season === s.id)) }));
+  // 季节行也是状态的分支：只算「当前状态」里的衣物
+  const base = itemsInSt(state.st).filter(i => i.c === 'cloth');
+  const list = SEASONS
+    .map(s => ({ ...s, qty: base.filter(i => i.season === s.id).length }))
+    .filter(s => s.qty > 0 || state.season === s.id);
   const keys = list.map(s => s.id);
   const reused = syncChips($('#seasonChips'), keys,
     k => { const s = list.find(x => x.id === k); return `${s.name}<span class="n">${s.qty}</span>`; },
@@ -1887,11 +1927,11 @@ function renderSeasonChips(){
   }
 }
 
-/* 位置筛选：列出当前分类下出现过的位置（有位置的才列） */
+/* 位置筛选：列出「当前状态 + 当前分类」下出现过的位置（有位置的才列） */
 function renderLocChips(){
   const row = $('#locRow');
   if (!filtersAllowed()){ row.style.display = 'none'; state.loc = 'all'; return; }
-  const base = ITEMS.filter(i => state.cat === 'all' || i.c === state.cat);
+  const base = itemsInSt(state.st).filter(i => state.cat === 'all' || i.c === state.cat);
   const counts = new Map();
   base.forEach(i => {
     const k = (i.loc || '').trim();
@@ -2435,7 +2475,15 @@ const appCatOf = id => APP_CATS.find(c => c.id === id) || { name:'未分类', to
    点「必需」或「暂用」才出现（「待删」不用再按分类挑）；
    另外从别处筛了分类时也显示，免得"筛了却看不到、取消不掉"。 */
 function renderAppCatChips(){
-  const list = APP_CATS.map(c => ({ ...c, qty: APPS.filter(a => a.c === c.id).length }));
+  // 软件分类行 = 必需行的分支：只算「当前必需档」里的软件，
+  // 并且只列出该档下真有东西的分类（0 个的不出现）。
+  // ★ 先取消空筛选，再建列表（否则会先画成选中、下一帧才消失）。
+  if (appState.cat !== 'all' && appsInNeed(appState.need).filter(a => a.c === appState.cat).length === 0){
+    appState.cat = 'all';
+  }
+  const list = APP_CATS
+    .map(c => ({ ...c, qty: appsInNeed(appState.need).filter(a => a.c === c.id).length }))
+    .filter(c => c.qty > 0 || appState.cat === c.id);
   const keys = list.map(c => c.id);
   const reused = syncChips($('#appCatChips'), keys,
     k => { const c = list.find(x => x.id === k); return `${c.name}<span class="n">${c.qty}</span>`; },
@@ -2446,8 +2494,7 @@ function renderAppCatChips(){
     ).join('');
   }
   const row = $('#appCatRow');
-  // 分类行一直显示（跟物品页一样不再隐藏）——进软件页默认就选中第一个分类
-  if (row) row.style.display = APP_CATS.length ? 'flex' : 'none';
+  if (row) row.style.display = list.length ? 'flex' : 'none';
 }
 
 function renderApps(){
