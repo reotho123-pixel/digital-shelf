@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -976,12 +976,7 @@ body{
           <div class="chips center" id="catChips"></div>
         </div>
 
-        <div class="chipRow branch" id="locRow" style="display:none">
-          <div class="chips small center" id="locChips"></div>
-        </div>
-        <div class="chipRow branch" id="seasonRow" style="display:none">
-          <div class="chips small center" id="seasonChips"></div>
-        </div>
+        <!-- 位置行 / 季节行已删除（用户要求：只保留状态和分类两行） -->
 
         <div class="count-row">
           <b id="resTitle">全部物品</b>
@@ -1825,13 +1820,7 @@ function renderHome(){
 })();
 
 /* ================= 物品列表 ================= */
-/* 喜欢/位置/季节这三行只在「在用中 / 收纳中」时出现；
-   消耗中（会用完）和待处理（准备处理）不按这些维度看。
-   ★ 分类行不在此列 —— 它一直显示（用户要求「取消隐藏并移到最上面」）。 */
-function filtersAllowed(){
-  return (state.st === 'all' || state.st === 'inuse' || state.st === 'stored');
-}
-
+/* 筛选只剩两行：状态（总行）+ 分类（分支）。位置行和季节行已按用户要求删除。 */
 function syncFilterGroup(){
   renderStChips();
   renderCatChips();
@@ -1907,61 +1896,19 @@ function renderNeedChips(){
   }
 }
 
-function renderSeasonChips(){
-  const row = $('#seasonRow');
-  if (!filtersAllowed() || state.cat !== 'cloth'){ row.style.display = 'none'; return; }
-  row.style.display = 'flex';
-  // 季节行也是状态的分支：只算「当前状态」里的衣物
-  const base = itemsInSt(state.st).filter(i => i.c === 'cloth');
-  const list = SEASONS
-    .map(s => ({ ...s, qty: base.filter(i => i.season === s.id).length }))
-    .filter(s => s.qty > 0 || state.season === s.id);
-  const keys = list.map(s => s.id);
-  const reused = syncChips($('#seasonChips'), keys,
-    k => { const s = list.find(x => x.id === k); return `${s.name}<span class="n">${s.qty}</span>`; },
-    k => 'chip' + (state.season === k ? ' on' : ''));
-  if (!reused){
-    $('#seasonChips').innerHTML = list.map(s =>
-      `<button class="chip${state.season === s.id ? ' on' : ''}" data-season="${s.id}" data-chip-key="${s.id}">${s.name}<span class="n">${s.qty}</span></button>`
-    ).join('');
-  }
-}
-
-/* 位置筛选：列出「当前状态 + 当前分类」下出现过的位置（有位置的才列） */
-function renderLocChips(){
-  const row = $('#locRow');
-  if (!filtersAllowed()){ row.style.display = 'none'; state.loc = 'all'; return; }
-  const base = itemsInSt(state.st).filter(i => state.cat === 'all' || i.c === state.cat);
-  const counts = new Map();
-  base.forEach(i => {
-    const k = (i.loc || '').trim();
-    if (!k) return;
-    counts.set(k, (counts.get(k) || 0) + 1);
-  });
-  // 位置种类太少就不占一行（少于 2 个没筛选意义）
-  if (counts.size < 2){ row.style.display = 'none'; state.loc = 'all'; return; }
-  row.style.display = 'flex';
-  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  const keys = sorted.map(([name]) => name);
-  const reused = syncChips($('#locChips'), keys,
-    k => { const e = sorted.find(x => x[0] === k); return `${e[0]}<span class="n">${e[1]}</span>`; },
-    k => 'chip' + (state.loc === k ? ' on' : ''));
-  if (!reused){
-    $('#locChips').innerHTML = sorted.map(([name, n]) =>
-      `<button class="chip${state.loc === name ? ' on' : ''}" data-loc="${name}" data-chip-key="${name}">${name}<span class="n">${n}</span></button>`
-    ).join('');
-  }
-}
+/* 季节 / 位置筛选行已删除（用户要求：筛选只保留「状态 + 分类」两行）。
+   ★ 数据字段没删：物品的 i.loc / i.season 仍在，卡片、详情、编辑面板照常显示和编辑，
+     只是不再有「按位置 / 按季节筛选」这两行。 */
 
 function renderItems(){
   syncFilterGroup();
-  // 搜索框已删除；喜欢筛选行也已删除（state.like 恒为 'all'，卡片上的喜欢功能保留）
+  // 搜索框 / 喜欢行 / 位置行 / 季节行都已删除。
+  // state.like、state.loc、state.season 仍保留但恒为 'all'（它们不再参与筛选），
+  // 物品自身的 i.loc / i.season 字段照常显示在卡片和编辑面板里。
   const rows = ITEMS.filter(i =>
     (state.cat === 'all' || i.c === state.cat) &&
-    (state.cat !== 'cloth' || state.season === 'all' || i.season === state.season) &&
     (state.like === 'all' || i.like === state.like) &&
-    (state.st === 'all' || i.st === state.st) &&
-    (state.loc === 'all' || (i.loc || '').trim() === state.loc)
+    (state.st === 'all' || i.st === state.st)
   );
   // 排序：先按状态聚在一起（在用中 → 收纳中 → 消耗中 → 待处理），
   // 状态内部再按用户拖拽的顺序。这样改了状态的卡片是真会挪到另一堆里去，
@@ -1977,10 +1924,7 @@ function renderItems(){
   const catName = state.cat === 'all' ? '全部物品' : catOf(state.cat).name;
   const likeName = state.like === 'all' ? '' : ` · ${LIKE_TEXT[state.like]}`;
   const stName = state.st === 'all' ? '' : ` · ${ST_TEXT[state.st]}`;
-  const seName = (state.cat === 'cloth' && state.season !== 'all')
-    ? ` · ${(SEASONS.find(s => s.id === state.season) || {}).name}` : '';
-  const locName = state.loc === 'all' ? '' : ` · ${state.loc}`;
-  $('#resTitle').textContent = catName + seName + locName + likeName + stName;
+  $('#resTitle').textContent = catName + likeName + stName;
   $('#resCnt').textContent = `${rows.length} 条 · ${qty} 件`;
   $('#listTitle').textContent = state.cat === 'all' ? '物品' : catOf(state.cat).name;
   $('#listCnt').textContent = `${rows.length} 条 · ${qty} 件`;
@@ -2062,11 +2006,9 @@ function renderItems(){
       if (!FX.motionOff) setTimeout(() => el.scrollIntoView({ block:'nearest', behavior:'smooth' }), 60);
     }
   }
-  // 物品页的四行 chip 都在这里渲染完 → 把指示块对齐到选中项
+  // 物品页的两行 chip 都在这里渲染完 → 把指示块对齐到选中项
   syncChipInd($('#stChips'), false);
   syncChipInd($('#catChips'), false);
-  syncChipInd($('#locChips'), false);
-  syncChipInd($('#seasonChips'), false);
   saveSoon();
 }
 
@@ -2134,7 +2076,7 @@ function goItems(cat, opts){
     state.loc = 'all';
   }
   syncFilterGroup();
-  renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+  renderCatChips(); renderItems();
   showTab('items');
   $('#scr-items').scrollTop = 0;
 }
@@ -2366,10 +2308,10 @@ function deleteItem(id){
   const idx = ITEMS.findIndex(i => i.id === id); if (idx < 0) return;
   const removed = ITEMS.splice(idx, 1)[0];
   // 设置页的分类计数也要跟着变
-  renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+  renderSettings(); renderHome(); renderCatChips(); renderItems();
   toastUndo(`已删除「${removed.n}」`, () => {
     ITEMS.splice(idx, 0, removed);
-    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+    renderSettings(); renderHome(); renderCatChips(); renderItems();
     toast('已恢复');
   });
 }
@@ -3492,13 +3434,13 @@ function applyBackup(d, mode){
       }
     });
 
-    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips();
+    renderSettings(); renderHome(); renderCatChips();
     renderItems(); renderApps();
     saveSoon();
     return { added, merged };
   }
 
-  renderSettings(); renderHome(); renderCatChips(); renderSeasonChips();
+  renderSettings(); renderHome(); renderCatChips();
   renderItems(); renderApps();
   saveSoon();
   return { added: inItems.length, merged: 0 };
@@ -3529,7 +3471,7 @@ function clearAllModal(){
     GOAL_TOTAL = 0;
     GOAL_APPS = 0;
     closeModal();
-    renderSettings(); renderHome(); renderCatChips(); renderSeasonChips();
+    renderSettings(); renderHome(); renderCatChips();
     renderItems(); renderApps();
     toast('已清空全部数据');
   });
@@ -3791,31 +3733,11 @@ on('#catChips', 'click', e => {
   chipsReflow($('#catChips'), '.chip', () => {
     // 再点一次已选中的分类 = 取消筛选（代替原来的「全部」按钮）
     state.cat = (state.cat === k) ? 'all' : k;
-    if (state.cat !== 'cloth') state.season = 'all';
-    state.loc = 'all';
     $$('#catChips .chip').forEach(c => c.classList.toggle('on', c.dataset.cat === state.cat));
   });
-  renderCatChips(); renderSeasonChips(); renderLocChips(); renderItems();
+  renderCatChips(); renderItems();
 });
-on('#seasonChips', 'click', e => {
-  const chip = e.target.closest('[data-season]'); if (!chip) return;
-  const k = chip.dataset.season;
-  chipsReflow($('#seasonChips'), '.chip', () => {
-    state.season = (state.season === k) ? 'all' : k;   // 再点一次取消
-    $$('#seasonChips .chip').forEach(c => c.classList.toggle('on', c.dataset.season === state.season));
-  });
-  renderSeasonChips(); renderLocChips(); renderItems();
-});
-on('#locChips', 'click', e => {
-  const chip = e.target.closest('[data-loc]'); if (!chip) return;
-  const k = chip.dataset.loc;
-  chipsReflow($('#locChips'), '.chip', () => {
-    state.loc = (state.loc === k) ? 'all' : k;         // 再点一次取消
-    $$('#locChips .chip').forEach(c => c.classList.toggle('on', c.dataset.loc === state.loc));
-  });
-  renderLocChips(); renderItems();
-});
-// 喜欢筛选行已删除（用户要求）——卡片上的喜欢圆点、编辑面板里的喜欢选择都保留
+// 位置行 / 季节行的点击处理已删除（那两行筛选已按用户要求移除）
 on('#stChips', 'click', e => {
   const chip = e.target.closest('[data-st]'); if (!chip) return;
   const k = chip.dataset.st;
@@ -3824,7 +3746,7 @@ on('#stChips', 'click', e => {
     $$('#stChips .chip').forEach(c => c.classList.toggle('on', c.dataset.st === state.st));
   });
   syncFilterGroup();
-  renderSeasonChips(); renderLocChips(); renderItems();
+  renderItems();
 });
 // 搜索框已删除（用户要求）——state.q 保留但恒为空，筛选逻辑不再读它
 // 物品卡：照片 / 归类 / 删除 / 进详情
@@ -3838,7 +3760,7 @@ on('#igrid', 'click', e => {
     state.like = 'all';
     state.loc = 'all';
     state.season = 'all';
-    renderCatChips(); renderStChips(); renderLocChips(); renderSeasonChips(); renderItems();
+    renderCatChips(); renderStChips(); renderItems();
     toast('已显示全部物品');
     return;
   }
@@ -4552,7 +4474,6 @@ function renderAll(){
   applyAccent(accentId);
   renderHome();
   renderCatChips();
-  renderSeasonChips();
   renderItems();
   renderApps();
   // 新渲染出来的按钮也要有按压反馈
