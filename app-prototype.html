@@ -178,6 +178,20 @@ body{
 .gbar{margin:11px 0 8px}
 .gbar svg{display:block;width:100%;height:auto}
 .hint{font-size:13px;color:var(--sub)}
+/* 极简目标卡里的「分类目标」清单（从分类卡搬过来的） */
+.goal-cats{margin-top:12px;padding-top:11px;border-top:1.8px dashed rgba(22,23,27,.16)}
+.gc-head{font-family:var(--f-cn);font-size:12.5px;color:var(--sub);margin-bottom:7px}
+.gc-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+.gc-row .dot{width:9px;height:9px;border-radius:50% 44% 52% 46%;border:1.5px solid var(--ink);flex:0 0 auto}
+.gc-row .nm{font-family:var(--f-cn);font-size:12.5px;flex:0 0 auto;max-width:74px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.gc-row .bar{flex:1;height:7px;position:relative;min-width:30px}
+.gc-row .bar .tr{position:absolute;inset:0;border:1.7px solid var(--ink);border-radius:5px 2px 6px 3px/3px 6px 2px 5px;
+  background:rgba(22,23,27,.05)}
+.gc-row .bar .fl{position:absolute;top:1.5px;bottom:1.5px;left:1.5px;border-radius:3px 2px 4px 2px/2px 4px 2px 3px}
+.gc-row .vv{font-family:'PatrickHand',sans-serif;font-size:12px;font-weight:700;flex:0 0 auto;
+  min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.gc-row .vv i{font-style:normal;color:var(--sub);font-weight:400}
 
 /* 快捷入口 */
 .quick{display:flex;justify-content:space-between;gap:6px;margin:16px 0 18px}
@@ -201,14 +215,10 @@ body{
 .cat .ct .dot{width:11px;height:11px;border-radius:50% 44% 52% 46%;border:1.7px solid var(--ink)}
 .cat .ct span{font-size:14.5px;font-family:var(--f-cn)}
 .cat .ct .arw{margin-left:auto;font-size:12px;color:var(--sub);font-family:'PatrickHand',sans-serif}
-.cat .cn{display:flex;align-items:baseline;gap:4px;margin-bottom:7px}
+.cat .cn{display:flex;align-items:baseline;gap:4px}
 .cat .cn .n{font-family:var(--f-num);font-weight:700;font-size:31px;line-height:.85}
 .cat .cn small{font-size:12px;color:var(--sub)}
-.cat .cg{font-size:11.5px;color:var(--sub);margin-top:6px}
-.cat .cg.over{color:#b8700f}
-.mbar{height:8px;position:relative}
-.mbar .tr{position:absolute;inset:0;border:1.9px solid var(--ink);border-radius:5px 2px 6px 3px/3px 6px 2px 5px;background:rgba(22,23,27,.05)}
-.mbar .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:4px 2px 5px 2px/2px 5px 2px 4px}
+/* 分类卡上的目标进度条 / 「还差 N 件」文案已删除（用户要求，目标移到极简目标卡） */
 .cat.add{border-style:dashed;background:rgba(255,255,255,.6);box-shadow:3px 4px 0 rgba(22,23,27,.1);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:112px;text-align:center}
 .cat.add svg{width:26px;height:26px}
@@ -950,6 +960,8 @@ body{
             </svg>
           </div>
           <div class="hint" id="goalHint">—</div>
+          <!-- 分类目标（从分类卡搬过来；没设目标时整块隐藏） -->
+          <div class="goal-cats" id="goalCats" style="display:none"></div>
         </div>
 
         <div class="sec-head"><b>分类</b></div>
@@ -1664,6 +1676,8 @@ function renderHome(){
   $('#heroApps').textContent = `${APPS.length} 个软件`;
 
   // 目标卡：没设目标时显示引导，不假装有个默认值
+  // ★ 标签只用中性说法（达标 / 超出 / 进度），**不写「还差 N 件」**——
+  //   用户说那种措辞像在提醒他"该买了"。
   const GOAL = GOAL_TOTAL;
   const goalOf = $('#goalOf');
   $('#goalNow').textContent = held;
@@ -1671,7 +1685,7 @@ function renderHome(){
   const tag = $('#goalTag');
   if (GOAL > 0){
     const diff = GOAL - held;
-    if (diff > 0){ tag.textContent = `还差 ${diff} 件`; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
+    if (diff > 0){ tag.textContent = '进行中'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
     else if (diff < 0){ tag.textContent = `超出 ${-diff} 件`; tag.style.background = 'rgba(217,134,31,.2)'; tag.style.color = '#a8640c'; }
     else { tag.textContent = '刚好达标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
     const pct = Math.min(1, held / GOAL);
@@ -1684,6 +1698,11 @@ function renderHome(){
     $('#goalBar').setAttribute('x2', '5');
     $('#goalHint').textContent = ITEMS.length ? `待处理 ${todo} 件 · 点「设置」设个目标` : '先录几件东西，再来设目标';
   }
+
+  // 分类目标：从「分类卡」搬到这里（用户要求）。
+  // 分类卡只留件数，目标进度统一在极简目标卡里看。
+  // 没设任何分类目标时整块不占地方。
+  renderGoalCats();
 
   // 一件都没录时：分类网格换成引导
   if (!ITEMS.length && !APPS.length){
@@ -1698,37 +1717,49 @@ function renderHome(){
   }
 
   // 分类网格
+  // ★ 分类卡只显示「几件」。原来这里还画了目标进度条 + 「目标 30 · 还差 8」，
+  //   用户明确说那种文案像在提醒他"该买了"，已全部移除；
+  //   分类目标改到上面那张「极简目标」卡里显示（见下面 goalCats 那段）。
   const orderedCats = [...CATS].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
   const cards = orderedCats.map(c => {
     const qty = catQty(c.id);
-    const hasGoal = typeof c.goal === 'number' && c.goal > 0;
-    const seasonTxt = c.id === 'cloth'
-      ? SEASONS.map(s => `${s.name} ${sumQty(ITEMS.filter(i => i.c === 'cloth' && i.season === s.id))}`).join(' · ')
-      : '';
-    if (!hasGoal){
-      return `<div class="cat" data-cat="${c.id}">
-        <div class="ct"><span class="dot" style="background:${c.tone}"></span><span>${c.name}</span><span class="arw">›</span></div>
-        <div class="cn"><span class="n">${qty}</span><small>件</small></div>
-        <div class="cg">未设目标</div>
-      </div>`;
-    }
-    const d = qty - c.goal;
-    const over = d > 0;
-    const ratio = qty / c.goal;
-    const color = over ? 'var(--warn)' : (ratio >= .95 ? 'var(--blue-deep)' : 'var(--green)');
-    const tip = over ? `目标 ${c.goal} · 超出 ${d}` : `目标 ${c.goal} · 还差 ${-d}`;
     return `<div class="cat" data-cat="${c.id}">
       <div class="ct"><span class="dot" style="background:${c.tone}"></span><span>${c.name}</span><span class="arw">›</span></div>
       <div class="cn"><span class="n">${qty}</span><small>件</small></div>
-      <div class="mbar"><span class="tr"></span><span class="fl" style="width:${Math.min(100,Math.round(ratio*100))}%;background:${color}"></span></div>
-      <div class="cg${over ? ' over' : ''}">${tip}</div>
-      ${seasonTxt ? `<div class="cg" style="color:#a3a4ab">${seasonTxt}</div>` : ''}
     </div>`;
   }).join('');
 
   // 「新建分类」不再放在桌面（用户要求）：改到「设置 → 分类管理」里
   $('#catGrid').innerHTML = cards;
   saveSoon();
+}
+
+/* 分类目标：显示在「极简目标」卡里（用户要求把目标从分类卡搬过来）。
+   只列**设了目标**的分类；一个都没设时整块隐藏，不占地方。
+   ★ 这里刻意不写「还差 N 件」那种措辞 —— 用户说那像在催他买东西，
+     改成中性的「N / 目标」+ 一条进度条。 */
+function renderGoalCats(){
+  const box = $('#goalCats');
+  if (!box) return;
+  const list = [...CATS]
+    .filter(c => typeof c.goal === 'number' && c.goal > 0)
+    .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+  if (!list.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="gc-head">分类目标</div>
+    ${list.map(c => {
+      const qty = catQty(c.id);
+      const ratio = c.goal > 0 ? qty / c.goal : 0;
+      const over = qty > c.goal;
+      const color = over ? 'var(--warn)' : (ratio >= .95 ? 'var(--blue-deep)' : 'var(--green)');
+      return `<div class="gc-row">
+        <span class="dot" style="background:${c.tone}"></span>
+        <span class="nm">${c.name}</span>
+        <span class="bar"><span class="tr"></span><span class="fl" style="width:${Math.min(100,Math.round(ratio*100))}%;background:${color}"></span></span>
+        <span class="vv">${qty}<i>/${c.goal}</i></span>
+      </div>`;
+    }).join('')}`;
 }
 
 /* 长按分类卡 → 拖拽排序（和物品卡片同一套手势） */
