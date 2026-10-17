@@ -326,6 +326,12 @@ body{
   display:flex;align-items:center;gap:11px;padding:9px 10px 9px 9px}
 .icard:nth-child(odd){transform:rotate(-.4deg)}
 .icard:nth-child(even){transform:rotate(.4deg)}
+/* 卡片区左右滑动切分类时的过场：方向跟手势一致（左滑 → 新内容从右进来）。
+   用 keyframes 而不是 transition —— 动画万一不执行，内容本身也是可见的。 */
+.igrid.slide-in-r{animation:cardsInR .26s cubic-bezier(.22,1,.36,1)}
+.igrid.slide-in-l{animation:cardsInL .26s cubic-bezier(.22,1,.36,1)}
+@keyframes cardsInR{from{opacity:.35;transform:translateX(26px)}to{opacity:1;transform:translateX(0)}}
+@keyframes cardsInL{from{opacity:.35;transform:translateX(-26px)}to{opacity:1;transform:translateX(0)}}
 /* 改了状态 → 卡片「离开这里、落到别处」的两段动画。
    注意卡片自身带轻微旋转（奇偶 ±0.5°），所以动效里要把旋转写进去，
    否则动画期间会把那张卡的倾斜抹平，看起来会"正"一下再回去。 */
@@ -3804,61 +3810,78 @@ on('#catChips', 'click', e => {
 });
 // 位置行 / 季节行的点击处理已删除（那两行筛选已按用户要求移除）
 
-/* ================= 分类行：左右滑动切换分类 =================
-   用户要求：左滑 → 下一个分类，右滑 → 上一个分类
-   （例：在日常物品 → 左滑到夏装 → 再左滑到第三个；右滑回上一个）。
-   ★ 分类行本身是 overflow-x:auto 的横向滚动容器，所以：
-     · 分类多到溢出时，**横向滑动交还给原生滚动**，不要抢（否则滑不到后面的分类）
-     · 只有内容放得下（不溢出）时，横滑才用来切换
-     · 纵向滑动一律放行（让页面能上下滚）
-   方向锁与阈值跟软件行左滑删除同一套：|dx|>8 且 |dx|>|dy| 判为横滑。 */
-(function initCatSwipe(){
-  const box = $('#catChips');
-  if (!box) return;
-  const row = $('#catRow');
+/* ================= 物品页「卡片区」：左右滑动切换分类 =================
+   用户要求：在**物品卡片那块区域**左滑 → 下一个分类，右滑 → 上一个分类。
+   （例：在「在用中 · 日常物品」里左滑到夏装，再左滑到第三个；右滑回上一个）
+   ★ 注意：手势绑在 #igrid（卡片区）上，**不是分类行** —— 分类行有自己的
+     原生横向滚动，抢它的横滑会导致滑不到后面的分类。
+
+   与「长按拖动排序」共存：两套手势都在卡片区，
+     · 方向锁：|dx|>8 且 |dx|>|dy| → 判为横滑（切分类）
+     · 纵向移动 → 立刻交还给页面滚动，并且**取消长按计时器**
+     · 判定为横滑后置 ITEM_GESTURE.swiping，拖动排序的 begin() 见到就放弃
+   阈值 34px（跟软件行左滑同一套），太短不算，防误触。 */
+const ITEM_GESTURE = { swiping: false };
+
+(function initCardSwipe(){
+  const grid = $('#igrid');
+  if (!grid) return;
   let startX = 0, startY = 0, locked = null, tracking = false;
 
-  const chipsInOrder = () => [...box.querySelectorAll(':scope > .chip')];
+  // 当前分类在「分类行」里的位置 → 用来算上/下一个
+  const chipsInOrder = () => [...document.querySelectorAll('#catChips .chip')];
 
   const step = (dir) => {
     const chips = chipsInOrder();
     if (chips.length < 2) return false;
     const curIdx = chips.findIndex(c => c.classList.contains('on'));
-    // 没有选中项时：左滑从第一个开始，右滑从最后一个开始
     let next;
     if (curIdx < 0) next = dir > 0 ? 0 : chips.length - 1;
     else next = curIdx + dir;
-    if (next < 0 || next >= chips.length) return false;   // 到头了就不动（不循环）
-    const target = chips[next];
-    const k = target.dataset.cat;
+    if (next < 0 || next >= chips.length) return false;   // 到两端不循环
+    const k = chips[next].dataset.cat;
     if (!k) return false;
+
+    // 切分类：卡片区做一个横向推移的过场，让「翻到下一类」有方向感
+    const box = $('#catChips');
     chipsReflow(box, '.chip', () => {
       state.cat = k;
       chips.forEach(c => c.classList.toggle('on', c.dataset.cat === state.cat));
     });
-    renderCatChips(); renderItems();
-    // 让被选中的那个滚进可视区（分类多的时候很有用）
-    requestAnimationFrame(() => {
-      const on = box.querySelector('.chip.on');
-      if (on) on.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
-    });
+    renderCatChips();
+    // ★ 卡片重绘前先播过场，方向跟手势一致（左滑 → 新内容从右进来）
+    slideCards(dir);
+    renderItems();
     return true;
   };
 
-  const onDown = (x, y) => {
-    // 内容溢出 → 横滑留给原生滚动，不接管
-    if (box.scrollWidth > box.clientWidth + 2) return;
+  // 卡片区横向推移过场（用 keyframes，失败安全）
+  const slideCards = (dir) => {
+    if (typeof FX !== 'undefined' && FX.motionOff) return;
+    const cls = dir > 0 ? 'slide-in-r' : 'slide-in-l';
+    grid.classList.remove('slide-in-r', 'slide-in-l');
+    void grid.offsetWidth;
+    grid.classList.add(cls);
+    setTimeout(() => grid.classList.remove(cls), 300);
+  };
+
+  const onDown = (x, y, target) => {
+    // 点在按钮/输入框/爱心/状态标签上 → 不参与滑动（那是点击操作）
+    if (target && target.closest('button,input,.lk,.st-tag,.used,.ph')) return;
     startX = x; startY = y; locked = null; tracking = true;
+    ITEM_GESTURE.swiping = false;
   };
   const onMove = (x, y, e) => {
     if (!tracking) return;
     const dx = x - startX, dy = y - startY;
     if (locked === null){
       if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) locked = 'x';
-      else if (Math.abs(dy) > 8){ locked = 'y'; tracking = false; return; }
+      else if (Math.abs(dy) > 8){ locked = 'y'; tracking = false; cancelAllHolds(); return; }
       else return;
     }
     if (locked !== 'x') return;
+    // 判定为横滑 → 标记，长按拖动排序见到就放弃
+    ITEM_GESTURE.swiping = true;
     if (e && e.cancelable) e.preventDefault();
   };
   const onUp = (x) => {
@@ -3866,25 +3889,27 @@ on('#catChips', 'click', e => {
     const wasX = locked === 'x';
     const dx = x - startX;
     tracking = false; locked = null;
-    if (!wasX) return;
-    if (Math.abs(dx) < 34) return;           // 太短不算（防止误触）
-    step(dx < 0 ? 1 : -1);                    // 左滑 dx<0 → 下一个
-    suppressCardClickUntil = Date.now() + 350;
+    if (!wasX){ setTimeout(() => { ITEM_GESTURE.swiping = false; }, 50); return; }
+    // 横滑过 → 抑制随后的点击（避免顺手把卡片当成"点开编辑"）
+    suppressCardClickUntil = Date.now() + 400;
+    setTimeout(() => { ITEM_GESTURE.swiping = false; }, 450);
+    if (Math.abs(dx) < 34) return;            // 太短不算
+    step(dx < 0 ? 1 : -1);                     // 左滑 dx<0 → 下一个
   };
 
-  row.addEventListener('touchstart', e => {
-    const t = e.touches[0]; onDown(t.clientX, t.clientY);
+  grid.addEventListener('touchstart', e => {
+    const t = e.touches[0]; onDown(t.clientX, t.clientY, e.target);
   }, { passive: true });
-  row.addEventListener('touchmove', e => {
+  grid.addEventListener('touchmove', e => {
     const t = e.touches[0]; onMove(t.clientX, t.clientY, e);
   }, { passive: false });
-  row.addEventListener('touchend', e => {
+  grid.addEventListener('touchend', e => {
     const t = e.changedTouches[0]; onUp(t ? t.clientX : startX);
   });
-  row.addEventListener('touchcancel', () => { tracking = false; locked = null; });
+  grid.addEventListener('touchcancel', () => { tracking = false; locked = null; ITEM_GESTURE.swiping = false; });
 
   // 桌面/无头环境也要能验：鼠标拖拽同效
-  row.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
+  grid.addEventListener('mousedown', e => onDown(e.clientX, e.clientY, e.target));
   window.addEventListener('mousemove', e => { if (tracking) onMove(e.clientX, e.clientY, null); });
   window.addEventListener('mouseup', e => { if (tracking) onUp(e.clientX); });
 })();
@@ -4049,6 +4074,8 @@ function editItemModal(id, anchorEl){
   const begin = (x, y) => {
     // 兜底：卡片已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
     if (!card || !card.isConnected) return;
+    // 手势已被判定为「横滑切分类」→ 不要再起拖动排序
+    if (typeof ITEM_GESTURE !== 'undefined' && ITEM_GESTURE.swiping) return;
     started = true;
     tracker.reset(x, y);
     const r = card.getBoundingClientRect();
