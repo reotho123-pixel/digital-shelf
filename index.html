@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -75,7 +75,7 @@ body{
   /* 底部留白写死 104px，不叠加 env(safe-area-inset-bottom)：
      加到主屏后可视区已铺满整屏（含 Home Indicator 段），
      再按 safe-area 补一次等于留两遍，底部会空出一条。 */
-  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px 104px;
+  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px 40px;
   scrollbar-width:none;display:none;-webkit-overflow-scrolling:touch}
 .screen::-webkit-scrollbar{display:none}
 .screen.on{display:block}
@@ -127,7 +127,7 @@ body{
 }
 
 /* 顶栏 */
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.topbar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px}
 .topbar .grp{display:flex;gap:10px;align-items:center}
 .avatar{width:46px;height:46px;display:grid;place-items:center;background:var(--accent);
   border:2.3px solid var(--ink);font-family:var(--f-cn);font-size:19px;
@@ -502,8 +502,8 @@ body{
 
 /* 悬浮添加（在底栏之上） */
 .fab{position:absolute;right:20px;width:56px;height:56px;background:var(--accent);
-  bottom:96px;
-  border:2.4px solid var(--ink);display:none;place-items:center;cursor:pointer;z-index:12;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
+  border:2.4px solid var(--ink);display:grid;place-items:center;cursor:pointer;z-index:12;
   border-radius:50% 46% 52% 48%/48% 52% 46% 50%;box-shadow:3px 4px 0 rgba(22,23,27,.2)}
 .fab svg{width:24px;height:24px}
 .fab:active{transform:translate(2px,3px);box-shadow:1px 2px 0 rgba(22,23,27,.2)}
@@ -957,19 +957,20 @@ body{
   <div class="stage">
     <div class="phone">
 
-      <!-- ================= 总览 ================= -->
+      <!-- ================= 唯一页面：目标卡 + 物品列表 =================
+           软件页已整页删除（用户不需要），底部 Tab 也一并删掉。
+           现在只有一个滚动容器，设置是覆盖层（不占页面）。 -->
       <div class="screen on" id="scr-home">
 
-        <div class="topbar">
-          <div class="avatar">简</div>
-          <div class="grp">
-            <button class="circ c1" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
-          </div>
+        <!-- 顶栏只留设置齿轮（左上角「简」已按用户要求删除），
+             所以用 justify-content:flex-end 把它推到右边 -->
+        <div class="topbar" id="mainTopbar">
+          <button class="circ c1" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
         </div>
 
         <!-- 主卡：原来「我的收纳」+「极简目标」是两张卡，数字 97 出现两次。
              现在合并成一张：总量/目标 → 状态分布 → 进度条 → 分类目标。
-             ★ 卡片高度由内容决定（.hero 用 min-height + SVG 拉伸填充），
+             ★ 卡片高度由内容决定（SVG 绝对定位当背景，内容走文档流），
                所以去掉原来那条写死 y=54 的 SVG 分隔线，改用 CSS 分隔。 -->
         <div class="hero" id="mergedCard">
           <span class="tape p" style="left:-13px;top:-10px;transform:rotate(-16deg)"></span>
@@ -1010,21 +1011,12 @@ body{
           </div>
         </div>
 
-        <div class="sec-head"><b>分类</b></div>
-        <div class="grid2" id="catGrid"></div>
-
-      </div>
-
-      <!-- ================= 物品列表 ================= -->
-      <div class="screen" id="scr-items">
-
-        <div class="page-head">
-          <h2 id="listTitle">物品</h2>
-          <span class="cnt" id="listCnt"></span>
-        </div>
+        <!-- ===== 物品列表（原来在「物品」Tab 里，现在直接接在卡片下面） =====
+             ★ 原来的 .page-head（「物品」+ 条数）已删：它和下面的 .count-row 重复，
+               单页里只保留一处标题（在筛选行下面，会写「衣物 · 在用中」这种）。 -->
 
         <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <!-- ★ 状态行是「总行」（.master），下面几行是它的分支（.branch） -->
+        <!-- ★ 状态行是「总行」（.master），分类行是它的分支（.branch） -->
         <div class="chipRow master">
           <div class="chips small center master" id="stChips"></div>
         </div>
@@ -1033,8 +1025,6 @@ body{
         <div class="chipRow branch" id="catRow">
           <div class="chips center" id="catChips"></div>
         </div>
-
-        <!-- 位置行 / 季节行已删除（用户要求：只保留状态和分类两行） -->
 
         <div class="count-row">
           <b id="resTitle">全部物品</b>
@@ -1046,34 +1036,6 @@ body{
       </div>
 
       <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
-
-      <!-- ================= 软件列表 ================= -->
-      <div class="screen" id="scr-apps">
-
-        <div class="page-head">
-          <h2>手机软件</h2>
-          <span class="cnt" id="appCnt"></span>
-        </div>
-
-        <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <!-- ★ 必需行是「总行」（.master），分类行是它的分支（.branch） -->
-        <div class="chipRow master">
-          <div class="chips small center master" id="needChips"></div>
-        </div>
-        <div class="chipRow branch" id="appCatRow">
-          <div class="chips center" id="appCatChips"></div>
-        </div>
-
-        <div class="count-row">
-          <b id="appResTitle">全部软件</b>
-          <span id="appResCnt"></span>
-        </div>
-
-        <div class="alist" id="alist"></div>
-
-      </div>
-
-      <button class="fab" id="fabApp"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
 
       <!-- ================= 设置 ================= -->
       <div class="screen overlay" id="scr-settings">
@@ -1094,13 +1056,7 @@ body{
 
       </div>
 
-      <!-- 底部 Tab：胶囊（可滑动选择） -->
-      <nav class="tabbar" id="tabbar">
-        <span class="tab-ind" id="tabInd"></span>
-        <button class="tb" data-tab="items"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/></svg>物品</button>
-        <button class="tb on" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 10.6 12 4l8 6.6v9H4v-9Z"/><path d="M9.8 19.6v-5.2h4.4v5.2"/></svg>总览</button>
-        <button class="tb" data-tab="apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="2"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="2"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="2"/></svg>软件<span class="badge" id="tabAppBadge">0</span></button>
-      </nav>
+      <!-- 底部 Tab 栏已删除（用户不需要软件页，只有一个页面了） -->
 
       <!-- 归类小菜单 -->
       <div class="pop" id="pop"></div>
@@ -1751,33 +1707,8 @@ function renderHome(){
   // 分类目标：只列设了目标的分类，一个都没设时整块不占地方。
   renderGoalCats();
 
-  // 一件都没录时：分类网格换成引导
-  if (!ITEMS.length && !APPS.length){
-    $('#catGrid').innerHTML = `
-      <div class="cat add" id="catAddTile" style="grid-column:1/-1;min-height:150px;gap:10px">
-        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#16171b" stroke-width="1.7" stroke-linejoin="round" style="width:34px;height:34px"><path d="M8.6 3.8 5.2 5.9 3.4 9.6l3 1.5 1.6-1.8v9.1h8V9.3l1.6 1.8 3-1.5-1.8-3.7-3.4-2.1a3.2 3.2 0 0 1-5.8 0Z"/></svg>
-        <span style="font-size:15px">先拍下你的第一件物品</span>
-        <small>点右下角的加号，或直接点这里</small>
-      </div>`;
-    saveSoon();
-    return;
-  }
-
-  // 分类网格
-  // ★ 分类卡只显示「几件」。原来这里还画了目标进度条 + 「目标 30 · 还差 8」，
-  //   用户明确说那种文案像在提醒他"该买了"，已全部移除；
-  //   分类目标改到上面那张「极简目标」卡里显示（见下面 goalCats 那段）。
-  const orderedCats = [...CATS].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
-  const cards = orderedCats.map(c => {
-    const qty = catQty(c.id);
-    return `<div class="cat" data-cat="${c.id}">
-      <div class="ct"><span class="dot" style="background:${c.tone}"></span><span>${c.name}</span><span class="arw">›</span></div>
-      <div class="cn"><span class="n">${qty}</span><small>件</small></div>
-    </div>`;
-  }).join('');
-
-  // 「新建分类」不再放在桌面（用户要求）：改到「设置 → 分类管理」里
-  $('#catGrid').innerHTML = cards;
+  // ★ 分类网格已从总览页删除（用户要求），这里原来那段「空状态引导 + 分类卡片」
+  //   全部去掉。总览页现在只有：合并后的目标卡 + 物品列表。
   saveSoon();
 }
 
@@ -1809,93 +1740,8 @@ function renderGoalCats(){
     }).join('')}`;
 }
 
-/* 长按分类卡 → 拖拽排序（和物品卡片同一套手势） */
-(function initCatDrag(){
-  const grid = $('#catGrid');
-  let holdTimer = null, card = null, id = null, started = false;
-  let ghost = null, offsetX = 0, offsetY = 0, lastSwap = null;
-
-  const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
-  // 长按还没触发就被打断（弹面板/切页）→ 清干净，别让 ghost 凭空冒出来
-  if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
-    clearHold();
-    if (ghost){ ghost.remove(); ghost = null; }
-    if (card){ card.classList.remove('dragging-src'); card = null; }
-    id = null; started = false; lastSwap = null;
-  });
-
-  const begin = (x, y) => {
-    // 兜底：卡片已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
-    if (!card || !card.isConnected) return;
-    started = true;
-    const r = card.getBoundingClientRect();
-    offsetX = x - r.left; offsetY = y - r.top;
-    ghost = card.cloneNode(true);
-    ghost.classList.add('drag-ghost');
-    ghost.style.width = r.width + 'px';
-    ghost.style.height = r.height + 'px';
-    ghost.style.left = r.left + 'px';
-    ghost.style.top = r.top + 'px';
-    document.body.appendChild(ghost);
-    card.classList.add('dragging-src');
-    if (navigator.vibrate) navigator.vibrate(12);
-  };
-
-  const move = (x, y) => {
-    if (!ghost) return;
-    ghost.style.left = (x - offsetX) + 'px';
-    ghost.style.top = (y - offsetY) + 'px';
-    ghost.style.display = 'none';
-    const el = document.elementFromPoint(x, y);
-    ghost.style.display = '';
-    const over = el && el.closest('#catGrid .cat[data-cat]');
-    if (over && over !== card && over !== lastSwap){
-      lastSwap = over;
-      const kids = [...grid.children];
-      if (kids.indexOf(card) < kids.indexOf(over)) grid.insertBefore(card, over.nextSibling);
-      else grid.insertBefore(card, over);
-    }
-  };
-
-  const end = () => {
-    clearHold();
-    if (ghost){ ghost.remove(); ghost = null; }
-    if (card) card.classList.remove('dragging-src');
-    if (started){
-      const ids = [...grid.querySelectorAll('.cat[data-cat]')].map(el => el.dataset.cat);
-      ids.forEach((cid, n) => { const c = CATS.find(x => x.id === cid); if (c) c.order = n; });
-      CATS.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
-      renderHome(); renderCatChips();
-      toast('分类顺序已保存');
-    }
-    card = null; id = null; started = false; lastSwap = null;
-  };
-
-  const onStart = (x, y, target) => {
-    card = target.closest('#catGrid .cat[data-cat]');
-    if (!card) return;
-    if (target.closest('.arw')){ card = null; return; }
-    id = card.dataset.cat;
-    clearHold();
-    holdTimer = setTimeout(() => begin(x, y), 420);
-  };
-
-  grid.addEventListener('touchstart', e => {
-    const t = e.touches[0]; onStart(t.clientX, t.clientY, e.target);
-  }, { passive: true });
-  grid.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    if (started){ if (e.cancelable) e.preventDefault(); move(t.clientX, t.clientY); }
-    else clearHold();
-  }, { passive: false });
-  grid.addEventListener('touchend', end);
-  grid.addEventListener('touchcancel', end);
-  grid.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
-  window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
-  // ★ 松手无条件收尾：即使没进入拖拽，也要清掉长按计时器，
-  //   否则"点一下卡片"之后计时器仍会触发，凭空冒出一个跟手浮层
-  window.addEventListener('mouseup', end);
-})();
+/* 长按分类卡拖拽排序已删除 —— 分类网格（#catGrid）也从总览页删掉了，
+   这个 IIFE 里的 grid 会是 null，addEventListener 直接抛错、中断整个脚本。 */
 
 /* ================= 物品列表 ================= */
 /* 筛选只剩两行：状态（总行）+ 分类（分支）。位置行和季节行已按用户要求删除。 */
@@ -1972,19 +1818,12 @@ function renderStChips(){
 
 /* 喜欢筛选行已删除（用户要求）；卡片上的喜欢圆点、编辑面板里的喜欢选择都保留 */
 
-/* 必需行 = 软件页的总行：显示该档下的**全部**软件数（不受分类影响）。
-   「待删」已去掉：库里标着 todel 的软件在启动时统一转到「暂用」，不会丢。 */
-function renderNeedChips(){
-  const ks = NEED_KEYS;
-  const reused = syncChips($('#needChips'), ks,
-    k => `${NEED_TEXT[k]}<span class="n">${appsInNeed(k).length}</span>`,
-    k => 'chip' + (appState.need === k ? ' on' : ''));
-  if (!reused){
-    $('#needChips').innerHTML = ks.map(k =>
-      `<button class="chip${appState.need === k ? ' on' : ''}" data-need="${k}" data-chip-key="${k}">${NEED_TEXT[k]}<span class="n">${appsInNeed(k).length}</span></button>`
-    ).join('');
-  }
-}
+/* 软件页已整页删除（用户明确说「我不需要软件页功能」）。
+   原来这里有一整套软件相关的函数：renderNeedChips / renderAppCatChips /
+   renderApps / openAppPop / openAppCatPop / newAppModal / deleteApp /
+   initAppDrag / initAppSwipe / migrateNeedValues，以及 appsInNeed 等口径函数。
+   ★ 数据字段保留：APPS / APP_CATS / appState 仍在内存与备份结构里
+     （删掉会让旧备份导入报错），只是界面上不再有入口。 */
 
 /* 季节 / 位置筛选行已删除（用户要求：筛选只保留「状态 + 分类」两行）。
    ★ 数据字段没删：物品的 i.loc / i.season 仍在，卡片、详情、编辑面板照常显示和编辑，
@@ -2016,8 +1855,8 @@ function renderItems(){
   const stName = state.st === 'all' ? '' : ` · ${ST_TEXT[state.st]}`;
   $('#resTitle').textContent = catName + likeName + stName;
   $('#resCnt').textContent = `${rows.length} 条 · ${qty} 件`;
-  $('#listTitle').textContent = state.cat === 'all' ? '物品' : catOf(state.cat).name;
-  $('#listCnt').textContent = `${rows.length} 条 · ${qty} 件`;
+  // ★ 原来这里还给 #listTitle / #listCnt 赋值，但那个 .page-head 已删（和 count-row 重复），
+  //   保留赋值会 TypeError 打断 renderItems。
 
   const cards = rows.map(i => {
     const k = ITEMS.indexOf(i);
@@ -2111,62 +1950,23 @@ function renderItems(){
 }
 
 /* ================= 导航 ================= */
+/* ★ 现在只有一个页面（物品 + 目标卡），底部 Tab 已删除、软件页已删除。
+   所以 showTab / syncTabInd / TAB_ORDER 这些切页逻辑全部不需要了。
+   为了不破坏已有调用点，保留一个**空壳 showTab**（切到什么都滚回顶部），
+   以及 goItems（只做「重置筛选 + 滚到列表」）。 */
 let switching = false;
-/* 页面过渡 · 横向推移：按 Tab 顺序决定从哪边滑进来 */
-const TAB_ORDER = ['items', 'home', 'apps'];
 
 function showTab(tab, opts){
-  const prevTab = state.tab;
-  state.tab = tab;
-  // 切页会打断正在等待的长按：先掐掉，别让 ghost 浮层跟到新页面上
+  // 只有一个页面：任何"切页"都退化成"回到顶部"
   cancelAllHolds();
-  // 设置是覆盖层（overlay），不参与 Tab 切换
-  const map = { items:'scr-items', apps:'scr-apps', home:'scr-home' };
-  const screenId = map[tab] || 'scr-home';
-  const next = document.getElementById(screenId);
-  const cur = $$('.screen').find(s => s.classList.contains('on') && !s.classList.contains('overlay') && s.id !== screenId);
-
-  $$('.tb').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  $('#fab').style.display = tab === 'items' ? 'grid' : 'none';
-  $('#fabApp').style.display = tab === 'apps' ? 'grid' : 'none';
-  syncTabInd();
-
-  if (!next || next === cur) return;
-
-  if (cur) cur.classList.remove('on');
-  next.classList.add('on');
-
-  // 这一页刚从 display:none 变成可见 —— 之前的静态对齐是在"量不到宽度"时做的
-  // （居中行的溢出判断、指示块几何都会不准）。等布局落地后重新量一次。
+  const scr = $('#scr-home');
+  if (scr) scr.scrollTop = 0;
   requestAnimationFrame(() => syncAllChipInds(false));
-
-  // 普通 Tab 切换：横向推移（往右滑入 / 往左滑入）
-  const a = TAB_ORDER.indexOf(prevTab), b = TAB_ORDER.indexOf(tab);
-  let dir = 'slide-r';
-  if (a >= 0 && b >= 0) dir = (b > a) ? 'slide-r' : 'slide-l';
-
-  next.classList.remove('slide-r','slide-l');
-  void next.offsetWidth;
-  next.classList.add(dir);
-  setTimeout(() => next.classList.remove('slide-r','slide-l'), 340);
-}
-
-/* 滑动指示块：贴到当前选中的 Tab 上（详情页/设置页不占 Tab，就保持原位置） */
-function syncTabInd(){
-  const ind = $('#tabInd');
-  if (!ind) return;
-  const active = $$('.tb').find(b => b.classList.contains('on')) || $$('.tb')[0];
-  if (!active) return;
-  const bar = $('#tabbar').getBoundingClientRect();
-  const r = active.getBoundingClientRect();
-  ind.style.width = r.width + 'px';
-  ind.style.transform = `translateX(${r.left - bar.left - 5}px)`;
 }
 
 function goItems(cat, opts){
   const o = opts || {};
   if (o.resetFilters !== false){
-    // 传了分类就用它，否则回到第一个分类（点分类卡进来时不必重置）
     resetItemFiltersToDefault(cat);
   } else if (cat){
     state.cat = cat;
@@ -2175,8 +1975,8 @@ function goItems(cat, opts){
   }
   syncFilterGroup();
   renderCatChips(); renderItems();
-  showTab('items');
-  $('#scr-items').scrollTop = 0;
+  const scr = $('#scr-home');
+  if (scr) scr.scrollTop = 0;
 }
 
 
@@ -2418,38 +2218,9 @@ function deleteItem(id){
 /* ================= 照片 ================= */
 let photoTargetId = null;
 let photoTargetMode = 'card';
-let appPhotoTargetId = null;
 on('#filePick', 'change', e => {
   const file = e.target.files && e.target.files[0];
   e.target.value = '';
-
-  // 软件图标
-  if (appPhotoTargetId){
-    const aid = appPhotoTargetId; appPhotoTargetId = null;
-    if (!file) return;
-    const fr0 = new FileReader();
-    fr0.onload = ev => {
-      const im = new Image();
-      im.onload = () => {
-        const S = 200;
-        const cv = document.createElement('canvas');
-        cv.width = S; cv.height = S;
-        const ctx = cv.getContext('2d');
-        const side = Math.min(im.naturalWidth, im.naturalHeight);
-        ctx.drawImage(im, (im.naturalWidth - side) / 2, (im.naturalHeight - side) / 2, side, side, 0, 0, S, S);
-        const a = APPS.find(x => x.id === aid);
-        if (a){
-          a.photo = cv.toDataURL('image/jpeg', .82);
-          renderApps();
-          toast('图标已保存');
-        }
-      };
-      im.onerror = () => toast('这张图读不出来，换一张试试');
-      im.src = ev.target.result;
-    };
-    fr0.readAsDataURL(file);
-    return;
-  }
 
   if (!file || !photoTargetId) return;
   const id = photoTargetId, mode = photoTargetMode;
@@ -2500,266 +2271,9 @@ const NEED_KEYS  = ['need', 'temp'];
 let APPS = [];
 APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
 
-/* 把存量里「待删」的软件转到「暂用」——「待删」这一档已经取消，
-   不转的话它们会因为 appState.need 只认 need/temp 而永远显示不出来。 */
-function migrateNeedValues(){
-  let n = 0;
-  APPS.forEach(a => { if (a.need === 'todel'){ a.need = 'temp'; n++; } });
-  return n;
-}
-
-const appState = { cat:'all', need:'all', q:'', justMovedId:null };
-const appCatOf = id => APP_CATS.find(c => c.id === id) || { name:'未分类', tone:'#ddd' };
-
-/* 软件分类行：跟物品页同一套规则 ——
-   点「必需」或「暂用」才出现（「待删」不用再按分类挑）；
-   另外从别处筛了分类时也显示，免得"筛了却看不到、取消不掉"。 */
-function renderAppCatChips(){
-  // 软件分类行 = 必需行的分支：只算「当前必需档」里的软件，
-  // 并且只列出该档下真有东西的分类（0 个的不出现）。
-  // ★ 先取消空筛选，再建列表（否则会先画成选中、下一帧才消失）。
-  if (appState.cat !== 'all' && appsInNeed(appState.need).filter(a => a.c === appState.cat).length === 0){
-    appState.cat = 'all';
-  }
-  const list = APP_CATS
-    .map(c => ({ ...c, qty: appsInNeed(appState.need).filter(a => a.c === c.id).length }))
-    .filter(c => c.qty > 0 || appState.cat === c.id);
-  const keys = list.map(c => c.id);
-  const reused = syncChips($('#appCatChips'), keys,
-    k => { const c = list.find(x => x.id === k); return `${c.name}<span class="n">${c.qty}</span>`; },
-    k => 'chip' + (appState.cat === k ? ' on' : ''));
-  if (!reused){
-    $('#appCatChips').innerHTML = list.map(c =>
-      `<button class="chip${appState.cat === c.id ? ' on' : ''}" data-acat="${c.id}" data-chip-key="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
-    ).join('');
-  }
-  const row = $('#appCatRow');
-  if (row) row.style.display = list.length ? 'flex' : 'none';
-}
-
-function renderApps(){
-  const rows = APPS.filter(a =>
-    (appState.need === 'all' || a.need === appState.need) &&
-    // ★ 没有分类的软件（分类是后加的，老数据没有这个字段）不该被筛选藏起来。
-    //   把它们当作「未分类」处理，视作匹配任意分类筛选 —— 否则用户会以为软件全没了。
-    (appState.cat === 'all' || !a.c || a.c === appState.cat)
-  );
-  // 按用户拖拽排的顺序显示
-  rows.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
-
-  const curCat = APP_CATS.find(c => c.id === appState.cat);
-  const catName = curCat ? curCat.name : '全部软件';
-  const needName = appState.need === 'all' ? '' : ` · ${NEED_TEXT[appState.need]}`;
-  $('#appResTitle').textContent = catName + needName;
-  $('#appResCnt').textContent = `${rows.length} 个`;
-  $('#appCnt').textContent = `${APPS.length} 个`;
-  $('#tabAppBadge').textContent = APPS.length;
-
-  const cards = rows.map(a => {
-    const c = appCatOf(a.c);
-    const iconInner = a.photo
-      ? `<img src="${a.photo}" alt="">`
-      : `<span style="color:#3b3d45">${a.n.slice(0, 1)}</span>`;
-    // 分类做成可点的小标签（点它换分类），后面跟位置 / 备注
-    const rest = [a.loc, a.note].filter(Boolean).join(' · ');
-    return `<div class="arow-wrap" data-appwrap="${a.id}">
-      <button class="swipe-del" data-delapp="${a.id}" title="删除软件">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
-        删除
-      </button>
-      <div class="arow" data-app="${a.id}">
-        <div class="ic" style="background:${a.photo ? '#fff' : c.tone}" data-appphoto="${a.id}">${iconInner}</div>
-        <div class="tx">
-          <b>${a.n}</b>
-          <span><button class="appcat" data-appcat="${a.id}" style="--c:${c.tone}">${c.name}</button>${rest ? '<i>' + rest + '</i>' : ''}</span>
-        </div>
-        <span class="need" data-appneed="${a.id}" style="background:${NEED_COLOR[a.need]}">${NEED_TEXT[a.need]}</span>
-      </div>
-    </div>`;
-  }).join('');
-
-  // 不再放「添加软件」行——用右下角的加号按钮
-  // 空状态分两种：库里真没有软件 vs 只是被筛选挡住了。
-  // 后者的提示要给出「一键显示全部」，否则用户会以为数据丢了。
-  let emptyHTML;
-  if (!APPS.length){
-    emptyHTML = `<div class="empty"><b>还没有软件</b><span>点右下角的加号添加</span></div>`;
-  } else {
-    const total = APPS.length;
-    emptyHTML = `<div class="empty" style="grid-column:1/-1">
-      <b>当前筛选下没有软件</b>
-      <span>库里有 ${total} 个，只是被筛选挡住了</span>
-      <button class="btn pri" id="appShowAll" style="max-width:170px;margin:12px auto 0">显示全部</button>
-    </div>`;
-  }
-  $('#alist').innerHTML = rows.length ? cards : emptyHTML;
-  renderAppCatChips();
-  renderNeedChips();
-
-  // 刚改完分类的那张卡：在新位置播落位动画并滚到可见处
-  if (appState.justMovedId){
-    const movedId = appState.justMovedId;
-    appState.justMovedId = null;
-    const w = $('#alist').querySelector(`.arow-wrap[data-appwrap="${movedId}"]`);
-    if (w){
-      w.classList.add('arriving');
-      setTimeout(() => w.classList.remove('arriving'), 480);
-      if (!FX.motionOff) setTimeout(() => w.scrollIntoView({ block:'nearest', behavior:'smooth' }), 60);
-    }
-  }
-  // 软件页两行 chip 也在这里渲染完 → 对齐指示块
-  syncChipInd($('#needChips'), false);
-  syncChipInd($('#appCatChips'), false);
-  saveSoon();
-}
-
-/* 软件：归类（必需程度） */
-function openAppPop(anchor, id){
-  cancelAllHolds();
-  const a = APPS.find(x => x.id === id); if (!a) return;
-  pop.innerHTML = Object.keys(NEED_TEXT).map(k =>
-    `<div class="pi${a.need === k ? ' sel' : ''}" data-apick="${k}">
-       <span class="mk" style="--lkc:${NEED_COLOR[k]}"><svg viewBox="0 0 24 24"><use href="#mk-dot"/></svg></span>${NEED_TEXT[k]}
-       ${a.need === k ? '<span class="ck">✓</span>' : ''}
-     </div>`).join('');
-  pop.classList.add('on'); popOpen = true;
-  const phoneRect = $('.phone').getBoundingClientRect();
-  const aRect = anchor.getBoundingClientRect();
-  const pw = pop.offsetWidth, ph = pop.offsetHeight;
-  let left = aRect.left - phoneRect.left - 8;
-  left = Math.max(8, Math.min(left, phoneRect.width - pw - 8));
-  let top = aRect.bottom - phoneRect.top + 7;
-  if (top + ph > phoneRect.height - 14) top = aRect.top - phoneRect.top - ph - 7;
-  pop.style.left = left + 'px';
-  pop.style.top = Math.max(8, top) + 'px';
-
-  // 形变展开：从「必需/暂用/待删」标签的真实矩形长出来（跟物品那边的归类菜单一致）
-  morphFromButton(pop, anchor, null, { duration: 380, radius: '14px' });
-
-  pop.onclick = e => {
-    const p = e.target.closest('[data-apick]'); if (!p) return;
-    a.need = p.dataset.apick;
-    closePop(); renderApps();
-    toast(`「${a.n}」已归到「${NEED_TEXT[a.need]}」`);
-  };
-}
-
-/* 软件：点卡片上的分类标签 → 换分类（小菜单从该标签形变长出来，跟必需程度那套一致） */
-function openAppCatPop(anchor, id){
-  cancelAllHolds();
-  const a = APPS.find(x => x.id === id); if (!a) return;
-  if (!APP_CATS.length) { toast('还没有软件分类，去「设置 → 分类管理」新建一个'); return; }
-  pop.innerHTML = APP_CATS.map(c =>
-    `<div class="pi${a.c === c.id ? ' sel' : ''}" data-catpick="${c.id}">
-       <span class="mk" style="--lkc:${c.tone}"><svg viewBox="0 0 24 24"><use href="#mk-dot"/></svg></span>${c.name}
-       ${a.c === c.id ? '<span class="ck">✓</span>' : ''}
-     </div>`).join('');
-  pop.classList.add('on'); popOpen = true;
-
-  const phoneRect = $('.phone').getBoundingClientRect();
-  const aRect = anchor.getBoundingClientRect();
-  const pw = pop.offsetWidth, ph = pop.offsetHeight;
-  let left = aRect.left - phoneRect.left - 8;
-  left = Math.max(8, Math.min(left, phoneRect.width - pw - 8));
-  let top = aRect.bottom - phoneRect.top + 7;
-  if (top + ph > phoneRect.height - 14) top = aRect.top - phoneRect.top - ph - 7;
-  pop.style.left = left + 'px';
-  pop.style.top = Math.max(8, top) + 'px';
-
-  morphFromButton(pop, anchor, null, { duration: 380, radius: '14px' });
-
-  pop.onclick = e => {
-    const p = e.target.closest('[data-catpick]'); if (!p) return;
-    const nid = p.dataset.catpick;
-    const from = a.c, to = nid;
-    closePop();
-    if (from === to){ renderApps(); return; }
-    // 跟物品改状态一致：先让这张卡淡出，再在新分类里落位
-    const cardEl = document.querySelector(`#alist .arow-wrap[data-appwrap="${a.id}"] .arow`);
-    const commit = () => {
-      a.c = to;
-      appState.justMovedId = a.id;
-      renderApps();
-      toast(`「${a.n}」已归到「${appCatOf(to).name}」`);
-    };
-    if (cardEl && !FX.motionOff){
-      cardEl.classList.add('leaving');
-      setTimeout(commit, 190);
-    } else commit();
-  };
-}
-
-/* 软件：新增（不再问分类；「必需/暂用/待删」直接在这里选） */
-function newAppModal(){
-  let need = 'temp';
-  const needChips = () => Object.keys(NEED_TEXT).map(k =>
-    `<button class="chip${need === k ? ' on' : ''}" data-pick="${k}">${NEED_TEXT[k]}</button>`).join('');
-  // 分类默认选中：当前正筛的那个分类，否则第一个
-  let cat = (appState.cat !== 'all' ? appState.cat : (APP_CATS[0] || {}).id);
-  if (!APP_CATS.some(c => c.id === cat)) cat = (APP_CATS[0] || {}).id;
-  const catChips = () => APP_CATS.map(c =>
-    `<button class="chip${cat === c.id ? ' on' : ''}" data-pickcat="${c.id}">${c.name}</button>`).join('');
-
-  openModal(`
-    <h3>添加软件</h3>
-    <p class="mhint">只有名称是必填的，其他都能以后再补</p>
-    <div class="fld">
-      <label>软件名</label>
-      <input type="text" id="naName" placeholder="比如 微信" maxlength="14">
-    </div>
-    <div class="fld">
-      <label>要不要留</label>
-      <div class="chips" id="naNeed" style="padding-bottom:2px">${needChips()}</div>
-    </div>
-    <div class="fld">
-      <label>分类</label>
-      <div class="chips" id="naCat" style="padding-bottom:2px">${catChips()}</div>
-    </div>
-    <div class="mrow">
-      <button class="btn" id="naCancel">取消</button>
-      <button class="btn pri" id="naOk" disabled>添加</button>
-    </div>
-  `);
-  const nameIn = $('#naName'), okBtn = $('#naOk');
-  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
-  focusInputWhenSettled(nameIn);
-  $('#naNeed').addEventListener('click', e => {
-    const b = e.target.closest('[data-pick]'); if (!b) return;
-    need = b.dataset.pick;
-    $('#naNeed').innerHTML = needChips();
-  });
-  $('#naCat').addEventListener('click', e => {
-    const b = e.target.closest('[data-pickcat]'); if (!b) return;
-    cat = b.dataset.pickcat;
-    $('#naCat').innerHTML = catChips();
-  });
-  $('#naCancel').addEventListener('click', closeModal);
-  okBtn.addEventListener('click', () => {
-    const name = nameIn.value.trim();
-    if (!name) return;
-    // id 用唯一生成器（同物品那套思路）：不要用 Date.now()，同毫秒连加两条会撞车
-    const a = { id: newAppId(), n:name, need, c:cat, loc:'', note:'', photo:null };
-    APPS.push(a);
-    closeModal(); renderApps();
-    setTimeout(() => {
-      const el = document.querySelector(`[data-app="${a.id}"]`);
-      if (el) el.scrollIntoView({ block:'center', behavior:'smooth' });
-    }, 80);
-    toast(`已添加「${name}」`);
-  });
-}
-
-/* 软件：删除（可撤销） */
-function deleteApp(id){
-  const idx = APPS.findIndex(x => x.id === id); if (idx < 0) return;
-  const removed = APPS.splice(idx, 1)[0];
-  renderSettings(); renderApps();
-  toastUndo(`已删除「${removed.n}」`, () => {
-    APPS.splice(idx, 0, removed);
-    renderSettings(); renderApps();
-    toast('已恢复');
-  });
-}
+/* 软件页相关函数已整页删除（用户不需要软件功能）：migrateNeedValues / appState /
+   appCatOf / renderAppCatChips / renderApps / openAppPop / openAppCatPop /
+   newAppModal / deleteApp。数据字段 APPS / APP_CATS 保留以兼容旧备份。 */
 
 /* ================= 通用计算 ================= */
 const sumItems  = () => sumQty(ITEMS);
@@ -2832,12 +2346,6 @@ function renderSettings(){
       <span class="dot" style="background:${c.tone}"></span>
       <span class="nm">${c.name}</span>
       <span class="cnt">${n} 个软件</span>
-      <button class="mini" data-renameappcat="${c.id}" title="改名">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg>
-      </button>
-      <button class="mini rm" data-delappcat="${c.id}" title="删除">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
-      </button>
     </div>`;
   }).join('');
 
@@ -2857,20 +2365,7 @@ function renderSettings(){
       </div>
     </div>
 
-    <div class="st-sec">
-      <div class="st-cat-head">
-        <span>软件分类</span>
-        <span class="hint">共 ${APP_CATS.length} 个 · 图标底色跟着分类走</span>
-      </div>
-      ${appCatRows || '<div class="st-note" style="padding:6px 0 8px">还没有软件分类，点下面新建一个</div>'}
-      <div class="st-row" id="stAddAppCat" style="border-bottom:none;padding-top:10px">
-        <span class="ic" style="background:var(--hl)"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>
-        <span class="tx"><b>新建软件分类</b><span>比如 社交、工具、影音</span></span>
-        <span class="go">›</span>
-      </div>
-    </div>
-
-    <!-- 外观 -->
+    <!-- 软件分类已删除（软件页整页删掉了） -->
     <div class="st-group">外观</div>
     <div class="st-sec">
       <div class="st-row" style="cursor:default;border-bottom:none;padding-bottom:6px">
@@ -3144,126 +2639,7 @@ on('#stBody', 'click', e => {
   if (e.target.closest('#stClear')){ clearAllModal(); return; }
 });
 
-/* --- 只清空软件（物品/分类/目标都不动）--- */
-function clearAppsModal(){
-  const n = APPS.length;
-  openModal(`
-    <h3>清空全部软件？</h3>
-    <p class="mhint">会把 ${n} 个软件全部删掉；<b>物品、分类、目标都不受影响</b>。此操作不可撤销，建议先导出备份。</p>
-    <div class="fld">
-      <label>输入「清空软件」四个字确认</label>
-      <input type="text" id="casConfirm" placeholder="清空软件">
-    </div>
-    <div class="mrow">
-      <button class="btn" id="casCancel">取消</button>
-      <button class="btn dan" id="casOk" disabled>清空软件</button>
-    </div>
-  `);
-  const inp = $('#casConfirm'), ok = $('#casOk');
-  inp.addEventListener('input', () => { ok.disabled = inp.value.trim() !== '清空软件'; });
-  focusInputWhenSettled(inp);
-  $('#casCancel').addEventListener('click', closeModal);
-  ok.addEventListener('click', () => {
-    const removed = [...APPS];
-    APPS.length = 0;
-    // 顺带复位软件页的筛选，免得停在「某个分类 + 必需」上看着像没清干净
-    appState.need = 'all';
-    appState.cat = 'all';
-    appState.q = '';
-    $$('#needChips .chip').forEach(c => c.classList.remove('on'));
-    closeModal();
-    renderSettings(); renderApps();
-    toastUndo(`已清空 ${removed.length} 个软件`, () => {
-      APPS.push(...removed);
-      renderSettings(); renderApps();
-      toast('已恢复');
-    });
-  });
-}
-
-/* --- 软件分类：新建 / 改名 / 删除（和物品分类同一套交互） --- */
-function newAppCatModal(){
-  openModal(`
-    <h3>新建软件分类</h3>
-    <p class="mhint">给这一类软件起个名字，之后可以随时改名</p>
-    <div class="fld">
-      <label>分类名称</label>
-      <input type="text" id="nacName" placeholder="比如 社交、工具、影音" maxlength="8">
-    </div>
-    <div class="mrow">
-      <button class="btn" id="nacCancel">取消</button>
-      <button class="btn pri" id="nacOk" disabled>创建</button>
-    </div>
-  `);
-  const nameIn = $('#nacName'), okBtn = $('#nacOk');
-  nameIn.addEventListener('input', () => { okBtn.disabled = !nameIn.value.trim(); });
-  focusInputWhenSettled(nameIn);
-  $('#nacCancel').addEventListener('click', closeModal);
-  okBtn.addEventListener('click', () => {
-    const name = nameIn.value.trim();
-    if (!name) return;
-    const tone = NEW_TONES[APP_CATS.length % NEW_TONES.length];
-    APP_CATS.push({ id: newCatId('ac'), name, tone });
-    closeModal();
-    renderSettings(); renderApps();
-    toast(`已新建分类「${name}」`);
-  });
-}
-
-function renameAppCatModal(id){
-  const c = APP_CATS.find(x => x.id === id); if (!c) return;
-  openModal(`
-    <h3>重命名分类</h3>
-    <p class="mhint">分类下的软件不会变，只是换个名字</p>
-    <div class="fld">
-      <label>分类名称</label>
-      <input type="text" id="racName" value="${c.name}" maxlength="8">
-    </div>
-    <div class="mrow">
-      <button class="btn" id="racCancel">取消</button>
-      <button class="btn pri" id="racOk">保存</button>
-    </div>
-  `);
-  const inp = $('#racName');
-  focusInputWhenSettled(inp, { select:true });
-  $('#racCancel').addEventListener('click', closeModal);
-  $('#racOk').addEventListener('click', () => {
-    const v = inp.value.trim();
-    if (!v) return;
-    c.name = v;
-    closeModal(); renderSettings(); renderApps();
-    toast(`已改名为「${v}」`);
-  });
-}
-
-function delAppCatModal(id){
-  const c = APP_CATS.find(x => x.id === id); if (!c) return;
-  const n = stAppCatCount(c);
-  openModal(`
-    <h3>删除「${c.name}」？</h3>
-    <p class="mhint">${n > 0
-      ? `这个分类下有 ${n} 个软件，删除后会归入「未分类」，不会丢。`
-      : '这个分类下还没有软件，可以放心删。'}</p>
-    <div class="mrow">
-      <button class="btn" id="dacCancel">取消</button>
-      <button class="btn dan" id="dacOk">删除</button>
-    </div>
-  `);
-  $('#dacCancel').addEventListener('click', closeModal);
-  $('#dacOk').addEventListener('click', () => {
-    const orphans = APPS.filter(a => a.c === c.id);
-    orphans.forEach(a => { a.c = 'none'; });
-    // 只有真有软件要安置时才补「未分类」
-    if (orphans.length && !APP_CATS.some(x => x.id === 'none')){
-      APP_CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea' });
-    }
-    APP_CATS.splice(APP_CATS.findIndex(x => x.id === c.id), 1);
-    if (appState.cat === c.id) appState.cat = 'all';
-    closeModal();
-    renderSettings(); renderApps();
-    toast(`已删除分类「${c.name}」`);
-  });
-}
+/* 「只清空软件」与「软件分类增删改」已删除（软件页整页删掉了，这些入口不再存在）。 */
 
 /* --- 分类改名 --- */
 function renameCatModal(id){
@@ -3534,13 +2910,13 @@ function applyBackup(d, mode){
     });
 
     renderSettings(); renderHome(); renderCatChips();
-    renderItems(); renderApps();
+    renderItems();
     saveSoon();
     return { added, merged };
   }
 
   renderSettings(); renderHome(); renderCatChips();
-  renderItems(); renderApps();
+  renderItems();
   saveSoon();
   return { added: inItems.length, merged: 0 };
 }
@@ -3571,7 +2947,7 @@ function clearAllModal(){
     GOAL_APPS = 0;
     closeModal();
     renderSettings(); renderHome(); renderCatChips();
-    renderItems(); renderApps();
+    renderItems();
     toast('已清空全部数据');
   });
 }
@@ -3819,8 +3195,7 @@ on('#catGrid', 'click', e => {
   if (card) goItems(card.dataset.cat);
 });
 on('#qAddItem', 'click', newItemModal);
-on('#qAddApp', 'click', () => { renderApps(); showTab('apps'); newAppModal(); });
-on('#backHome', 'click', () => showTab('home'));
+// #qAddApp / #backHome 两个按钮已随软件页和 Tab 一起删除，绑定一并去掉
 
 // 列表页筛选
 /* ★ 关键：选中态的 class 切换必须发生在 chipsReflow 的 mutate 回调**里面** ——
@@ -4211,232 +3586,7 @@ function editItemModal(id, anchorEl){
   window.addEventListener('mouseup', end);
 })();
 
-/* 软件列表：长按拖动排序（行上下排列）。
-   这里刻意不加液态形变动效——用户要求「长按可以拖动排序就行」，
-   软件行是横向信息条，跟着速度鼓起反而显得晃，素面拖动更稳。 */
-/* 软件列表上两套手势共用一个状态：横向滑动=左滑删除、长按=拖动排序。
-   swiping 由左滑那段置位，拖动排序的 begin() 见到就放弃。 */
-const APP_GESTURE = { swiping: false };
-
-(function initAppDrag(){
-  const list = $('#alist');
-  let holdTimer = null, row = null, started = false;
-  let ghost = null, offsetX = 0, offsetY = 0;
-
-  const clearHold = () => {
-    clearTimeout(holdTimer); holdTimer = null;
-    // 松手/取消时把「被提起来」的状态收回去
-    if (row) row.classList.remove('held');
-  };
-  // 长按还没触发就被打断（弹面板/切页）→ 清干净，别让 ghost 凭空冒出来
-  if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
-    if (row) row.classList.remove('held');
-    clearHold();
-    if (ghost){ ghost.remove(); ghost = null; }
-    if (row){ row.classList.remove('dragging-src'); row = null; }
-    started = false;
-  });
-
-  const begin = (x, y) => {
-    // 兜底：行已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
-    if (!row || !row.isConnected) return;
-    // 手势已经被判定为左滑删除 → 不要再起拖动排序
-    if (APP_GESTURE.swiping){ row.classList.remove('held'); return; }
-    started = true;
-    const r = row.getBoundingClientRect();
-    offsetX = x - r.left;
-    offsetY = y - r.top;
-    ghost = row.cloneNode(true);
-    ghost.classList.add('drag-ghost');
-    ghost.style.width = r.width + 'px';
-    ghost.style.height = r.height + 'px';
-    ghost.style.left = r.left + 'px';
-    ghost.style.top = r.top + 'px';
-    document.body.appendChild(ghost);
-    row.classList.add('dragging-src');
-    row.classList.remove('held');   // ghost 顶上来之后，原位不再需要「提起」的观感
-    if (navigator.vibrate) navigator.vibrate(12);
-  };
-
-  const move = (x, y) => {
-    if (!ghost) return;
-    // 1:1 跟手，无附加形变
-    ghost.style.left = (x - offsetX) + 'px';
-    ghost.style.top = (y - offsetY) + 'px';
-    ghost.style.display = 'none';
-    const el = document.elementFromPoint(x, y);
-    ghost.style.display = '';
-    // 换位对象是「槽」而不是行 —— 列表的直接子元素是 .arow-wrap
-    const over = el && el.closest('#alist .arow-wrap');
-    if (over && over !== row){
-      const kids = [...list.children];
-      if (kids.indexOf(row) < kids.indexOf(over)) list.insertBefore(row, over.nextSibling);
-      else list.insertBefore(row, over);
-    }
-  };
-
-  const end = () => {
-    clearHold();
-    if (ghost){ ghost.remove(); ghost = null; }
-    if (row) row.classList.remove('dragging-src');
-    if (started){
-      const ids = [...list.querySelectorAll('.arow[data-app]')].map(el => el.dataset.app);
-      ids.forEach((aid, n) => { const a = APPS.find(x => x.id === aid); if (a) a.order = n; });
-      renderApps();
-      toast('顺序已保存');
-      suppressCardClickUntil = Date.now() + 400;
-    }
-    row = null; started = false;
-  };
-
-  const onStart = (x, y, target) => {
-    // 拖动排序作用在「槽」(.arow-wrap) 上，因为它才是列表的直接子元素
-    row = target.closest('#alist .arow-wrap');
-    if (!row) return;
-    // 分类标签（可点改分类）和 delete/换图 等按钮不参与长按拖动
-    if (target.closest('input,button,.need,.swipe-del,.appcat')){ row = null; return; }
-    clearHold();
-    // 按住就立刻「提起来」（跟总览页分类卡同一个观感），到点才真正开始拖
-    row.classList.add('held');
-    holdTimer = setTimeout(() => begin(x, y), 420);
-  };
-
-  list.addEventListener('touchstart', e => {
-    const t = e.touches[0]; onStart(t.clientX, t.clientY, e.target);
-  }, { passive: true });
-  list.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    if (started){ if (e.cancelable) e.preventDefault(); move(t.clientX, t.clientY); }
-    else clearHold();
-  }, { passive: false });
-  list.addEventListener('touchend', end);
-  list.addEventListener('touchcancel', end);
-  list.addEventListener('mousedown', e => onStart(e.clientX, e.clientY, e.target));
-  window.addEventListener('mousemove', e => { if (started) move(e.clientX, e.clientY); });
-  window.addEventListener('mouseup', end);
-})();
-
-/* ---------- 软件行：左滑露出删除 ----------
-   原来的行尾小垃圾桶容易误触（用户反馈），改成左滑。
-   与「长按拖动排序」的分工：
-     · 长按 420ms → 拖动排序（上面那个 IIFE）
-     · 横向滑动 → 左滑删除（本段）
-   两者互斥靠**方向锁**：手指先明显横move（|dx|>8 且 |dx|>|dy|）→ 判定为左滑，
-   立刻取消长按计时器；先纵向动 → 交回列表滚动。
-   规范要点：1:1 跟手、越界橡皮筋 ×0.32、松手按位移阈值决定吸附还是弹回。 */
-(function initAppSwipe(){
-  const list = $('#alist');
-  if (!list) return;
-  const W = 86;              // 删除块宽度（跟 CSS 里 .swipe-del 的 width 一致）
-  const OPEN_AT = W * 0.45;  // 松手时超过这个位移就吸附打开
-
-  let wrap = null, rowEl = null, startX = 0, startY = 0;
-  let dx = 0, locked = null, tracking = false;
-  let openWrap = null;       // 当前打开的那一行（同时只允许一个）
-
-  const openOf = w => (w ? w : null);
-  const setX = (w, x, animate) => {
-    const r = w.querySelector('.arow');
-    if (!r) return;
-    r.style.transition = animate ? 'transform .24s cubic-bezier(.22,1,.36,1)' : 'none';
-    r.style.transform = `translateX(${x.toFixed(1)}px)`;
-    w.classList.toggle('open', x <= -W * 0.5);
-  };
-  const closeAll = (except) => {
-    [wrap, openWrap].forEach(w => {
-      if (!w || w === except || !w.isConnected) return;
-      setX(w, 0, true);
-    });
-    if (openWrap !== except) openWrap = null;
-  };
-
-  const onDown = (x, y, target) => {
-    const w = target.closest('#alist .arow-wrap');
-    if (!w) return;
-    // 点删除块自己不参与滑动（那是在点"确认删除"）
-    if (target.closest('.swipe-del')) return;
-    APP_GESTURE.swiping = false;      // 新手势开始，先复位
-    wrap = w;
-    rowEl = w.querySelector('.arow');
-    startX = x; startY = y; dx = 0; locked = null; tracking = true;
-  };
-
-  const onMove = (x, y, e) => {
-    if (!tracking || !wrap) return;
-    const ddx = x - startX, ddy = y - startY;
-
-    // 方向锁：先判断这次手势是横向还是纵向
-    if (locked === null){
-      if (Math.abs(ddx) > 8 && Math.abs(ddx) > Math.abs(ddy)) locked = 'x';
-      else if (Math.abs(ddy) > 8) { locked = 'y'; tracking = false; return; }
-      else return;
-    }
-    if (locked !== 'x') return;
-
-    // ★ 判定为左滑 → 标记一下，「长按拖动排序」的 begin() 见到就放弃，
-    //   否则手指横划满 420ms 时拖动排序会同时被触发，两套手势打架。
-    //   （这里不能调 cancelAllHolds()：那会把本次滑动自己的状态也一起清掉。）
-    APP_GESTURE.swiping = true;
-
-    if (e && e.cancelable) e.preventDefault();
-    // 初始位置：如果这一行是开着的，从 -W 起算
-    const base = wrap.classList.contains('open') ? -W : 0;
-    let next = base + ddx;
-    if (next > 0) next *= 0.32;            // 往右超出 → 橡皮筋
-    if (next < -W) next = -W + (next + W) * 0.32;  // 往左超出 → 橡皮筋
-    dx = next;
-    setX(wrap, next, false);
-  };
-
-  const onUp = () => {
-    if (!tracking || !wrap) { tracking = false; APP_GESTURE.swiping = false; return; }
-    const wasLocked = locked;
-    tracking = false;
-    const w = wrap;
-    const moved = Math.abs(dx);
-    wrap = null; rowEl = null; locked = null;
-    if (wasLocked !== 'x'){ APP_GESTURE.swiping = false; return; }
-
-    if (moved >= OPEN_AT){
-      closeAll(w);
-      openWrap = w;
-      setX(w, -W, true);
-      if (navigator.vibrate) navigator.vibrate(8);
-    } else {
-      setX(w, 0, true);
-      if (openWrap === w) openWrap = null;
-    }
-    // ★ 滑动过 → 抑制随后的 click，免得顺手把行当成"点击"（改状态/换图）
-    suppressCardClickUntil = Date.now() + 400;
-    // 手势结束，放开拖动排序的闸门（留一点点延迟，避开紧随其后的 click）
-    setTimeout(() => { APP_GESTURE.swiping = false; }, 450);
-  };
-
-  list.addEventListener('touchstart', e => {
-    const t = e.touches[0]; onDown(t.clientX, t.clientY, e.target);
-  }, { passive: true });
-  list.addEventListener('touchmove', e => {
-    const t = e.touches[0]; onMove(t.clientX, t.clientY, e);
-  }, { passive: false });
-  list.addEventListener('touchend', onUp);
-  list.addEventListener('touchcancel', onUp);
-  list.addEventListener('mousedown', e => onDown(e.clientX, e.clientY, e.target));
-  window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY, e));
-  window.addEventListener('mouseup', onUp);
-
-  // 点别处 / 滚动列表 → 收起已打开的那一行
-  document.addEventListener('click', e => {
-    if (e.target.closest('#alist .arow-wrap')) return;
-    closeAll(null);
-  }, true);
-  list.addEventListener('scroll', () => closeAll(null));
-
-  // 切页/重绘前也收起，避免残留 open 态
-  if (typeof pendingHoldCancels !== 'undefined') pendingHoldCancels.push(function(){
-    closeAll(null);
-    wrap = null; rowEl = null; tracking = false; locked = null;
-  });
-})();
+/* 软件列表的长按拖动排序 + 左滑删除已整页删除（软件页没了）。 */
 
 /* ---------- 液态形变：拖动中的卡片跟着速度「鼓起来」 ----------
    规范（motion-effects 的 fx2）：慢拖几乎不变形、快甩才明显；
@@ -4518,161 +3668,7 @@ on('#scr-items', 'scroll', closePop);
 
 on('#fab', 'click', newItemModal);
 
-// 底部 Tab
-function activateTab(t){
-  if (t === 'items') goItems();
-  else if (t === 'apps'){
-    // 进软件页的默认视图：只选中「必需行的第一个」= 必需，分类不预筛
-    // （跟物品页同一套思路：状态行在上、默认筛第一个）
-    appState.need = NEED_KEYS[0];       // 「必需」
-    appState.cat = 'all';
-    appState.q = '';
-    renderApps();
-    showTab('apps'); $('#scr-apps').scrollTop = 0;
-  }
-  else showTab('home');
-}
-$$('.tb').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
-
-/* 拖动切换：按住胶囊左右滑，松手落在哪个 Tab 就切到哪个 */
-(function initTabDrag(){
-  const bar = $('#tabbar');
-  const ind = $('#tabInd');
-  const tabs = $$('.tb');
-  let dragging = false, moved = false, startX = 0, startY = 0;
-
-  const idxFromX = clientX => {
-    let best = 0, bestDist = Infinity;
-    tabs.forEach((b, i) => {
-      const r = b.getBoundingClientRect();
-      const d = Math.abs(clientX - (r.left + r.width / 2));
-      if (d < bestDist){ bestDist = d; best = i; }
-    });
-    return best;
-  };
-
-  // 手指位置 → 指示块跟手平移（滑动过程中不切页面，只挪块）
-  const moveIndTo = i => {
-    const r = tabs[i].getBoundingClientRect();
-    const br = bar.getBoundingClientRect();
-    ind.style.transition = 'none';
-    ind.style.width = r.width + 'px';
-    ind.style.transform = `translateX(${r.left - br.left - 5}px)`;
-  };
-
-  const onDown = e => {
-    const pt = e.touches ? e.touches[0] : e;
-    dragging = true; moved = false;
-    startX = pt.clientX; startY = pt.clientY;
-    bar.style.touchAction = 'none';          // 关键：告诉浏览器这里不要滚页面
-  };
-
-  const onMove = e => {
-    if (!dragging) return;
-    const pt = e.touches ? e.touches[0] : e;
-    const dx = pt.clientX - startX, dy = pt.clientY - startY;
-    if (!moved){
-      // 横向位移明显大于纵向才认定是滑动（避免误伤纵向滚动）
-      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) moved = true;
-      else if (Math.abs(dy) > 12){ dragging = false; bar.style.touchAction = ''; return; }
-    }
-    if (!moved) return;
-    if (e.cancelable) e.preventDefault();
-    moveIndTo(idxFromX(pt.clientX));
-  };
-
-  const onUp = e => {
-    if (!dragging) return;
-    dragging = false;
-    bar.style.touchAction = '';
-    if (!moved){ syncTabInd(); return; }     // 没滑动 → 恢复并交给 click
-    const pt = e.changedTouches ? e.changedTouches[0] : e;
-    const i = idxFromX(pt.clientX);
-    ind.style.transition = '';               // 恢复过渡动画
-    activateTab(tabs[i].dataset.tab);
-    // 阻止随后的 click 重复触发
-    const swallow = ev => { ev.stopPropagation(); ev.preventDefault(); };
-    bar.addEventListener('click', swallow, { capture: true, once: true });
-    setTimeout(() => bar.removeEventListener('click', swallow, { capture: true }), 80);
-  };
-
-  bar.addEventListener('touchstart', onDown, { passive: true });
-  bar.addEventListener('touchmove', onMove, { passive: false });
-  bar.addEventListener('touchend', onUp);
-  bar.addEventListener('touchcancel', onUp);
-  bar.addEventListener('mousedown', e => { onDown(e); });
-  window.addEventListener('mousemove', e => { if (dragging) onMove(e); });
-  window.addEventListener('mouseup', e => { if (dragging) onUp(e); });
-
-  // 尺寸/字体变化后重新对齐
-  window.addEventListener('resize', () => { syncTabInd(); syncAllChipInds(false); });
-  window.addEventListener('orientationchange', () => setTimeout(() => { syncTabInd(); syncAllChipInds(false); }, 200));
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { syncTabInd(); syncAllChipInds(false); });
-  window.addEventListener('load', () => { syncTabInd(); syncAllChipInds(false); });
-  requestAnimationFrame(() => { syncTabInd(); syncAllChipInds(false); });
-  setTimeout(() => syncTabInd(), 120);
-  setTimeout(() => syncTabInd(), 500);
-})();
-
-/* ================= 软件页事件 ================= */
-on('#needChips', 'click', e => {
-  const chip = e.target.closest('[data-need]'); if (!chip) return;
-  const k = chip.dataset.need;
-  chipsReflow($('#needChips'), '.chip', () => {
-    appState.need = (appState.need === k) ? 'all' : k;
-    $$('#needChips .chip').forEach(c => c.classList.toggle('on', c.dataset.need === appState.need));
-  });
-  renderApps();
-});// 点分类 chip → 筛/取消（再点一次取消，跟物品页一致）
-on('#appCatChips', 'click', e => {
-  const chip = e.target.closest('[data-acat]'); if (!chip) return;
-  const k = chip.dataset.acat;
-  chipsReflow($('#appCatChips'), '.chip', () => {
-    appState.cat = (appState.cat === k) ? 'all' : k;
-    $$('#appCatChips .chip').forEach(c => c.classList.toggle('on', c.dataset.acat === appState.cat));
-  });
-  renderApps();
-});
-// 搜索框已删除（用户要求）
-
-on('#alist', 'click', e => {
-  // 空状态里的「显示全部」：一键把所有筛选清掉，把软件都找回来
-  if (e.target.closest('#appShowAll')){
-    appState.need = 'all';
-    appState.cat = 'all';
-    appState.q = '';
-    $$('#needChips .chip').forEach(c => c.classList.remove('on'));
-    renderApps();
-    toast('已显示全部软件');
-    return;
-  }
-
-  const delBtn = e.target.closest('[data-delapp]');
-  if (delBtn){ deleteApp(delBtn.dataset.delapp); return; }
-
-  // 有一行处于「左滑打开」状态时，点它本身 = 收起，而不是执行行上的动作
-  // （避免滑开想取消时，手一滑点到了状态标签改掉数据）
-  const openWrap = document.querySelector('#alist .arow-wrap.open');
-  if (openWrap && openWrap.contains(e.target)){
-    openWrap.classList.remove('open');
-    const r = openWrap.querySelector('.arow');
-    if (r){ r.style.transition = 'transform .24s cubic-bezier(.22,1,.36,1)'; r.style.transform = ''; }
-    suppressCardClickUntil = Date.now() + 200;
-    return;
-  }
-
-  const needBtn = e.target.closest('[data-appneed]');
-  if (needBtn){ openAppPop(needBtn, needBtn.dataset.appneed); return; }
-
-  // 副行里的「分类」小标签 → 弹出分类选择（从该标签形变展开）
-  const catBtn = e.target.closest('[data-appcat]');
-  if (catBtn){ openAppCatPop(catBtn, catBtn.dataset.appcat); return; }
-
-  const iconBtn = e.target.closest('[data-appphoto]');
-  if (iconBtn){ appPhotoTargetId = iconBtn.dataset.appphoto; $('#filePick').click(); return; }
-});
-
-on('#fabApp', 'click', newAppModal);
+/* 底部 Tab 栏、Tab 拖动切换、软件页事件 —— 全部删除（单页 app，没有 Tab、没有软件页）。 */
 
 /* ================= 初始化 ================= */
 function renderAll(){
@@ -4680,7 +3676,6 @@ function renderAll(){
   renderHome();
   renderCatChips();
   renderItems();
-  renderApps();
   // 新渲染出来的按钮也要有按压反馈
   bindPressFeedback();
   // 指示块的落位：先同步对齐一次（不播动画），字体加载完再量一次
@@ -4692,10 +3687,12 @@ function renderAll(){
 async function boot(){
   // 先立刻渲染，保证界面马上可用（不阻塞在数据库上）
   try {
+    // ★ 单页 app 没有 Tab 切换了，所以「进页面默认筛选」必须在这里设一次：
+    //   状态 = 第一个（在用中）、分类 = 该状态下第一个有物品的分类。
+    //   原来这步在 goItems()（Tab 点击）里做，现在没有 Tab 可点了。
+    resetItemFiltersToDefault();
     renderAll();
-    showTab('home');
-    syncTabInd();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncTabInd());
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncAllChipInds(false));
   } catch (e) {
     // 渲染失败也不能让页面空着：把错误显示出来便于排查
     console.error('[极简] 首次渲染失败', e);
@@ -4709,16 +3706,10 @@ async function boot(){
     const had = await loadFromDB();
     suppressSave = false;
     if (had){
-      // 读到旧数据后先迁移：「待删」这一档已取消，存量统一转到「暂用」，
-      // 不转的话它们会因为筛选只认 need/temp 而永远不显示
-      const moved = migrateNeedValues();
+      // ★ 原来这里会调 migrateNeedValues()（把软件的 todel 转 temp）。
+      //   软件页已整页删除，这个迁移不再需要 —— 留着会 ReferenceError 中断 boot。
       renderAll();
-      syncTabInd();
-      if (moved){
-        saveNow();
-        console.log('[极简] 已把', moved, '个软件从「待删」转到「暂用」');
-      }
-      console.log('[极简] 已从本地存储恢复', ITEMS.length, '条物品 /', APPS.length, '个软件');
+      console.log('[极简] 已从本地存储恢复', ITEMS.length, '条物品');
     } else {
       console.log(dbReady ? '[极简] 首次使用' : '[极简] 当前环境不支持本地存储，改动不会保存');
     }
