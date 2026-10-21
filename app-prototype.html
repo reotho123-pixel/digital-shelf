@@ -124,7 +124,7 @@ body{
   .fab{right:22px}
 }
 
-/* 顶栏 */
+/* 顶栏（设置页还在用；主页的顶栏已删，齿轮搬进卡里了） */
 .topbar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px}
 .topbar .grp{display:flex;gap:10px;align-items:center}
 .circ{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);color:var(--ink);
@@ -138,6 +138,16 @@ body{
 .back{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);display:grid;place-items:center;
   cursor:pointer;box-shadow:2px 3px 0 rgba(22,23,27,.14);border-radius:46% 50% 44% 50%/50% 44% 50% 46%}
 .back svg{width:20px;height:20px}
+
+/* 卡片标题行：标题左、设置齿轮右。
+   ★ 齿轮必须跟「超出 N 件」标签上下对齐 —— 那个标签在 .hrow 里 flex-end，
+     所以这里也用 flex-end，齿轮底边正好压在标签顶边上方一点点。 */
+.hero .ttlrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+/* 卡里的齿轮：比顶栏那个小一圈（卡内空间紧），底色半透明白，压在绿底上更清楚 */
+.circ.cardgear{width:38px;height:38px;background:rgba(255,255,255,.82);
+  border-width:2.1px;box-shadow:2px 3px 0 rgba(22,23,27,.13);
+  margin-bottom:-2px;transform:rotate(2.4deg)}
+.circ.cardgear svg{width:17px;height:17px}
 
 /* 主卡：原来「我的收纳」+「极简目标」两张卡合并成这一张。
    ★ 边框改成 CSS 画（粗细恒定 3px），不再用固定 viewBox 的 SVG 路径当边框 ——
@@ -597,6 +607,12 @@ body{
 .st-cat .mini svg{width:13px;height:13px}
 .st-cat .mini:active{transform:translate(1px,1px)}
 .st-cat .mini.rm{background:#f9e6ec}
+/* ↑↓ 调顺序：两个小方块竖着叠，比横排省宽度（一行里还要放改名/删除） */
+.st-cat .mv{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
+.st-cat .mvbtn{width:24px;height:19px;border-radius:7px 3px 8px 4px/4px 8px 3px 7px}
+.st-cat .mvbtn svg{width:11px;height:11px}
+.st-cat .mvbtn[disabled]{opacity:.26;cursor:default}
+.st-cat .mvbtn[disabled]:active{transform:none}
 .st-addrow{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 0;
   font-family:var(--f-cn);font-size:13px;color:var(--ink2);cursor:pointer}
 .st-addrow svg{width:19px;height:19px}
@@ -825,16 +841,12 @@ body{
            现在只有一个滚动容器，设置是覆盖层（不占页面）。 -->
       <div class="screen on" id="scr-home">
 
-        <!-- 顶栏只留设置齿轮（左上角「简」已按用户要求删除），
-             所以用 justify-content:flex-end 把它推到右边 -->
-        <div class="topbar" id="mainTopbar">
-          <button class="circ c1" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
-        </div>
-
         <!-- 主卡：原来「我的收纳」+「极简目标」是两张卡，数字 97 出现两次。
              现在合并成一张：总量/目标 → 状态分布 → 进度条 → 分类目标。
              ★ 卡片高度由内容决定（SVG 绝对定位当背景，内容走文档流），
-               所以去掉原来那条写死 y=54 的 SVG 分隔线，改用 CSS 分隔。 -->
+               所以去掉原来那条写死 y=54 的 SVG 分隔线，改用 CSS 分隔。
+             ★ 设置齿轮原来在卡上方的顶栏里，现在搬进卡内标题行（用户要求），
+               顶栏因此整个删掉，卡片也跟着往上顶了 61px。 -->
         <div class="hero" id="mergedCard">
           <span class="tape p" style="left:-13px;top:-10px;transform:rotate(-16deg)"></span>
           <span class="tape b" style="right:-12px;bottom:-9px;transform:rotate(-14deg)"></span>
@@ -848,7 +860,11 @@ body{
             </svg>
           </div>
           <div class="over">
-            <div class="ttl">我的收纳</div>
+            <!-- 标题 + 设置齿轮同一行：齿轮在右上，正好落在下面「超出 N 件」标签的正上方 -->
+            <div class="ttlrow">
+              <div class="ttl">我的收纳</div>
+              <button class="circ c1 cardgear" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
+            </div>
 
             <div class="hrow">
               <div class="big"><span id="heroTotal">0</span><span class="of" id="goalOf"></span></div>
@@ -2157,13 +2173,22 @@ function renderSettings(){
   const estMB = ((ITEMS.length + APPS.length) * 0.004 + photoCount * 0.11).toFixed(1);
   const QUOTA = 120;   // 浏览器大致可用空间，仅作示意
 
-  const catRows = CATS.map(c => {
+  const catRows = CATS.map((c, idx) => {
     const n = stCatCount(c);
     const goalTxt = c.goal ? `目标 ${c.goal}` : '';
+    const first = idx === 0, last = idx === CATS.length - 1;
     return `<div class="st-cat" data-scat="${c.id}">
       <span class="dot" style="background:${c.tone}"></span>
       <span class="nm">${c.name}</span>
       <span class="cnt">${n} 条物品${goalTxt ? ' · ' + goalTxt : ''}</span>
+      <span class="mv">
+        <button class="mini mvbtn" data-catup="${c.id}" title="上移"${first ? ' disabled' : ''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14.5 12 8.5l6 6"/></svg>
+        </button>
+        <button class="mini mvbtn" data-catdown="${c.id}" title="下移"${last ? ' disabled' : ''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5 12 15.5l6-6"/></svg>
+        </button>
+      </span>
       <button class="mini" data-renamecat="${c.id}" title="改名">
         <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 4.4l4 4L8.4 19.6H4.4v-4L15.6 4.4Z"/></svg>
       </button>
@@ -2179,7 +2204,7 @@ function renderSettings(){
     <div class="st-sec">
       <div class="st-cat-head">
         <span>物品分类</span>
-        <span class="hint">共 ${CATS.length} 个 · 长按分类卡也能改顺序</span>
+        <span class="hint">共 ${CATS.length} 个 · 用 ↑↓ 调顺序</span>
       </div>
       ${catRows || '<div class="st-note" style="padding:6px 0 8px">还没有分类，点下面新建一个</div>'}
       <div class="st-row" id="stAddCat" style="border-bottom:none;padding-top:10px">
@@ -2349,10 +2374,13 @@ function closeSettings(fromProgress){
   setTimeout(finish, 380);   // 兜底
 }
 
-on('#qSettings', 'click', goSettings);
-// 点极简目标卡片 → 打开完整的目标设置（物品总额 / 软件总额 / 各分类）
-// 点合并后的主卡 → 打开完整的目标设置（物品总额 / 软件总额 / 各分类）
-on('#mergedCard', 'click', () => goalModal($('#mergedCard')));
+on('#qSettings', 'click', e => { e.stopPropagation(); goSettings(); });
+// 点合并后的主卡 → 打开完整的目标设置（物品总额 + 各分类目标）
+// ★ 齿轮现在在卡里，点它必须挡住这条冒泡，否则会同时开出设置和目标两个面板
+on('#mergedCard', 'click', e => {
+  if (e.target.closest('#qSettings')) return;
+  goalModal($('#mergedCard'));
+});
 // 返回按钮始终可用（手势是增强，不是唯一入口）
 on('#stBack', 'click', () => closeSettings());
 
@@ -2432,8 +2460,33 @@ on('#stBack', 'click', () => closeSettings());
   window.addEventListener('mouseup', () => { if (dragging) onUp(); });
 })();
 
+/* --- 分类调顺序 --- */
+/* 设置页里每个分类右边的 ↑↓ 按钮。分类顺序存在 CATS 的 order 字段上，
+   renderCatChips / renderGoalCats 都按 order 排，所以改完要一起刷新。
+   ★ 分类卡网格已经删了，原来那句「长按分类卡也能改顺序」失效 —— 这是现在唯一的调序入口。 */
+function moveCat(id, dir){
+  const i = CATS.findIndex(c => c.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= CATS.length) return;
+  // 老数据的 CATS 没有 order 字段（初始数据就是），先按当前数组位置全部编号，
+  // 否则 a/b 的 order 都是 9999，交换等于没换。
+  if (CATS.some(c => typeof c.order !== 'number')){
+    CATS.forEach((c, k) => { c.order = k; });
+  }
+  const a = CATS[i], b = CATS[j];
+  const t = a.order; a.order = b.order; b.order = t;
+  // 数组本身也按 order 排一次，让 chip 行（按数组顺序渲染）和分类目标（按 order 排）一致
+  CATS.sort((x, y) => (x.order ?? 9999) - (y.order ?? 9999));
+  renderSettings(); renderHome(); renderCatChips(); renderItems();
+  toast(`「${a.name}」已${dir < 0 ? '上移' : '下移'}`);
+}
+
 on('#stBody', 'click', e => {
-  // 物品分类改名 / 删除 / 新建
+  // 物品分类调顺序 / 改名 / 删除 / 新建
+  const up = e.target.closest('[data-catup]');
+  if (up){ moveCat(up.dataset.catup, -1); return; }
+  const dn = e.target.closest('[data-catdown]');
+  if (dn){ moveCat(dn.dataset.catdown, +1); return; }
   const rn = e.target.closest('[data-renamecat]');
   if (rn){ renameCatModal(rn.dataset.renamecat); return; }
   const rm = e.target.closest('[data-delcat]');
