@@ -119,19 +119,14 @@ body{
   .stage{display:flex;justify-content:center}
   .phone{width:378px;height:812px;border-radius:42px;border:2.8px solid var(--ink);
     box-shadow:7px 9px 0 rgba(22,23,27,.13);flex:0 0 auto}
-  .screen{padding:22px 20px 104px}
+  .screen{padding:22px 20px 40px}
   /* 桌面预览时安全区为 0，位置固定即可 */
-  .tabbar{bottom:17px}
-  .fab{right:22px;bottom:96px}
-  .toast{bottom:104px}
+  .fab{right:22px}
 }
 
 /* 顶栏 */
 .topbar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px}
 .topbar .grp{display:flex;gap:10px;align-items:center}
-.avatar{width:46px;height:46px;display:grid;place-items:center;background:var(--accent);
-  border:2.3px solid var(--ink);font-family:var(--f-cn);font-size:19px;
-  border-radius:50% 46% 52% 48%/48% 52% 46% 50%;transform:rotate(-3deg);box-shadow:2px 3px 0 rgba(22,23,27,.15)}
 .circ{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);color:var(--ink);
   display:grid;place-items:center;cursor:pointer;position:relative;flex:0 0 auto;
   box-shadow:2px 3px 0 rgba(22,23,27,.14)}
@@ -508,31 +503,6 @@ body{
 .fab svg{width:24px;height:24px}
 .fab:active{transform:translate(2px,3px);box-shadow:1px 2px 0 rgba(22,23,27,.2)}
 
-/* ===== 底部 Tab：胶囊容器 + 滑动选中块 ===== */
-.tabbar{position:absolute;left:15px;right:15px;z-index:14;
-  /* 距屏幕底写死 17px，不叠加 safe-area（理由同 .screen） */
-  bottom:17px;
-  background:rgba(253,250,241,.98);border:2.6px solid var(--ink);
-  border-radius:999px;box-shadow:4px 5px 0 rgba(22,23,27,.17);
-  padding:5px;display:flex;gap:3px;transform:rotate(-.35deg);
-  touch-action:none;user-select:none;-webkit-user-select:none}
-/* 滑动指示块：跟着选中项平移 */
-.tab-ind{position:absolute;top:5px;bottom:5px;left:5px;width:60px;border-radius:999px;
-  background:var(--ink);z-index:0;pointer-events:none;
-  transition:transform .3s cubic-bezier(.34,1.4,.5,1),width .3s cubic-bezier(.34,1.4,.5,1)}
-.tabbar.dragging .tab-ind{transition:none}
-.tb{flex:1;border:none;background:none;font-family:var(--f-cn);font-size:11px;color:var(--sub);
-  display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;
-  padding:10px 2px;border-radius:999px;position:relative;z-index:1;
-  transition:color .2s}
-.tb svg{width:17px;height:17px;color:var(--ink2);opacity:.6;flex:0 0 auto;transition:color .2s,opacity .2s}
-.tb.on{color:#fdfaf1}
-.tb.on svg{color:#fdfaf1;opacity:1}
-.tb .badge{min-width:15px;height:15px;padding:0 4px;background:var(--accent-deep);color:#fff;
-  border:1.5px solid var(--ink);border-radius:8px 3px 9px 4px;font-family:'PatrickHand',sans-serif;
-  font-size:10px;line-height:12px;text-align:center;flex:0 0 auto;transition:background .2s,color .2s}
-.tb.on .badge{background:var(--accent);color:var(--ink);border-color:#fdfaf1}
-
 /* ===== 弹层 =====
    动画用 @keyframes 而不是 transition：万一动画不执行，元素的基础状态就是可见的，
    不会出现「弹窗卡在全透明、点不出来」这种致命问题。 */
@@ -584,114 +554,7 @@ body{
 .opt .sub{margin-left:auto;font-family:'PatrickHand',sans-serif;font-size:11.5px;color:var(--sub)}
 .opt.sel .sub{color:var(--ink2)}
 
-/* ===== 软件列表 ===== */
-.alist{display:flex;flex-direction:column;gap:9px}
-/* 左滑删除：外层是「槽」，行在上面滑动露出底下的删除块。
-   注意行本身带轻微旋转（奇偶 ±0.35°），所以滑动用 translateX 叠在旋转上，
-   不能整串覆盖 transform。 */
-.arow-wrap{position:relative;border-radius:15px;overflow:hidden;
-  transform:rotate(-.35deg)}
-.arow-wrap:nth-child(even){transform:rotate(.35deg)}
-.arow-wrap .swipe-del{position:absolute;top:0;right:0;bottom:0;width:86px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  /* 不要左边框：行滑开后两层边框会贴在一起，看起来像多了一条黑竖线。
-     左边界直接用行的描边充当。 */
-  background:#f3c9d8;border:2.2px solid var(--ink);border-left:none;
-  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;
-  font-family:var(--f-cn);font-size:11.5px;color:var(--ink);cursor:pointer;
-  transform:translateX(100%);opacity:0}
-.arow-wrap .swipe-del svg{width:16px;height:16px}
-.arow-wrap .swipe-del:active{background:#eeb6cb}
-/* 滑开后：删除块就位 */
-.arow-wrap.open .swipe-del{transform:translateX(0);opacity:1;
-  transition:transform .24s cubic-bezier(.22,1,.36,1),opacity .16s}
-.arow{display:flex;align-items:center;gap:11px;background:#fff;border:2.2px solid var(--ink);
-  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;padding:10px 12px;
-  box-shadow:3px 4px 0 rgba(22,23,27,.13);position:relative;
-  will-change:transform;touch-action:pan-y}
-.arow .ic{width:42px;height:42px;flex:0 0 auto;border:2.1px solid var(--ink);display:grid;place-items:center;
-  border-radius:13px 5px 14px 6px/6px 14px 5px 13px;font-family:var(--f-cn);font-size:17px;
-  overflow:hidden;cursor:pointer;position:relative}
-.arow .ic img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
-.arow .tx{flex:1;min-width:0;cursor:pointer}
-.arow .tx b{display:block;font-family:var(--f-cn);font-size:14.5px;font-weight:400;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.arow .tx span{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.arow .tx span i{font-style:normal}
-/* 副行里可点的「分类」小标签：点它换分类（底色跟分类色） */
-.arow .appcat{display:inline-block;font-family:var(--f-cn);font-size:10.5px;color:var(--ink);
-  background:var(--c,#eee);border:1.6px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;
-  padding:0 5px;margin-right:3px;cursor:pointer;vertical-align:1px;line-height:1.5}
-.arow .appcat:active{transform:translate(1px,1px)}
-.arow .need{flex:0 0 auto;font-family:var(--f-cn);font-size:11px;padding:3px 9px;border:1.9px solid var(--ink);
-  border-radius:10px 4px 11px 5px/5px 11px 4px 10px;cursor:pointer}
-.arow .need:active{transform:translate(1px,1px)}
-/* 删除按钮已移除：改成左滑露出（见 .arow-wrap .swipe-del） */
-.alist .addrow{display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;
-  border:2.2px dashed var(--ink);background:rgba(255,255,255,.6);border-radius:15px 6px 16px 7px/7px 16px 6px 15px;
-  box-shadow:3px 4px 0 rgba(22,23,27,.1);cursor:pointer;font-family:var(--f-cn);font-size:13.5px;color:var(--ink2)}
-.alist .addrow svg{width:22px;height:22px}
 
-/* ===== 极简进程页 ===== */
-/* 总目标卡 */
-.pg-total{background:#fff;border:2.3px solid var(--ink);border-radius:19px 7px 20px 8px/8px 20px 7px 19px;
-  box-shadow:5px 6px 0 rgba(22,23,27,.15);padding:14px 16px 15px;margin-bottom:14px;transform:rotate(-.35deg)}
-.pg-total .row1{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:11px}
-.pg-total .big{display:flex;align-items:baseline;gap:5px}
-.pg-total .big .n{font-family:var(--f-num);font-weight:700;font-size:44px;line-height:.85}
-.pg-total .big .of{font-family:var(--f-num);font-weight:700;font-size:19px;color:var(--sub)}
-.pg-total .lb{font-family:var(--f-cn);font-size:12.5px;color:var(--sub)}
-.pg-bar{margin-bottom:9px}
-.pg-bar .tr{height:11px;border:2.2px solid var(--ink);border-radius:7px 3px 8px 4px/4px 8px 3px 7px;
-  background:rgba(22,23,27,.05);position:relative;overflow:hidden}
-.pg-bar .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:5px 2px 6px 3px/3px 6px 2px 5px;
-  transition:width .4s}
-.pg-sub{display:flex;justify-content:space-between;font-size:12.5px;color:var(--sub)}
-.pg-setbtn{border:2px solid var(--ink);background:#fff;font-family:var(--f-cn);font-size:11.5px;
-  padding:4px 10px;cursor:pointer;border-radius:10px 4px 11px 5px/5px 11px 4px 10px;
-  box-shadow:2px 2px 0 rgba(22,23,27,.12)}
-.pg-setbtn:active{transform:translate(1px,1px);box-shadow:0 0 0 rgba(0,0,0,0)}
-
-/* 分类目标列表 */
-.pg-sec{background:#fff;border:2.3px solid var(--ink);border-radius:18px 7px 19px 8px/8px 19px 7px 18px;
-  box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:5px 15px;margin-bottom:14px}
-.pg-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1.7px dashed rgba(22,23,27,.16)}
-.pg-row:last-child{border-bottom:none}
-.pg-row .nm{font-family:var(--f-cn);font-size:13.5px;flex:0 0 auto;width:38px}
-.pg-row .bar{flex:1;height:9px;position:relative}
-.pg-row .bar .tr{position:absolute;inset:0;border:2px solid var(--ink);
-  border-radius:6px 3px 7px 3px/3px 7px 3px 6px;background:rgba(22,23,27,.05)}
-.pg-row .bar .fl{position:absolute;top:2px;bottom:2px;left:2px;border-radius:4px 2px 5px 2px/2px 5px 2px 4px}
-.pg-row .vv{font-family:'PatrickHand',sans-serif;font-size:13px;font-weight:700;flex:0 0 auto;
-  min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
-.pg-row .flag{font-family:var(--f-cn);font-size:10.5px;padding:2px 7px;border:1.8px solid var(--ink);
-  border-radius:8px 3px 9px 4px/4px 9px 3px 8px;flex:0 0 auto}
-
-/* 趋势图 */
-.pg-chart{background:#fff;border:2.3px solid var(--ink);border-radius:18px 7px 19px 8px/8px 19px 7px 18px;
-  box-shadow:4px 5px 0 rgba(22,23,27,.13);padding:14px 15px 12px;margin-bottom:14px}
-.pg-chart .ch-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.pg-chart .ch-head b{font-family:var(--f-cn);font-size:15px;font-weight:400}
-.pg-svgbox{position:relative;height:172px;margin:4px 0 8px}
-.pg-svgbox svg{display:block;width:100%;height:100%;overflow:visible}
-.pg-tabs{display:flex;gap:5px}
-.pg-tabs button{flex:1;border:2.1px solid var(--ink);background:#fff;font-family:var(--f-cn);
-  font-size:11.5px;padding:7px 1px;cursor:pointer;color:var(--ink2);
-  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;box-shadow:2px 2px 0 rgba(22,23,27,.1)}
-.pg-tabs button.on{background:var(--accent);color:var(--ink);transform:rotate(-1deg);
-  box-shadow:2px 3px 0 rgba(22,23,27,.16)}
-.pg-summary{font-size:12.5px;color:var(--sub);margin-top:9px;line-height:1.5}
-
-/* 里程碑条 */
-.pg-mile{background:var(--accent);border:2.3px solid var(--ink);border-radius:16px 6px 17px 7px/7px 17px 6px 16px;
-  box-shadow:4px 5px 0 rgba(22,23,27,.16);padding:13px 15px;transform:rotate(-.5deg);position:relative}
-.pg-mile .tt{font-family:var(--f-cn);font-size:13.5px;line-height:1.6}
-.pg-mile .tt b{font-family:var(--f-num);font-size:19px;font-weight:700}
-.pg-mile .sm{font-size:12px;opacity:.72;margin-top:3px}
-.pg-empty{background:#fff;border:2.2px dashed var(--ink);border-radius:16px;padding:24px 18px;text-align:center}
-.pg-empty b{display:block;font-family:var(--f-cn);font-size:15px;font-weight:400;margin-bottom:7px}
-.pg-empty span{font-size:13px;color:var(--sub);line-height:1.6}
 
 /* ===== 设置页 ===== */
 .st-sec{background:#fff;border:2.3px solid var(--ink);border-radius:18px 7px 19px 8px/8px 19px 7px 18px;
@@ -816,7 +679,7 @@ body{
 
 /* 轻提示 */
 .toast{position:absolute;left:50%;transform:translateX(-50%) translateY(8px);
-  bottom:104px;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 92px);
   background:var(--ink);color:#fdfaf1;font-family:var(--f-cn);font-size:13px;padding:9px 12px 9px 16px;
   border-radius:13px 5px 14px 6px/6px 14px 5px 13px;opacity:0;pointer-events:none;
   transition:opacity .2s,transform .2s;z-index:40;display:flex;align-items:center;gap:11px;
@@ -1661,8 +1524,6 @@ function catQty(cid){ return sumQty(ITEMS.filter(i => i.c === cid)); }
    否则一件 q=3 的东西会让"状态 1 / 分类 3"再次对不上。 */
 function itemsInSt(st){ return st === 'all' ? ITEMS : ITEMS.filter(i => i.st === st); }
 function catQtyIn(cid, st){ return itemsInSt(st).filter(i => i.c === cid).length; }
-/* 软件页同一套父子口径：必需行是总行，分类行是它的分支 */
-function appsInNeed(k){ return k === 'all' ? APPS : APPS.filter(a => a.need === k); }
 
 /* ================= 总览 ================= */
 /* 合并后的主卡：原来「我的收纳」和「极简目标」是两张卡，数字 97 出现两次。
@@ -1950,35 +1811,9 @@ function renderItems(){
 }
 
 /* ================= 导航 ================= */
-/* ★ 现在只有一个页面（物品 + 目标卡），底部 Tab 已删除、软件页已删除。
-   所以 showTab / syncTabInd / TAB_ORDER 这些切页逻辑全部不需要了。
-   为了不破坏已有调用点，保留一个**空壳 showTab**（切到什么都滚回顶部），
-   以及 goItems（只做「重置筛选 + 滚到列表」）。 */
-let switching = false;
-
-function showTab(tab, opts){
-  // 只有一个页面：任何"切页"都退化成"回到顶部"
-  cancelAllHolds();
-  const scr = $('#scr-home');
-  if (scr) scr.scrollTop = 0;
-  requestAnimationFrame(() => syncAllChipInds(false));
-}
-
-function goItems(cat, opts){
-  const o = opts || {};
-  if (o.resetFilters !== false){
-    resetItemFiltersToDefault(cat);
-  } else if (cat){
-    state.cat = cat;
-    if (cat !== 'cloth') state.season = 'all';
-    state.loc = 'all';
-  }
-  syncFilterGroup();
-  renderCatChips(); renderItems();
-  const scr = $('#scr-home');
-  if (scr) scr.scrollTop = 0;
-}
-
+/* ★ 只有一个页面（目标卡 + 物品列表）：底部 Tab 和软件页都已删除，
+   showTab / syncTabInd / TAB_ORDER / goItems 这些切页逻辑一并删掉。
+   「回到列表顶部」现在由 renderItems 之后的滚动处理负责。 */
 
 
 /* ================= 弹层 ================= */
@@ -2277,7 +2112,6 @@ APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
 
 /* ================= 通用计算 ================= */
 const sumItems  = () => sumQty(ITEMS);
-const countApps = () => APPS.length;
 
 /* 今天的日期字符串，用于使用次数按天统计 */
 function todayStr(){
@@ -2316,7 +2150,6 @@ function popUsePlusOne(anchorEl){
 
 /* ================= 设置 ================= */
 const stCatCount = c => ITEMS.filter(i => i.c === c.id).length;
-const stAppCatCount = c => APPS.filter(a => a.c === c.id).length;
 
 function renderSettings(){
   // 估算占用：按条数与图片数粗算（正式版从 IndexedDB 取真实值）
@@ -2337,15 +2170,6 @@ function renderSettings(){
       <button class="mini rm" data-delcat="${c.id}" title="删除">
         <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
       </button>
-    </div>`;
-  }).join('');
-
-  const appCatRows = APP_CATS.map(c => {
-    const n = stAppCatCount(c);
-    return `<div class="st-cat" data-sappcat="${c.id}">
-      <span class="dot" style="background:${c.tone}"></span>
-      <span class="nm">${c.name}</span>
-      <span class="cnt">${n} 个软件</span>
     </div>`;
   }).join('');
 
@@ -2382,7 +2206,7 @@ function renderSettings(){
           <div class="tr"><div class="fl" style="width:${Math.min(100, (estMB / QUOTA) * 100).toFixed(1)}%"></div></div>
         </div>
         <div class="st-note" style="padding-bottom:6px">
-          已用约 <b>${estMB} MB</b>（${ITEMS.length} 条物品 · ${APPS.length} 个软件 · ${photoCount} 张图）
+          已用约 <b>${estMB} MB</b>（${ITEMS.length} 条物品 · ${photoCount} 张图）
         </div>
       </div>
       <div class="st-row" id="stExport">
@@ -2393,11 +2217,6 @@ function renderSettings(){
       <div class="st-row" id="stImport">
         <span class="ic" style="background:#d9eddd"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5V4.5M8 11l4-3.8 4 3.8"/><path d="M5 19.2h14"/></svg></span>
         <span class="tx"><b>导入备份</b><span>会覆盖当前全部数据</span></span>
-        <span class="go">›</span>
-      </div>
-      <div class="st-row" id="stClearApps">
-        <span class="ic" style="background:#f9e6ec"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg></span>
-        <span class="tx"><b>只清空软件</b><span>物品、分类、目标都不动（现有 ${APPS.length} 个）</span></span>
         <span class="go">›</span>
       </div>
       <div class="st-row danger" id="stClear">
@@ -2621,13 +2440,6 @@ on('#stBody', 'click', e => {
   if (rm){ delCatModal(rm.dataset.delcat); return; }
   if (e.target.closest('#stAddCat')){ newCatModal(); return; }
 
-  // 软件分类改名 / 删除 / 新建
-  const rnA = e.target.closest('[data-renameappcat]');
-  if (rnA){ renameAppCatModal(rnA.dataset.renameappcat); return; }
-  const rmA = e.target.closest('[data-delappcat]');
-  if (rmA){ delAppCatModal(rmA.dataset.delappcat); return; }
-  if (e.target.closest('#stAddAppCat')){ newAppCatModal(); return; }
-
   // 主色
   const sw = e.target.closest('[data-accent]');
   if (sw){ applyAccent(sw.dataset.accent); renderSwatches(); toast('主色已切换'); return; }
@@ -2635,7 +2447,6 @@ on('#stBody', 'click', e => {
   // 数据
   if (e.target.closest('#stExport')){ exportBackup(); return; }
   if (e.target.closest('#stImport')){ importBackup(); return; }
-  if (e.target.closest('#stClearApps')){ clearAppsModal(); return; }
   if (e.target.closest('#stClear')){ clearAllModal(); return; }
 });
 
@@ -2724,10 +2535,6 @@ function goalModal(anchorEl){
         <label>物品总目标（件）</label>
         <input type="text" id="gmItem" value="${GOAL_TOTAL || ''}" inputmode="numeric" placeholder="留空表示不设">
       </div>
-      <div class="fld">
-        <label>软件总目标（个）</label>
-        <input type="text" id="gmApp" value="${GOAL_APPS || ''}" inputmode="numeric" placeholder="留空表示不设">
-      </div>
 
       <label style="font-family:var(--f-cn);font-size:13px;color:var(--ink2);display:block;margin:2px 0 6px">分类目标（件）</label>
       <div style="max-height:34vh;overflow-y:auto;scrollbar-width:none">${catRows}</div>
@@ -2742,7 +2549,6 @@ function goalModal(anchorEl){
   $('#gmOk').addEventListener('click', () => {
     const numOf = v => { const s = v.trim(); return /^\d+$/.test(s) ? Number(s) : 0; };
     GOAL_TOTAL = numOf($('#gmItem').value);
-    GOAL_APPS  = numOf($('#gmApp').value);
     document.querySelectorAll('[data-goalcat]').forEach(inp => {
       const c = CATS.find(x => x.id === inp.dataset.goalcat);
       if (c) c.goal = numOf(inp.value);
@@ -2774,7 +2580,7 @@ function exportBackup(){
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    toast(`已导出 ${ITEMS.length} 条物品 · ${APPS.length} 个软件`);
+    toast(`已导出 ${ITEMS.length} 条物品`);
   } catch (err) {
     toast('导出失败，换个浏览器试试');
   }
@@ -2827,7 +2633,7 @@ function importBackup(){
           const res = applyBackup(d, mode);
           toast(mode === 'merge'
             ? `已合并：新增 ${res.added} 条 · 合并数量 ${res.merged} 条`
-            : `已覆盖：${ITEMS.length} 条物品 · ${APPS.length} 个软件`);
+            : `已覆盖：${ITEMS.length} 条物品`);
         } catch (err) {
           toast('这个备份文件无法读取');
         }
@@ -3187,15 +2993,7 @@ document.addEventListener('click', e => {
   if (t) toast(t.dataset.toast);
 });
 
-// 首页分类卡
-on('#catGrid', 'click', e => {
-  // 空状态那张引导卡：直接开「添加物品」（不是新建分类）
-  if (e.target.closest('#catAddTile')){ newItemModal(); return; }
-  const card = e.target.closest('[data-cat]');
-  if (card) goItems(card.dataset.cat);
-});
-on('#qAddItem', 'click', newItemModal);
-// #qAddApp / #backHome 两个按钮已随软件页和 Tab 一起删除，绑定一并去掉
+// 分类网格 #catGrid、#qAddItem、#qAddApp、#backHome 都已随总览页/软件页删除，绑定一并去掉
 
 // 列表页筛选
 /* ★ 关键：选中态的 class 切换必须发生在 chipsReflow 的 mutate 回调**里面** ——
@@ -3329,8 +3127,6 @@ on('#stChips', 'click', e => {
 // 搜索框已删除（用户要求）——state.q 保留但恒为空，筛选逻辑不再读它
 // 物品卡：照片 / 归类 / 删除 / 进详情
 on('#igrid', 'click', e => {
-  if (e.target.closest('#gridAdd')){ newItemModal(); return; }
-
   // 空状态里的「显示全部」：清掉分类/状态筛选，把物品都找回来
   if (e.target.closest('#itemShowAll')){
     state.cat = 'all';
@@ -3664,7 +3460,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('#pop') || e.target.closest('.lk') || e.target.closest('[data-status]')) return;
   closePop();
 }, true);
-on('#scr-items', 'scroll', closePop);
+on('#scr-home', 'scroll', closePop);
 
 on('#fab', 'click', newItemModal);
 
