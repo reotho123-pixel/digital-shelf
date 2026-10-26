@@ -139,23 +139,15 @@ body{
   cursor:pointer;box-shadow:2px 3px 0 rgba(22,23,27,.14);border-radius:46% 50% 44% 50%/50% 44% 50% 46%}
 .back svg{width:20px;height:20px}
 
-/* 卡片标题行：标题左、设置齿轮右。
-   ★ 齿轮必须跟「超出 N 件」标签上下对齐 —— 那个标签在 .hrow 里 flex-end，
-     所以这里也用 flex-end，齿轮底边正好压在标签顶边上方一点点。 */
-.hero .ttlrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
-/* 卡里的齿轮：比顶栏那个小一圈（卡内空间紧），底色半透明白，压在绿底上更清楚 */
-.circ.cardgear{width:38px;height:38px;background:rgba(255,255,255,.82);
-  border-width:2.1px;box-shadow:2px 3px 0 rgba(22,23,27,.13);
-  margin-bottom:-2px;transform:rotate(2.4deg)}
-.circ.cardgear svg{width:17px;height:17px}
+/* 顶栏：主卡删掉后设置齿轮没了去处，这里给它一行（卡片都没了，不用再挤高度） */
+.topline{display:flex;justify-content:flex-end;margin-bottom:10px}
 
-/* 主卡：原来「我的收纳」+「极简目标」两张卡合并成这一张。
-   ★ 边框改成 CSS 画（粗细恒定 3px），不再用固定 viewBox 的 SVG 路径当边框 ——
-     卡片高度会随内容从 151 长到 300+，preserveAspectRatio="none" 会把描边
-     一起纵向拉粗，底边就变成一条粗黑带。
-     手绘抖动靠 .hero-frame 上的 SVG filter（feTurbulence + feDisplacementMap），
-     它作用在 CSS 边框上，粗细不变。 */
-.hero{position:relative;margin-bottom:19px;transform:rotate(-.7deg)}
+/* ===== 筛选框（原是「我的收纳」主卡，现在只框住状态行 + 分类行）=====
+   ★ 绿框、胶带、干笔白条纹原样保留，只是里面装的东西换了。
+   ★ 边框用 CSS 画（粗细恒定 3px），不用固定 viewBox 的 SVG 路径 ——
+     框高度会变，preserveAspectRatio="none" 会把描边一起纵向拉粗。
+     手绘抖动靠 .hero-frame 上的 SVG filter 作用在 CSS 边框上。 */
+.hero{position:relative;margin-bottom:9px;transform:rotate(-.55deg)}
 .hero-frame{position:absolute;inset:0;background:#c9e8cf;border:3px solid var(--ink);
   border-radius:22px 9px 23px 10px/10px 23px 9px 22px;
   filter:url(#rough);
@@ -163,27 +155,11 @@ body{
 /* 干笔白条纹：铺在框内，拉伸无所谓（那是颜料），用 clip 收进圆角 */
 .hero-brush{position:absolute;inset:0;width:100%;height:100%;display:block;
   border-radius:22px 9px 23px 10px/10px 23px 9px 22px;overflow:hidden}
-.hero .over{position:relative;padding:15px 19px 17px;display:flex;flex-direction:column;gap:9px}
-/* 干笔白条纹在卡的下半部会压住分类目标那几行小字（截图里读起来发花），
-   所以给内容层垫一层很淡的绿底，把条纹"压下去"再写字。 */
-.hero .over::before{content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to bottom,rgba(201,232,207,0) 38%,rgba(201,232,207,.55) 62%,rgba(201,232,207,.72) 100%)}
+.hero .over{position:relative;padding:13px 14px 9px;display:flex;flex-direction:column;gap:2px}
 .hero .over > *{position:relative}
-.hero .ttl{font-family:var(--f-cn);font-size:21px;line-height:1.1;text-shadow:0 1px 0 rgba(255,255,255,.42)}
-/* 数字 + 目标 + 状态标签一行 */
-.hero .hrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
-.hero .big{display:flex;align-items:baseline;gap:5px;
-  font-family:var(--f-num);font-weight:700;font-size:52px;line-height:.84;
-  text-shadow:0 1px 0 rgba(255,255,255,.42)}
-.hero .big .of{font-size:20px;opacity:.62}
-/* 状态分布 + 提示：一行小字 */
-.hero .hmeta{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
-.hero .split{font-size:12.5px;line-height:1.5;opacity:.86;font-family:'PatrickHand',sans-serif;
-  text-shadow:0 1px 0 rgba(255,255,255,.38)}
-.hero .hint{font-size:11.5px;opacity:.72;text-align:right;flex:0 0 auto;
-  font-family:'PatrickHand',sans-serif;text-shadow:0 1px 0 rgba(255,255,255,.38)}
-.hero .gbar{margin:0}
-.hero .gbar svg{display:block;width:100%;height:auto}
+/* 框里的筛选行：去掉原来外面那层的底部间距（框内边距自己管） */
+.hero .chipRow{margin-bottom:0}
+.hero .chips{padding-bottom:4px}
 .tape{position:absolute;width:74px;height:25px;z-index:5;opacity:.8;box-shadow:0 1px 4px rgba(22,23,27,.13);
   clip-path:polygon(0 3%,4% 0,96% 2%,100% 0,99% 96%,95% 100%,5% 98%,1% 100%)}
 .tape.p{background:var(--hl)}
@@ -195,40 +171,6 @@ body{
 .sec-head b::after{content:'';position:absolute;left:-6px;right:-7px;bottom:2px;height:10px;z-index:-1;
   background:var(--hl);border-radius:3px 10px 4px 11px;transform:rotate(-.8deg)}
 .sec-head a{font-size:13px;color:var(--sub);text-decoration:none;font-family:'PatrickHand',sans-serif;cursor:pointer}
-
-/* 目标标签（现在在主卡的绿底上，所以底色改成半透明白，读起来更清楚） */
-.tag{font-size:12px;padding:3px 9px;border:2px solid var(--ink);
-  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;background:rgba(255,255,255,.72);
-  color:#3d6f9e;transform:rotate(-1.6deg);display:inline-block;font-family:var(--f-cn);
-  white-space:nowrap;flex:0 0 auto}
-/* 主卡标题行里的小按钮（清理队列入口）。
-   ★ 放这一行是为了不多占高度：这里标题右边本来就有空位。 */
-.hero .hbtn{border:1.9px solid var(--ink);background:rgba(255,255,255,.86);
-  font-family:var(--f-cn);font-size:11px;padding:3px 9px;cursor:pointer;color:var(--ink2);
-  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;box-shadow:2px 2px 0 rgba(22,23,27,.12);
-  white-space:nowrap;flex:0 0 auto;margin-left:auto;margin-bottom:1px}
-.hero .hbtn[hidden]{display:none}
-/* 「已送走 N 件」：单独一行小字，只在真送过东西时出现 */
-.hero .hmeta2{font-size:11.5px;opacity:.68;font-family:'PatrickHand',sans-serif;
-  text-shadow:0 1px 0 rgba(255,255,255,.4);margin-top:-3px}
-.hero .hmeta2[hidden]{display:none}
-/* 合并后的主卡里的「分类目标」清单。
-   现在这块在浅绿手绘卡上（原来是白卡），所以文字/描边要按绿底调。 */
-.goal-cats{margin-top:3px;padding-top:10px;border-top:1.8px dashed rgba(22,23,27,.22)}
-.gc-head{font-family:var(--f-cn);font-size:12px;opacity:.7;margin-bottom:6px;
-  text-shadow:0 1px 0 rgba(255,255,255,.4)}
-.gc-row{display:flex;align-items:center;gap:8px;padding:3px 0}
-.gc-row .dot{width:9px;height:9px;border-radius:50% 44% 52% 46%;border:1.5px solid var(--ink);flex:0 0 auto}
-.gc-row .nm{font-family:var(--f-cn);font-size:12.5px;flex:0 0 auto;max-width:74px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 0 rgba(255,255,255,.4)}
-.gc-row .bar{flex:1;height:7px;position:relative;min-width:30px}
-.gc-row .bar .tr{position:absolute;inset:0;border:1.7px solid var(--ink);border-radius:5px 2px 6px 3px/3px 6px 2px 5px;
-  background:rgba(255,255,255,.5)}
-.gc-row .bar .fl{position:absolute;top:1.5px;bottom:1.5px;left:1.5px;border-radius:3px 2px 4px 2px/2px 4px 2px 3px}
-.gc-row .vv{font-family:'PatrickHand',sans-serif;font-size:12px;font-weight:700;flex:0 0 auto;
-  min-width:44px;text-align:right;font-variant-numeric:tabular-nums;
-  text-shadow:0 1px 0 rgba(255,255,255,.4)}
-.gc-row .vv i{font-style:normal;opacity:.62;font-weight:400}
 
 /* 快捷入口 */
 .quick{display:flex;justify-content:space-between;gap:6px;margin:16px 0 18px}
@@ -391,17 +333,8 @@ body{
   display:grid;place-items:center;background:rgba(255,255,255,.92);
   border:1.5px solid var(--ink);border-radius:50% 46% 52% 48%;opacity:.85}
 .icard .ph .addph svg{width:11px;height:11px;opacity:.9}
-/* 缩略图只有 78px，四个角塞不下四样东西 → 日期 + 爱心留在图上（这两样要"一眼看到"），
-   状态标签和数量角标移到右侧文字区。 */
-.icard .ph .lk{position:absolute;top:4px;right:4px;width:19px;height:19px;z-index:3;cursor:pointer;
-  display:grid;place-items:center;transition:transform .12s;background:none;border:none;padding:0}
-.icard .ph .lk:active{transform:scale(.86)}
-.icard .ph .lk::after{content:'';position:absolute;inset:-8px}
-/* <use> 影子树里外部类选择器无效，只能用继承属性：fill / stroke / stroke-width 写在外层 svg 上 */
-.icard .ph .lk svg{width:19px;height:19px;overflow:visible;
-  fill:var(--lkc,#fff);stroke:var(--ink);stroke-width:2;stroke-linejoin:round;
-  paint-order:stroke fill}
-/* 归类小菜单（浮在卡片上） */
+/* 缩略图只有 78px 塞不下几样东西 → 只留日期角标，其余信息都在文字区 */
+/* 归类小菜单（浮在卡片上，现在只剩「状态」一种） */
 .pop{position:absolute;z-index:40;background:var(--screen);border:2.4px solid var(--ink);
   border-radius:14px 6px 15px 7px/7px 15px 6px 14px;box-shadow:5px 6px 0 rgba(22,23,27,.22);
   padding:7px;display:none;min-width:112px}
@@ -430,14 +363,7 @@ body{
   border:1.7px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;cursor:pointer;
   transition:transform .12s}
 .icard .meta .st-tag:active{transform:translate(1px,1px)}
-/* 第三行：使用信息（今天用过 N 次 / 上次 X 前） */
-.icard .meta .used{font-family:'PatrickHand',sans-serif;font-size:10.5px;color:var(--sub);
-  background:none;border:none;padding:0;text-align:left;cursor:pointer;align-self:flex-start}
-.icard .meta .used:active{color:var(--ink)}
-/* 「上次 X 前」只是事实，不可点 → 不要手型光标，也别给按压反馈 */
-.icard .meta .used.quiet{cursor:default}
-.icard .meta .used.quiet:active{color:var(--sub)}
-/* 右侧竖排：数量 / 爱心 / 打勾 */
+/* 右侧：数量 */
 .icard .side{flex:0 0 auto;display:flex;align-items:center;gap:7px}
 .icard .side .qty{font-family:var(--f-num);font-weight:700;font-size:13px;color:var(--ink);
   background:#fff;border:1.8px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:0 6px}
@@ -453,21 +379,6 @@ body{
 .icard .nm-in:focus{border-bottom-color:var(--ink)}
 .icard .nm-in::placeholder{color:#b5b6bd}
 .icard .date-row{display:flex;align-items:center;gap:6px}
-/* 使用次数按钮：右侧竖排的最下面 */
-.icard .use-btn{width:27px;height:27px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
-  background:var(--accent);border:2px solid var(--ink);display:grid;place-items:center;
-  cursor:pointer;box-shadow:2px 2px 0 rgba(22,23,27,.12);transition:transform .12s}
-.icard .use-btn svg{width:14px;height:14px}
-.icard .use-btn:active{transform:scale(.86)}
-.icard .use-btn.bump{animation:useBump .45s}
-@keyframes useBump{
-  0%{transform:scale(1)} 35%{transform:scale(1.28)} 65%{transform:scale(.94)} 100%{transform:scale(1)}
-}
-/* 删除按钮 */
-.icard .del-btn{width:22px;height:22px;flex:0 0 auto;border-radius:50% 46% 52% 48%;
-  background:#fff;border:1.8px solid var(--ink);display:grid;place-items:center;cursor:pointer}
-.icard .del-btn svg{width:11px;height:11px}
-.icard .del-btn:active{background:#f3c9d8}
 /* 拖拽排序 */
 .icard.dragging-src{opacity:.3}
 .drag-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.94;
@@ -576,23 +487,7 @@ body{
 .opt.sel{background:var(--accent)}
 .opt .dot{width:12px;height:12px;border-radius:50% 44% 52% 46%;border:1.8px solid var(--ink);flex:0 0 auto}
 .opt .sub{margin-left:auto;font-family:'PatrickHand',sans-serif;font-size:11.5px;color:var(--sub)}
-/* ---------- 清理队列：一次只显示一件 ----------
-   大图 + 一行事实（上次使用 / 买了多久）+ 三个按钮。
-   ★ 刻意不放"还剩几件"的进度条 —— 那会立刻变成一张要填满的量表。 */
-.qcard{position:relative;width:100%;aspect-ratio:1/1;max-height:190px;display:grid;place-items:center;
-  border:2.2px solid var(--ink);border-radius:16px 6px 17px 7px/7px 17px 6px 16px;overflow:hidden;
-  box-shadow:3px 4px 0 rgba(22,23,27,.12);margin-bottom:10px}
-.qcard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-/* 图标用固定像素尺寸：图标 symbol 的 viewBox 是 0 0 24 24，
-   百分比宽高在 grid place-items 里会算出不确定的高度，`<use>` 就画不出来（显示成方框） */
-.qcard svg{width:96px;height:96px;color:var(--ink);opacity:.82;overflow:visible}
-.qmeta{font-size:12px;color:var(--sub);font-family:'PatrickHand',sans-serif;
-  text-align:center;margin-bottom:2px}
-.mrow.qacts{gap:7px}
-.mrow.qacts .btn{font-size:13px;padding:10px 4px}
 .opt.sel .sub{color:var(--ink2)}
-
-
 
 /* ===== 设置页 ===== */
 .st-sec{background:#fff;border:2.3px solid var(--ink);border-radius:18px 7px 19px 8px/8px 19px 7px 18px;
@@ -875,69 +770,34 @@ body{
                所以去掉原来那条写死 y=54 的 SVG 分隔线，改用 CSS 分隔。
              ★ 设置齿轮原来在卡上方的顶栏里，现在搬进卡内标题行（用户要求），
                顶栏因此整个删掉，卡片也跟着往上顶了 61px。 -->
-        <div class="hero" id="mergedCard">
+        <!-- 顶栏：只放设置齿轮（主卡删掉后设置没了入口，这里给它一个位置）。
+             卡片都没了，这一行不用再挤高度。 -->
+        <div class="topline">
+          <button class="circ c1" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
+        </div>
+
+        <!-- ===== 筛选框 =====
+             ★ 绿框保留，但内容换成「状态行 + 分类行」——
+               它是这个 app 现在唯一剩下的"面板"，筛选用它是主要动作。
+               干笔白条纹 + 手绘抖动边框沿用原来的（见 .hero-frame）。 -->
+        <div class="hero" id="filterBox">
           <span class="tape p" style="left:-13px;top:-10px;transform:rotate(-16deg)"></span>
           <span class="tape b" style="right:-12px;bottom:-9px;transform:rotate(-14deg)"></span>
-          <!-- ★ 卡片高度随内容变（151 → 300+），原来用一条固定 viewBox 的 SVG 路径当边框，
-               纵向拉伸会把描边一起拉粗（底边变成一条粗黑带）。
-               现在改成：CSS 画边框（粗细恒定）+ SVG 的 #rough 滤镜给边框做手绘抖动，
-               干笔白条纹单独铺一层（拉伸没关系，那是颜料）。 -->
           <div class="hero-frame">
             <svg class="hero-brush" viewBox="0 0 338 151" preserveAspectRatio="none" aria-hidden="true">
               <use href="#dryStrokes"/>
             </svg>
           </div>
           <div class="over">
-            <!-- 标题 + 设置齿轮同一行：齿轮在右上，正好落在下面「目标」标签的正上方。
-                 ★ 清理队列入口也放这一行（标题右侧、齿轮左边）—— 这里本来就有空位，
-                   放进卡片里会多占一整行（卡高 326 → 378），而这个 app 一直在往"少占高度"走。 -->
-            <div class="ttlrow">
-              <div class="ttl">我的收纳</div>
-              <button class="hbtn" id="openQueue" hidden></button>
-              <button class="circ c1 cardgear" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
+            <!-- 状态行是「总行」（.master），分类行是它的分支（.branch） -->
+            <div class="chipRow master">
+              <div class="chips small center master" id="stChips"></div>
             </div>
-
-            <div class="hrow">
-              <div class="big"><span id="heroTotal">0</span><span class="of" id="goalOf"></span></div>
-              <span class="tag" id="goalTag">—</span>
+            <!-- 分类行（一直显示）。★ 居中行在内容超宽时会自动退回左对齐 -->
+            <div class="chipRow branch" id="catRow">
+              <div class="chips center" id="catChips"></div>
             </div>
-
-            <div class="gbar">
-              <svg viewBox="0 0 300 12" preserveAspectRatio="none">
-                <g filter="url(#rough2)">
-                  <line x1="4" y1="6" x2="296" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round" opacity=".13"/>
-                  <line id="goalBar" x1="5" y1="6" x2="277" y2="6" stroke="#16171b" stroke-width="6.4" stroke-linecap="round"/>
-                </g>
-              </svg>
-            </div>
-
-            <div class="hmeta">
-              <span class="split" id="heroSplit"></span>
-              <span class="hint" id="goalHint">—</span>
-            </div>
-
-            <!-- 「已送走 N 件」/「必备 N 条」两行小字，各自在没内容时不出现 -->
-            <div class="hmeta2" id="disposedLine" hidden></div>
-            <div class="hmeta2" id="mustLine" hidden></div>
-
-            <!-- 分类目标（没设目标时整块隐藏） -->
-            <div class="goal-cats" id="goalCats" style="display:none"></div>
           </div>
-        </div>
-
-        <!-- ===== 物品列表（原来在「物品」Tab 里，现在直接接在卡片下面） =====
-             ★ 原来的 .page-head（「物品」+ 条数）已删：它和下面的 .count-row 重复，
-               单页里只保留一处标题（在筛选行下面，会写「衣物 · 在用中」这种）。 -->
-
-        <!-- 筛选行：只有按钮，没有前面的小字（用户要求去掉） -->
-        <!-- ★ 状态行是「总行」（.master），分类行是它的分支（.branch） -->
-        <div class="chipRow master">
-          <div class="chips small center master" id="stChips"></div>
-        </div>
-
-        <!-- 分类行（一直显示）。★ .center 说明见 CSS：居中行在内容超宽时会自动退回左对齐 -->
-        <div class="chipRow branch" id="catRow">
-          <div class="chips center" id="catChips"></div>
         </div>
 
         <div class="count-row">
@@ -1440,23 +1300,15 @@ let dbReady = false;          // IndexedDB 是否可用
 let db = null;                // IndexedDB 句柄
 let saveTimer = null;         // 防抖保存的定时器
 let suppressSave = false;     // 初始化阶段屏蔽保存
-let GOAL_TOTAL = 0;           // 物品总目标（0 = 未设）
-let GOAL_APPS  = 0;           // 软件总目标（0 = 未设）
-let SNAPSHOTS = [];           // 每周快照（由 maybeSnapshot 自动追加）
-let lastSnapAt = 0;           // 上次记快照的时间戳
 let suppressCardClickUntil = 0; // 拖拽后短暂屏蔽点击，避免误触展开
-/* 处置记录：东西离开时的去向。一条 = 一次「送走」，形状 { d:'YYYY-MM-DD', n:名称, q:件数, why }
-   ★ 为什么单独存一份：删掉的物品会从 ITEMS 里消失，等于从没存在过。
-     有了这份记录，"我送走了多少东西"才是可以被看见的完成，而不是一片空白。 */
-let DISPOSED = [];
 
 /* ================= 数据 ================= */
 let CATS = [
-  { id:'cloth', name:'衣物', tone:'#ded0f0', goal:30 },
-  { id:'shoe',  name:'鞋包', tone:'#f7e0b8', goal:20 },
-  { id:'tech',  name:'数码', tone:'#bcd9ee', goal:20 },
-  { id:'home',  name:'家居', tone:'#f2c2dc', goal:40 },
-  { id:'care',  name:'洗护', tone:'#cfe4f4', goal:12 }
+  { id:'cloth', name:'衣物', tone:'#ded0f0' },
+  { id:'shoe',  name:'鞋包', tone:'#f7e0b8' },
+  { id:'tech',  name:'数码', tone:'#bcd9ee' },
+  { id:'home',  name:'家居', tone:'#f2c2dc' },
+  { id:'care',  name:'洗护', tone:'#cfe4f4' }
 ];
 const NEW_TONES = ['#f5d7a8','#e8dbc8','#e3d6f2','#cfe4f4','#f2cfcf','#dfe3c8','#d9d9e8'];
 
@@ -1468,41 +1320,41 @@ const SEASONS = [
 
 /* 示例数据：方便上手试各类操作，可随时在设置里清空 */
 let ITEMS = [
-  { n:'白 T 恤',     c:'cloth', q:6, like:'like',    loc:'衣柜左上层', ic:'ic-tshirt', season:'summer',  buy:'2025-05-18' },
-  { n:'黑色印花T恤', c:'cloth', q:4, like:'neutral', loc:'衣柜左上层', ic:'ic-tshirt', season:'summer' },
-  { n:'灰色卫衣',    c:'cloth', q:5, like:'like',    loc:'衣柜中层',   ic:'ic-long',   season:'allyear' },
-  { n:'牛仔外套',    c:'cloth', q:2, like:'like',    loc:'衣柜挂区',   ic:'ic-jacket', season:'allyear', buy:'2023-11-24' },
-  { n:'条纹衬衫',    c:'cloth', q:5, like:'neutral', loc:'衣柜挂区',   ic:'ic-shirt',  season:'allyear' },
-  { n:'黑色长裤',    c:'cloth', q:4, like:'neutral', loc:'衣柜下层',   ic:'ic-pants',  season:'allyear' },
-  { n:'米色阔腿裤',  c:'cloth', q:3, like:'dislike', loc:'收纳箱 3',   ic:'ic-pants',  season:'summer', st:'todo' },
-  { n:'羽绒服',      c:'cloth', q:2, like:'like',    loc:'收纳箱 3',   ic:'ic-down',   season:'winter', st:'stored' },
-  { n:'连衣裙',      c:'cloth', q:4, like:'like',    loc:'衣柜挂区',   ic:'ic-dress',  season:'summer' },
-  { n:'半身裙',      c:'cloth', q:3, like:'neutral', loc:'衣柜下层',   ic:'ic-skirt',  season:'summer' },
-  { n:'白色运动鞋',  c:'shoe',  q:3, like:'like',    loc:'鞋柜',       ic:'ic-shoe' },
-  { n:'黑色皮鞋',    c:'shoe',  q:1, like:'neutral', loc:'鞋柜',       ic:'ic-shoe' },
-  { n:'帆布鞋',      c:'shoe',  q:3, like:'like',    loc:'鞋柜',       ic:'ic-shoe' },
-  { n:'拖鞋',        c:'shoe',  q:4, like:'neutral', loc:'玄关',       ic:'ic-shoe' },
-  { n:'双肩包',      c:'shoe',  q:1, like:'like',    loc:'玄关挂钩',   ic:'ic-bag' },
-  { n:'托特包',      c:'shoe',  q:2, like:'neutral', loc:'衣柜顶层',   ic:'ic-bag' },
-  { n:'单肩包',      c:'shoe',  q:1, like:'dislike', loc:'衣柜顶层',   ic:'ic-bag', st:'todo' },
-  { n:'旅行箱',      c:'shoe',  q:1, like:'like',    loc:'床底',       ic:'ic-box', st:'stored' },
-  { n:'手机',        c:'tech',  q:1, like:'like',    loc:'随身',       ic:'ic-phone' },
-  { n:'笔记本电脑',  c:'tech',  q:1, like:'like',    loc:'书桌',       ic:'ic-phone' },
-  { n:'平板',        c:'tech',  q:1, like:'neutral', loc:'书桌抽屉',   ic:'ic-phone' },
-  { n:'无线耳机',    c:'tech',  q:2, like:'like',    loc:'随身',       ic:'ic-box' },
-  { n:'有线耳机',    c:'tech',  q:3, like:'neutral', loc:'书桌抽屉',   ic:'ic-box', st:'todo' },
-  { n:'充电头',      c:'tech',  q:4, like:'neutral', loc:'书桌抽屉',   ic:'ic-box' },
-  { n:'数据线',      c:'tech',  q:6, like:'neutral', loc:'书桌抽屉',   ic:'ic-box' },
-  { n:'台灯',        c:'home',  q:1, like:'like',    loc:'书桌',       ic:'ic-lamp' },
-  { n:'抱枕',        c:'home',  q:3, like:'neutral', loc:'沙发',       ic:'ic-cup' },
-  { n:'毛毯',        c:'home',  q:2, like:'like',    loc:'沙发',       ic:'ic-cup', st:'stored' },
-  { n:'马克杯',      c:'home',  q:5, like:'neutral', loc:'厨房吊柜',   ic:'ic-cup' },
-  { n:'收纳盒',      c:'home',  q:6, like:'like',    loc:'储物间',     ic:'ic-box' },
-  { n:'洗发水',      c:'care',  q:2, like:'neutral', loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
-  { n:'沐浴露',      c:'care',  q:2, like:'neutral', loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
-  { n:'洗面奶',      c:'care',  q:3, like:'like',    loc:'浴室台面',   ic:'ic-bottle', st:'consuming' },
-  { n:'牙膏',        c:'care',  q:4, like:'neutral', loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
-  { n:'牙刷',        c:'care',  q:4, like:'neutral', loc:'浴室台面',   ic:'ic-bottle' }
+  { n:'白 T 恤',     c:'cloth', q:6, loc:'衣柜左上层', ic:'ic-tshirt', season:'summer',  buy:'2025-05-18' },
+  { n:'黑色印花T恤', c:'cloth', q:4, loc:'衣柜左上层', ic:'ic-tshirt', season:'summer' },
+  { n:'灰色卫衣',    c:'cloth', q:5, loc:'衣柜中层',   ic:'ic-long',   season:'allyear' },
+  { n:'牛仔外套',    c:'cloth', q:2, loc:'衣柜挂区',   ic:'ic-jacket', season:'allyear', buy:'2023-11-24' },
+  { n:'条纹衬衫',    c:'cloth', q:5, loc:'衣柜挂区',   ic:'ic-shirt',  season:'allyear' },
+  { n:'黑色长裤',    c:'cloth', q:4, loc:'衣柜下层',   ic:'ic-pants',  season:'allyear' },
+  { n:'米色阔腿裤',  c:'cloth', q:3, loc:'收纳箱 3',   ic:'ic-pants',  season:'summer', st:'todo' },
+  { n:'羽绒服',      c:'cloth', q:2, loc:'收纳箱 3',   ic:'ic-down',   season:'winter', st:'stored' },
+  { n:'连衣裙',      c:'cloth', q:4, loc:'衣柜挂区',   ic:'ic-dress',  season:'summer' },
+  { n:'半身裙',      c:'cloth', q:3, loc:'衣柜下层',   ic:'ic-skirt',  season:'summer' },
+  { n:'白色运动鞋',  c:'shoe',  q:3, loc:'鞋柜',       ic:'ic-shoe' },
+  { n:'黑色皮鞋',    c:'shoe',  q:1, loc:'鞋柜',       ic:'ic-shoe' },
+  { n:'帆布鞋',      c:'shoe',  q:3, loc:'鞋柜',       ic:'ic-shoe' },
+  { n:'拖鞋',        c:'shoe',  q:4, loc:'玄关',       ic:'ic-shoe' },
+  { n:'双肩包',      c:'shoe',  q:1, loc:'玄关挂钩',   ic:'ic-bag' },
+  { n:'托特包',      c:'shoe',  q:2, loc:'衣柜顶层',   ic:'ic-bag' },
+  { n:'单肩包',      c:'shoe',  q:1, loc:'衣柜顶层',   ic:'ic-bag', st:'todo' },
+  { n:'旅行箱',      c:'shoe',  q:1, loc:'床底',       ic:'ic-box', st:'stored' },
+  { n:'手机',        c:'tech',  q:1, loc:'随身',       ic:'ic-phone' },
+  { n:'笔记本电脑',  c:'tech',  q:1, loc:'书桌',       ic:'ic-phone' },
+  { n:'平板',        c:'tech',  q:1, loc:'书桌抽屉',   ic:'ic-phone' },
+  { n:'无线耳机',    c:'tech',  q:2, loc:'随身',       ic:'ic-box' },
+  { n:'有线耳机',    c:'tech',  q:3, loc:'书桌抽屉',   ic:'ic-box', st:'todo' },
+  { n:'充电头',      c:'tech',  q:4, loc:'书桌抽屉',   ic:'ic-box' },
+  { n:'数据线',      c:'tech',  q:6, loc:'书桌抽屉',   ic:'ic-box' },
+  { n:'台灯',        c:'home',  q:1, loc:'书桌',       ic:'ic-lamp' },
+  { n:'抱枕',        c:'home',  q:3, loc:'沙发',       ic:'ic-cup' },
+  { n:'毛毯',        c:'home',  q:2, loc:'沙发',       ic:'ic-cup', st:'stored' },
+  { n:'马克杯',      c:'home',  q:5, loc:'厨房吊柜',   ic:'ic-cup' },
+  { n:'收纳盒',      c:'home',  q:6, loc:'储物间',     ic:'ic-box' },
+  { n:'洗发水',      c:'care',  q:2, loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
+  { n:'沐浴露',      c:'care',  q:2, loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
+  { n:'洗面奶',      c:'care',  q:3, loc:'浴室台面',   ic:'ic-bottle', st:'consuming' },
+  { n:'牙膏',        c:'care',  q:4, loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
+  { n:'牙刷',        c:'care',  q:4, loc:'浴室台面',   ic:'ic-bottle' }
 ];
 
 /* 物品 id：必须全局唯一且跨会话稳定。
@@ -1553,11 +1405,9 @@ const ST_KEYS  = ['inuse', 'stored', 'consuming', 'todo'];
 const ST_FILL  = { inuse:'#e8e6dc', stored:'#cfe4f4', consuming:'#c9e8cf', todo:'#f3c9d8' };
 const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
 /* 选中态的填充色：比圆点色淡，避免「必备」看起来像禁用 */
-const LIKE_FILL  = { like:'#f6ddb4', neutral:'#dfe1e8', dislike:'#f6d3de' };
-const LIKE_TEXT  = { like:'喜欢', neutral:'必备', dislike:'不喜欢' };
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 
-const state = { tab:'home', cat:'all', like:'all', st:'all', season:'allyear', loc:'all', q:'', justMovedId:null };
+const state = { cat:'all', st:'all', season:'allyear', loc:'all', q:'', justMovedId:null };
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 /* 安全绑定：元素不存在时跳过，避免一处缺失就中断整个脚本（曾因此导致页面空白） */
@@ -1581,119 +1431,11 @@ function itemsInSt(st){ return st === 'all' ? ITEMS : ITEMS.filter(i => i.st ===
 function catQtyIn(cid, st){ return itemsInSt(st).filter(i => i.c === cid).length; }
 
 /* ================= 总览 ================= */
-/* 合并后的主卡：原来「我的收纳」和「极简目标」是两张卡，数字 97 出现两次。
-   现在一张卡里依次是：总量(大数字) + 目标 + 状态标签 → 进度条 →
-   状态分布 + 提示 → 分类目标。
-   ★ 单位口径：大数字和状态分布都用**件数**（sumQty），跟原来主卡一致；
-     分类目标那几行用**条数**（catQty），跟物品列表标题一致。 */
-function renderHome(){
-  const held = sumQty(ITEMS.filter(i => i.st === 'inuse' || i.st === 'stored' || i.st === 'consuming'));
-  const inuse = sumQty(ITEMS.filter(i => i.st === 'inuse'));
-  const stored = sumQty(ITEMS.filter(i => i.st === 'stored'));
-  const consuming = sumQty(ITEMS.filter(i => i.st === 'consuming'));
-  const todo = sumQty(ITEMS.filter(i => i.st === 'todo'));
-
-  $('#heroTotal').textContent = held;
-  // 状态分布压成一行（原来三行，占地方且和物品页状态行重复）
-  $('#heroSplit').textContent = `在用 ${inuse} · 收纳 ${stored} · 消耗 ${consuming} · 待处理 ${todo}`;
-
-  // 目标：没设目标时显示引导，不假装有个默认值
-  // ★ 标签只描述状态，不做评判（进行中 / 达标）。**不写「还差 N 件」，也不写「超出 N 件」**——
-  //   前者像催买，后者像催扔，两者是同一句话的正反两面。
-  //   超没超，看「97 / 100」这两个数字就够了，不需要再被下一个判断。
-  const GOAL = GOAL_TOTAL;
-  const goalOf = $('#goalOf');
-  goalOf.textContent = GOAL > 0 ? `/ ${GOAL}` : '';
-  const tag = $('#goalTag');
-  if (GOAL > 0){
-    const diff = GOAL - held;
-    if (diff > 0){ tag.textContent = '进行中'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
-    else if (diff < 0){ tag.textContent = '已到目标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
-    else { tag.textContent = '刚好达标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
-    const pct = Math.min(1, held / GOAL);
-    $('#goalBar').setAttribute('x2', String(5 + 272 * pct));
-    $('#goalHint').textContent = `目标 ${GOAL} 件`;
-  } else {
-    tag.textContent = '未设目标';
-    tag.style.background = 'rgba(139,140,148,.16)';
-    tag.style.color = '#5f6068';
-    $('#goalBar').setAttribute('x2', '5');
-    $('#goalHint').textContent = ITEMS.length ? '点卡片设个目标' : '先录几件东西';
-  }
-
-  // 清理队列入口：只有真有东西可看时才出现（必备豁免，所以可能一个都没有）
-  const qn = queueCount();
-  const qBtn = $('#openQueue');
-  if (qBtn){
-    if (qn > 0){
-      qBtn.hidden = false;
-      qBtn.textContent = `看看这 ${qn} 件`;
-    } else {
-      qBtn.hidden = true;
-    }
-  }
-  // 已送走：只记累计，没送过就整条不出现
-  const dTotal = disposedTotal();
-  const dLine = $('#disposedLine');
-  if (dLine){
-    if (dTotal > 0){
-      dLine.textContent = `已送走 ${dTotal} 件`;
-      dLine.hidden = false;
-    } else {
-      dLine.hidden = true;
-    }
-  }
-
-  // ★ 「必备」现在要看得见 —— 它原来只是三档里的中间档、一个灰圆环，
-  //   但它其实回答的是另一个问题："不管喜不喜欢都得留的，是哪几件。"
-  //   这行同时把"清理队列会跳过它们"这件事说出来，不然用户不知道为什么少了几件。
-  const mustKeep = ITEMS.filter(i => i.like === 'neutral');
-  const mustLine = $('#mustLine');
-  if (mustLine){
-    if (mustKeep.length){
-      mustLine.textContent = `必备 ${mustKeep.length} 条 · 不会进清理队列`;
-      mustLine.hidden = false;
-    } else {
-      mustLine.hidden = true;
-    }
-  }
-
-  // 分类目标：只列设了目标的分类，一个都没设时整块不占地方。
-  renderGoalCats();
-
-  // ★ 分类网格已从总览页删除（用户要求），这里原来那段「空状态引导 + 分类卡片」
-  //   全部去掉。总览页现在只有：合并后的目标卡 + 物品列表。
-  saveSoon();
-}
-
-/* 分类目标：显示在「极简目标」卡里（用户要求把目标从分类卡搬过来）。
-   只列**设了目标**的分类；一个都没设时整块隐藏，不占地方。
-   ★ 这里刻意不写「还差 N 件」那种措辞 —— 用户说那像在催他买东西，
-     改成中性的「N / 目标」+ 一条进度条。 */
-function renderGoalCats(){
-  const box = $('#goalCats');
-  if (!box) return;
-  const list = [...CATS]
-    .filter(c => typeof c.goal === 'number' && c.goal > 0)
-    .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
-  if (!list.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
-  box.style.display = 'block';
-  box.innerHTML = `
-    <div class="gc-head">分类目标</div>
-    ${list.map(c => {
-      const qty = catQty(c.id);
-      const ratio = c.goal > 0 ? qty / c.goal : 0;
-      // ★ 不按"超没超"换色 —— 原来超出就用橙色（--warn），那是"出错了"的颜色，
-      //   等于给主卡换了个地方继续做评判。这里只用主色深浅表示进度。
-      const color = ratio >= .95 ? 'var(--blue-deep)' : 'var(--green)';
-      return `<div class="gc-row">
-        <span class="dot" style="background:${c.tone}"></span>
-        <span class="nm">${c.name}</span>
-        <span class="bar"><span class="tr"></span><span class="fl" style="width:${Math.min(100,Math.round(ratio*100))}%;background:${color}"></span></span>
-        <span class="vv">${qty}<i>/${c.goal}</i></span>
-      </div>`;
-    }).join('')}`;
-}
+/* 「我的收纳」主卡（总量/目标/状态分布/分类目标/清理队列）已按用户要求整块删除 ——
+   现在这个 app 是纯收纳目录：筛选框 + 物品列表。
+   ★ 不是把卡藏起来，是数据和函数一起删（GOAL_TOTAL / GOAL_APPS / SNAPSHOTS /
+     DISPOSED / describe 那一套全部移除），避免留下一堆没人调用的死代码。
+   renderHome 曾经是自动保存的挂载点之一，现在只剩 renderItems 负责，见那边。 */
 
 /* 长按分类卡拖拽排序已删除 —— 分类网格（#catGrid）也从总览页删掉了，
    这个 IIFE 里的 grid 会是 null，addEventListener 直接抛错、中断整个脚本。 */
@@ -1719,10 +1461,6 @@ function firstCatWithItems(st){
 function resetItemFiltersToDefault(cat){
   state.st = ST_KEYS[0];            // 「在用中」
   state.cat = cat || firstCatWithItems(state.st);
-  state.like = 'all';
-  state.loc = 'all';
-  state.season = 'all';
-  state.q = '';
 }
 
 function renderCatChips(){
@@ -1786,12 +1524,10 @@ function renderStChips(){
 
 function renderItems(){
   syncFilterGroup();
-  // 搜索框 / 喜欢行 / 位置行 / 季节行都已删除。
-  // state.like、state.loc、state.season 仍保留但恒为 'all'（它们不再参与筛选），
+  // 筛选只剩「分类 × 状态」两个维度（喜欢行 / 位置行 / 季节行 / 搜索框都已删除）。
   // 物品自身的 i.loc / i.season 字段照常显示在卡片和编辑面板里。
   const rows = ITEMS.filter(i =>
     (state.cat === 'all' || i.c === state.cat) &&
-    (state.like === 'all' || i.like === state.like) &&
     (state.st === 'all' || i.st === state.st)
   );
   // 排序：先按状态聚在一起（在用中 → 收纳中 → 消耗中 → 待处理），
@@ -1806,9 +1542,8 @@ function renderItems(){
   const qty = sumQty(rows);
 
   const catName = state.cat === 'all' ? '全部物品' : catOf(state.cat).name;
-  const likeName = state.like === 'all' ? '' : ` · ${LIKE_TEXT[state.like]}`;
   const stName = state.st === 'all' ? '' : ` · ${ST_TEXT[state.st]}`;
-  $('#resTitle').textContent = catName + likeName + stName;
+  $('#resTitle').textContent = catName + stName;
   $('#resCnt').textContent = `${rows.length} 条 · ${qty} 件`;
   // ★ 原来这里还给 #listTitle / #listCnt 赋值，但那个 .page-head 已删（和 count-row 重复），
   //   保留赋值会 TypeError 打断 renderItems。
@@ -1830,24 +1565,15 @@ function renderItems(){
          <svg class="phic"><use href="#${i.ic || 'ic-box'}"/></svg>`;
 
     const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
-    // ★ 这一行现在有两个作用（原来「用过 N 次」是个终身累计、没人读的数字）：
-    //   今天记过 → 显示「今天用过 N 次」，可点减 1（误点的回退口）；
-    //   今天没记过但有历史 → 显示「上次 X 前」，让「多久没碰」在卡片上就看得见。
-    //   两者都不满足（从没用过）→ 整行不出现，不硬塞一个 0。
-    const useBadge = useLine(i);
 
     // 日期角标放缩略图左上角（没有日期就不显示）
     const dateBadge = i.buy ? `<span class="buy">${i.buy.slice(5).replace('-', '/')}</span>` : '';
 
-    // 单列横卡：左缩略图（只放日期 + 爱心角标）→ 右文字（名称/位置+状态/用过几次）→ 右侧竖排（数量/打勾）
-    // ★ 状态标签和数量都只在文字区/右侧出现一次，不再压在缩略图上（78px 的图塞四样太挤）
+    // 单列横卡：左缩略图（只放日期角标）→ 右文字（名称/位置+季节/状态）→ 右侧数量
     return `<div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
       <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
         ${phInner}
         ${dateBadge}
-        <span class="lk" data-lk="${i.id}" title="改喜欢程度" style="--lkc:${LIKE_FILL[i.like]}">
-          <svg viewBox="0 0 24 24"><use href="#mk-${i.like === 'like' ? 'like' : i.like === 'dislike' ? 'dislike' : 'neutral'}"/></svg>
-        </span>
       </div>
       <div class="meta">
         <div class="nm">${i.n}</div>
@@ -1856,13 +1582,9 @@ function renderItems(){
           ${seasonTxt ? `<span class="se-txt">${seasonTxt}</span>` : ''}
           <span class="st-tag" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
         </div>
-        ${useBadge}
       </div>
       <div class="side">
         ${qtyBadge}
-        <button class="use-btn" data-usebtn="${i.id}" title="记一次使用">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
-        </button>
       </div>
     </div>`;
   }).join('');
@@ -1946,10 +1668,6 @@ function newCatModal(){
       <label>分类名称</label>
       <input type="text" id="newCatName" placeholder="比如 厨房、文具、工具" maxlength="8">
     </div>
-    <div class="fld">
-      <label>目标件数（可留空）</label>
-      <input type="text" id="newCatGoal" placeholder="留空表示先不设目标" inputmode="numeric">
-    </div>
     <div class="mrow">
       <button class="btn" id="catCancel">取消</button>
       <button class="btn pri" id="catOk" disabled>创建</button>
@@ -1962,13 +1680,11 @@ function newCatModal(){
   okBtn.addEventListener('click', () => {
     const name = nameIn.value.trim();
     if (!name) return;
-    const goalRaw = $('#newCatGoal').value.trim();
-    const goal = /^\d+$/.test(goalRaw) ? Number(goalRaw) : null;
     const tone = NEW_TONES[CATS.length % NEW_TONES.length];
-    CATS.push({ id:'c' + Date.now(), name, tone, goal });
+    CATS.push({ id:'c' + Date.now(), name, tone });
     closeModal();
     // 设置页的分类列表也要跟着刷新（新建入口现在就在这里）
-    renderSettings(); renderHome(); renderCatChips(); renderItems();
+    renderSettings(); renderCatChips(); renderItems();
     toast(`已新建分类「${name}」`);
   });
 }
@@ -1977,7 +1693,7 @@ function newCatModal(){
 function newItemModal(){
   // 分类可能一个都不剩（用户可以在设置里全删光）：
   // 读 CATS[0].id 会抛异常 → 整个按钮静默失效。这里兜一个「未分类」。
-  if (!CATS.length) CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea', goal:0 });
+  if (!CATS.length) CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea' });
   let qty = 1, cat = (state.cat !== 'all' ? state.cat : CATS[0].id);
   // 当前筛选的分类可能刚被删掉 → 回落到第一个可用的
   if (!CATS.some(c => c.id === cat)) cat = CATS[0].id;
@@ -2037,10 +1753,10 @@ function newItemModal(){
     const name = nameIn.value.trim();
     if (!name) return;
     // 喜欢默认「必备」，之后在卡片上点爱心改
-    const item = { id:newItemId(), n:name, c:cat, q:qty, like:'neutral', loc:'', st, ic:'ic-box' };
+    const item = { id:newItemId(), n:name, c:cat, q:qty, loc:'', st, ic:'ic-box' };
     ITEMS.push(item);
     closeModal();
-    renderSettings(); renderHome(); renderCatChips(); renderItems();
+    renderSettings(); renderCatChips(); renderItems();
     // ★ 归属透明：如果它不在当前视图里（分类/状态与当前筛选不符），
     //   明确告诉用户去哪找，而不是让人以为"添加了却没生效"
     const catName = (CATS.find(x => x.id === item.c) || {}).name || '';
@@ -2065,19 +1781,12 @@ let popOpen = false;
 
 function closePop(){ pop.classList.remove('on'); popOpen = false; }
 
-/* kind: 'st' 状态 | 'like' 喜欢程度 */
+/* 归类小菜单：只剩「状态」一种（喜欢程度功能已整块删除） */
 function openPop(anchor, kind, id){
   cancelAllHolds();
   const it = ITEMS.find(x => x.id === id); if (!it) return;
-  const map = kind === 'st'
-    ? Object.keys(ST_TEXT).map(k => ({ k, name: ST_TEXT[k], color: ST_COLOR[k], shape:'dot' }))
-    : Object.keys(LIKE_FILL).map(k => ({
-        k,
-        name: LIKE_TEXT[k],              // 单一来源，别再手写一份（改名字会漏）
-        color: LIKE_FILL[k],
-        shape: k === 'like' ? 'like' : k === 'dislike' ? 'dislike' : 'neutral'
-      }));
-  const cur = kind === 'st' ? it.st : it.like;
+  const map = Object.keys(ST_TEXT).map(k => ({ k, name: ST_TEXT[k], color: ST_COLOR[k], shape:'dot' }));
+  const cur = it.st;
 
   pop.innerHTML = map.map(m =>
     `<div class="pi${cur === m.k ? ' sel' : ''}" data-pick="${m.k}">
@@ -2098,34 +1807,28 @@ function openPop(anchor, kind, id){
   pop.style.left = left + 'px';
   pop.style.top = Math.max(8, top) + 'px';
 
-  // 形变展开：从触发元素（小圆点/状态标签）的真实矩形长出来
+  // 形变展开：从触发元素（状态标签）的真实矩形长出来
   morphFromButton(pop, anchor, null, { duration: 380, radius: '14px' });
 
   pop.onclick = e => {
     const p = e.target.closest('[data-pick]'); if (!p) return;
-    if (kind === 'st'){
-      const from = it.st, to = p.dataset.pick;
-      closePop();
-      if (from === to){ renderHome(); renderItems(); return; }
-      // 两段式：先在原位置淡出缩小（让人看清"这一张要走了"），
-      // 再重排到新位置并播落位动画（renderItems 会读 justMovedId）
-      const cardEl = document.querySelector(`#igrid .icard[data-item="${it.id}"]`);
-      const commit = () => {
-        it.st = to;
-        state.justMovedId = it.id;
-        renderHome(); renderItems();
-        toast(`「${it.n}」已归到「${ST_TEXT[to]}」`);
-      };
-      if (cardEl && !FX.motionOff){
-        cardEl.classList.add('leaving');
-        setTimeout(commit, 190);
-      } else {
-        commit();
-      }
+    const from = it.st, to = p.dataset.pick;
+    closePop();
+    if (from === to){ renderItems(); return; }
+    // 两段式：先在原位置淡出缩小（让人看清"这一张要走了"），
+    // 再重排到新位置并播落位动画（renderItems 会读 justMovedId）
+    const cardEl = document.querySelector(`#igrid .icard[data-item="${it.id}"]`);
+    const commit = () => {
+      it.st = to;
+      state.justMovedId = it.id;
+      renderItems();
+      toast(`「${it.n}」已归到「${ST_TEXT[to]}」`);
+    };
+    if (cardEl && !FX.motionOff){
+      cardEl.classList.add('leaving');
+      setTimeout(commit, 190);
     } else {
-      it.like = p.dataset.pick;
-      closePop(); renderHome(); renderItems();
-      toast(`「${it.n}」已归到「${LIKE_TEXT[it.like]}」`);
+      commit();
     }
   };
 }
@@ -2134,370 +1837,12 @@ function openPop(anchor, kind, id){
 function deleteItem(id){
   const idx = ITEMS.findIndex(i => i.id === id); if (idx < 0) return;
   const removed = ITEMS.splice(idx, 1)[0];
-  // 设置页的分类计数也要跟着变
-  renderSettings(); renderHome(); renderCatChips(); renderItems();
+  renderSettings(); renderCatChips(); renderItems();
   toastUndo(`已删除「${removed.n}」`, () => {
     ITEMS.splice(idx, 0, removed);
-    renderSettings(); renderHome(); renderCatChips(); renderItems();
+    renderSettings(); renderCatChips(); renderItems();
     toast('已恢复');
   });
-}
-
-/* ================= 处置：让「送走」成为一件可以完成的事 =================
-   ★ 为什么不是直接删：删掉的物品会从 ITEMS 里消失，等于从没存在过。
-     这个 app 的每个数字都在说"你还有多少"，没有一个能说"你放掉了多少"。
-     送走 30 件是真正完成过的事，它需要一个能被看见的地方。
-   ★ 只记一条累计，不做目标、不做同比、不做"本月送走" ——
-     那会立刻变成一个要达标的考核，而这个 app 里已经有一个目标了。 */
-
-const WHY_TEXT = { give:'送人了', sell:'卖掉了', toss:'扔掉了', used:'用完了' };
-const WHY_KEYS = ['give', 'sell', 'toss', 'used'];
-
-function disposedTotal(){
-  return DISPOSED.reduce((s, d) => s + (d.q || 0), 0);
-}
-
-/* 把一件物品移出清单，并记下它去了哪。qty 为空 = 整条；否则只减数量 */
-function disposeItem(id, why, qty){
-  const idx = ITEMS.findIndex(i => i.id === id); if (idx < 0) return null;
-  const it = ITEMS[idx];
-  const out = qty && qty < (it.q || 1) ? qty : (it.q || 1);
-  // ★ 记录里带上 id：撤销时按 id 找回，按名称找会在同名物品上加错地方
-  const rec = { d: todayStr(), n: it.n, q: out, why: why || 'toss', id: it.id };
-  DISPOSED.push(rec);
-
-  let snapshot = null;
-  if (out >= (it.q || 1)){
-    // 整条走掉 → 记住原位置和整条数据，撤销时原样插回
-    snapshot = { idx, item: JSON.parse(JSON.stringify({ ...it, photo: it.photo })) };
-    ITEMS.splice(idx, 1);
-  } else {
-    it.q = (it.q || 1) - out;
-  }
-
-  renderSettings(); renderHome(); renderCatChips(); renderItems();
-  return { rec, snapshot };
-}
-
-/* 撤销一次处置：把记录撤掉，物品原样回来 */
-function undoDispose(res){
-  if (!res) return;
-  const di = DISPOSED.indexOf(res.rec);
-  if (di >= 0) DISPOSED.splice(di, 1);
-  if (res.snapshot){
-    const { idx, item } = res.snapshot;
-    ITEMS.splice(Math.min(idx, ITEMS.length), 0, item);
-  } else {
-    // 只减了数量 → 按 id 找回，把数量加回去
-    const it = ITEMS.find(x => x.id === res.rec.id);
-    if (it) it.q = (it.q || 1) + res.rec.q;
-  }
-  renderSettings(); renderHome(); renderCatChips(); renderItems();
-}
-
-/* 处置面板：问一句去向，选完才真的移出。
-   ★ 默认不预选任何一项 —— 预选会把"送人"变成顺手点掉的默认值，
-     而这正是这个 app 里唯一需要用户自己说出口的一句话。 */
-function disposeModal(id, anchorEl, onDone){
-  const it = ITEMS.find(x => x.id === id); if (!it) return;
-  const total = it.q || 1;
-  let why = null;
-  let qty = total;
-
-  const whyChips = () => WHY_KEYS.map(k =>
-    `<button class="chip${why === k ? ' on' : ''}" data-why="${k}">${WHY_TEXT[k]}</button>`).join('');
-
-  openModal(`
-    <h3>${it.n} 去哪了</h3>
-    <p class="mhint">选一个去向。这一步只是记下来，随时可以撤销。</p>
-    <div class="fld">
-      <label>去向</label>
-      <div class="chips" id="dwWhy" style="padding-bottom:2px">${whyChips()}</div>
-    </div>
-    ${total > 1 ? `<div class="fld">
-      <label>几件（共 ${total} 件）</label>
-      <div class="stepper">
-        <button id="dwMinus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
-        <span class="v" id="dwQty">${qty}</span>
-        <button id="dwPlus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
-      </div>
-    </div>` : ''}
-    <div class="mrow">
-      <button class="btn" id="dwCancel">先留着</button>
-      <button class="btn pri" id="dwOk" disabled>记下来</button>
-    </div>
-  `, anchorEl);
-
-  const okBtn = $('#dwOk');
-  $('#dwWhy').addEventListener('click', e => {
-    const b = e.target.closest('[data-why]'); if (!b) return;
-    why = b.dataset.why;
-    $('#dwWhy').innerHTML = whyChips();
-    okBtn.disabled = false;
-  });
-  const minus = $('#dwMinus'), plus = $('#dwPlus');
-  if (minus) minus.addEventListener('click', () => {
-    qty = Math.max(1, qty - 1); $('#dwQty').textContent = qty;
-  });
-  if (plus) plus.addEventListener('click', () => {
-    qty = Math.min(total, qty + 1); $('#dwQty').textContent = qty;
-  });
-  $('#dwCancel').addEventListener('click', closeModal);
-  okBtn.addEventListener('click', () => {
-    if (!why) return;
-    const res = disposeItem(it.id, why, qty);
-    closeModal();
-    if (!res) return;
-    toastUndo(`「${res.rec.n}」· ${WHY_TEXT[why]}`, () => { undoDispose(res); toast('已放回去'); });
-    if (onDone) onDone(res);
-  });
-}
-
-/* ================= 清理队列：一次只问一件 =================
-   ★ 依据：if-then 计划绕过"决定"这一步，而决定恰恰是最耗神的地方。
-     从「97 件里挑哪件来想」这种开放式反刍，变成一个封闭任务 —— 一次只有一件。
-   ★ 它能做完。有一个明确的结束状态，这是这个 app 里唯一有终点的东西。
-   ★ 不显示"还剩 N 件"的进度条（那又变成量表了）；「再看看」不算失败，放回队尾。 */
-
-let queueList = [];      // 本次队列（物品 id，按处理顺序）
-let queuePos = 0;
-let queueDecided = 0;    // 这一轮已经决定了几件
-let queueSkipped = [];   // 「再看看」跳过的（这一轮不再问，避免原地打转）
-
-/* 候选：必备 豁免；其余按「不喜欢 → 很久没碰 → 其他」排优先级。
-   ★ 没有数据就不猜：新加的东西没有 lastUse，不参与"很久没碰"的判断。 */
-function buildQueue(){
-  const now = Date.now();
-  const DAY = 86400000;
-  const cand = ITEMS.filter(i => i.like !== 'neutral');   // neutral = 必备，免死
-  const score = i => {
-    if (i.like === 'dislike') return 0;                   // 先问"不喜欢"的
-    if (!i.lastUse) return 2;                             // 从没用过、也没有记录
-    const days = (now - new Date(i.lastUse + 'T00:00:00').getTime()) / DAY;
-    if (days >= 90) return 1;                             // 三个月没碰
-    return 3;
-  };
-  return cand
-    .map(i => ({ i, s: score(i) }))
-    .sort((a, b) => a.s - b.s)
-    .map(x => x.i.id);
-}
-
-/* 队列里还有多少件「可以再看看」（用于主卡入口，不参与目标计算） */
-function queueCount(){
-  return ITEMS.filter(i => i.like !== 'neutral').length;
-}
-
-function openQueue(anchorEl){
-  queueList = buildQueue();
-  queuePos = 0;
-  queueDecided = 0;
-  queueSkipped = [];
-  if (!queueList.length){ toast('没有需要看的：剩下的都是必备'); return; }
-  renderQueueCard(anchorEl);
-}
-
-function renderQueueCard(anchorEl){
-  const id = queueList[queuePos];
-  const it = id ? ITEMS.find(x => x.id === id) : null;
-
-  // 队列走完（或被删光了）→ 收尾。不报"还剩几件"，只说这一轮做了什么
-  if (!it){
-    const parts = [];
-    if (queueDecided) parts.push(`做了 ${queueDecided} 个决定`);
-    if (queueSkipped.length) parts.push(`${queueSkipped.length} 件先放着`);
-    openModal(`
-      <h3>这一轮看完了</h3>
-      <p class="mhint">${parts.length ? parts.join('，') + '。' : '什么都没改，也是可以的。'}</p>
-      <div class="mrow"><button class="btn pri" id="qDone">好</button></div>
-    `, anchorEl);
-    $('#qDone').addEventListener('click', closeModal);
-    return;
-  }
-
-  const c = catOf(it.c);
-  // 「多久以前」的换算统一走 humanAgo()（定义在 todayStr 那边）
-  let usedTxt = '还没有使用记录';
-  if (it.lastUse) usedTxt = `上次记使用 ${humanAgo(daysAgo(it.lastUse))}`;
-  const buyTxt = it.buy ? ` · ${humanAgo(daysAgo(it.buy))}买的` : '';
-  const likeTxt = it.like === 'like' ? '喜欢' : it.like === 'dislike' ? '不喜欢' : '必备';
-  const photo = it.photo
-    ? `<img src="${it.photo}" alt="">`
-    // ★ 必须带 viewBox="0 0 24 24"：图标 symbol 的坐标是 0-24，
-    //   没有 viewBox 时 <use> 按 1:1 用户单位画，在 96px 画布里只有中间一小块，
-    //   看起来就是个方框（列表卡能用是因为它自己的 svg 上写了 viewBox）。
-    : `<svg class="phic" viewBox="0 0 24 24"><use href="#${it.ic || 'ic-box'}"/></svg>`;
-
-  openModal(`
-    <h3>${it.n}</h3>
-    <p class="mhint">${c.name} · ${likeTxt}${it.q > 1 ? ` · ${it.q} 件` : ''}</p>
-    <div class="qcard" style="background:${it.photo ? '#fff' : TINTS[ITEMS.indexOf(it) % TINTS.length]}">
-      ${photo}
-    </div>
-    <div class="qmeta">${usedTxt}${buyTxt}</div>
-    <div class="mrow qacts">
-      <button class="btn" id="qKeep">留着</button>
-      <button class="btn" id="qLater">再看看</button>
-      <button class="btn dan" id="qGo">送走</button>
-    </div>
-  `, anchorEl);
-
-  // 留着 = 这一轮不再问它。★ 不改动用户选的喜欢档位 ——
-  // 他说"留着"只是此刻的决定，不是重新给这件东西定性。
-  $('#qKeep').addEventListener('click', () => {
-    queueDecided++;
-    queuePos++;
-    renderQueueCard(anchorEl);
-  });
-  // 再看看 → 跳过这一件，本轮不再问（否则放回队尾会原地打转，永远停在同一件）
-  $('#qLater').addEventListener('click', () => {
-    queueSkipped.push(queueList[queuePos]);
-    queuePos++;
-    renderQueueCard(anchorEl);
-  });
-  // 送走 → 走处置流程（问去向）；处置完自动接下一件
-  $('#qGo').addEventListener('click', () => {
-    closeModal();
-    disposeModal(it.id, anchorEl, () => {
-      queueDecided++;
-      // 这件已经不在 ITEMS 里了，queuePos 不前进就会指向它自己 → 从队列里摘掉
-      queueList.splice(queuePos, 1);
-      renderQueueCard(anchorEl);
-    });
-  });
-}
-
-
-/* ================= 照片 ================= */
-let photoTargetId = null;
-let photoTargetMode = 'card';
-on('#filePick', 'change', e => {
-  const file = e.target.files && e.target.files[0];
-  e.target.value = '';
-
-  if (!file || !photoTargetId) return;
-  const id = photoTargetId, mode = photoTargetMode;
-  photoTargetId = null; photoTargetMode = 'card';
-  const fr = new FileReader();
-  fr.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      // 只做压缩（长边 1000px），不做任何风格化处理：照片原样保存
-      const MAX = 1000;
-      let w = img.naturalWidth, h = img.naturalHeight;
-      const scale = Math.min(1, MAX / Math.max(w, h));
-      w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
-      const cv = document.createElement('canvas');
-      cv.width = w; cv.height = h;
-      cv.getContext('2d').drawImage(img, 0, 0, w, h);
-
-      const it = ITEMS.find(x => x.id === id);
-      if (it){
-        it.photo = cv.toDataURL('image/jpeg', .78);
-        renderItems();
-        toast('照片已保存');
-      }
-    };
-    img.onerror = () => toast('这张图读不出来，换一张试试');
-    img.src = ev.target.result;
-  };
-  fr.readAsDataURL(file);
-});
-
-/* ================= 软件数据 ================= */
-let APP_CATS = [
-  { id:'social', name:'社交', tone:'#ded0f0' },
-  { id:'tool',   name:'工具', tone:'#bcd9ee' },
-  { id:'media',  name:'影音', tone:'#f5d7a8' },
-  { id:'game',   name:'游戏', tone:'#f8d8c0' },
-  { id:'shop',   name:'购物', tone:'#f2cfcf' },
-  { id:'study',  name:'学习', tone:'#cfe4f4' },
-  { id:'sys',    name:'系统', tone:'#d9d9e8' }
-];
-/* 软件只有两档（「待删」按用户要求去掉）：必需 / 暂用。
-   存量里标着 todel 的会在启动时统一转到「暂用」（见 migrateNeedValues）。 */
-const NEED_TEXT  = { need:'必需', temp:'暂用' };
-const NEED_COLOR = { need:'#cfe4f4', temp:'#e6e6ea' };
-const NEED_KEYS  = ['need', 'temp'];
-
-/* 数据从空开始：首次打开是干净状态，由用户自己录入 */
-let APPS = [];
-APPS.forEach((a, i) => { a.id = 'a' + (i + 1); if (!a.photo) a.photo = null; });
-
-/* 软件页相关函数已整页删除（用户不需要软件功能）：migrateNeedValues / appState /
-   appCatOf / renderAppCatChips / renderApps / openAppPop / openAppCatPop /
-   newAppModal / deleteApp。数据字段 APPS / APP_CATS 保留以兼容旧备份。 */
-
-/* ================= 通用计算 ================= */
-const sumItems  = () => sumQty(ITEMS);
-
-/* 今天的日期字符串，用于使用次数按天统计 */
-function todayStr(){
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-/* 使用次数按天算：不是今天的记录就清零重算。
-   ★ 原来这个函数定义了却**从来没被调用**，所以 uses 实际是终身累计 ——
-     一个只会涨、又没有任何地方读的数字（跟"连续天数"是同一个模式，而且更糟）。
-     现在在 boot() 里接上，它才真的是"今天用过几次"。 */
-function normalizeUses(){
-  const t = todayStr();
-  let changed = false;
-  ITEMS.forEach(i => {
-    if (i.lastUse !== t && i.uses){
-      i.uses = 0;
-      changed = true;
-    }
-  });
-  return changed;
-}
-
-/* 把日期变成人话：2026-03-14 要心算，"7 个月前"直接就能判断 */
-function daysAgo(d){
-  return Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
-}
-function humanAgo(n){
-  if (n < 1) return '今天';
-  if (n < 30) return `${n} 天前`;
-  if (n < 365) return `${Math.floor(n / 30)} 个月前`;
-  return `${Math.floor(n / 365)} 年前`;
-}
-
-/* 卡片上那一行「使用」信息：
-   今天记过 → 可点的「今天用过 N 次」（点一下减 1）
-   今天没记过但有历史 → 「上次 X 前」（不可点，它只是事实）
-   从没用过 → 空（不硬塞一个 0） */
-function useLine(i){
-  const n = i.uses || 0;
-  const t = todayStr();
-  if (n > 0 && i.lastUse === t){
-    return `<button class="used" data-useundo="${i.id}" title="点一下减 1 次">今天用过 ${n} 次</button>`;
-  }
-  if (i.lastUse === t){
-    // 今天记过但已经减到 0 → 别写「上次 今天」，读起来别扭
-    return `<span class="used quiet">今天记过</span>`;
-  }
-  if (i.lastUse){
-    return `<span class="used quiet">上次 ${humanAgo(daysAgo(i.lastUse))}</span>`;
-  }
-  return '';
-}
-
-/* 点勾选后飘一个「+1」：从按钮位置向上飘并淡出，飘完自己删掉。
-   必须在 renderItems() 之前调用 —— 重绘会把卡片整个换掉，
-   换掉之后原按钮已脱离文档，量不到位置了。 */
-function popUsePlusOne(anchorEl){
-  if (!anchorEl) return;
-  if (FX && FX.motionOff) return;              // 关动效的用户不飘
-  const r = anchorEl.getBoundingClientRect();
-  const el = document.createElement('span');
-  el.className = 'use-pop';
-  el.textContent = '+1';
-  el.style.left = (r.left + r.width / 2) + 'px';
-  el.style.top = (r.top - 2) + 'px';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 900);
 }
 
 /* ================= 设置 ================= */
@@ -2505,18 +1850,17 @@ const stCatCount = c => ITEMS.filter(i => i.c === c.id).length;
 
 function renderSettings(){
   // 估算占用：按条数与图片数粗算（正式版从 IndexedDB 取真实值）
-  const photoCount = ITEMS.filter(i => i.photo).length + APPS.filter(a => a.photo).length;
-  const estMB = ((ITEMS.length + APPS.length) * 0.004 + photoCount * 0.11).toFixed(1);
+  const photoCount = ITEMS.filter(i => i.photo).length;
+  const estMB = (ITEMS.length * 0.004 + photoCount * 0.11).toFixed(1);
   const QUOTA = 120;   // 浏览器大致可用空间，仅作示意
 
   const catRows = CATS.map((c, idx) => {
     const n = stCatCount(c);
-    const goalTxt = c.goal ? `目标 ${c.goal}` : '';
     const first = idx === 0, last = idx === CATS.length - 1;
     return `<div class="st-cat" data-scat="${c.id}">
       <span class="dot" style="background:${c.tone}"></span>
       <span class="nm">${c.name}</span>
-      <span class="cnt">${n} 条物品${goalTxt ? ' · ' + goalTxt : ''}</span>
+      <span class="cnt">${n} 条物品</span>
       <span class="mv">
         <button class="mini mvbtn" data-catup="${c.id}" title="上移"${first ? ' disabled' : ''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14.5 12 8.5l6 6"/></svg>
@@ -2710,19 +2054,7 @@ function closeSettings(fromProgress){
   setTimeout(finish, 380);   // 兜底
 }
 
-on('#qSettings', 'click', e => { e.stopPropagation(); goSettings(); });
-// 点合并后的主卡 → 打开完整的目标设置（物品总额 + 各分类目标）
-// ★ 齿轮现在在卡里，点它必须挡住这条冒泡，否则会同时开出设置和目标两个面板
-// ★ 同理：清理队列按钮也在卡里，必须一起挡（stopPropagation + 处理器里 closest 双保险）
-on('#openQueue', 'click', e => {
-  e.stopPropagation();
-  openQueue($('#openQueue'));
-});
-on('#mergedCard', 'click', e => {
-  if (e.target.closest('#qSettings')) return;
-  if (e.target.closest('#openQueue')) return;
-  goalModal($('#mergedCard'));
-});
+on('#qSettings', 'click', goSettings);
 // 返回按钮始终可用（手势是增强，不是唯一入口）
 on('#stBack', 'click', () => closeSettings());
 
@@ -2819,7 +2151,7 @@ function moveCat(id, dir){
   const t = a.order; a.order = b.order; b.order = t;
   // 数组本身也按 order 排一次，让 chip 行（按数组顺序渲染）和分类目标（按 order 排）一致
   CATS.sort((x, y) => (x.order ?? 9999) - (y.order ?? 9999));
-  renderSettings(); renderHome(); renderCatChips(); renderItems();
+  renderSettings(); renderCatChips(); renderItems();
   toast(`「${a.name}」已${dir < 0 ? '上移' : '下移'}`);
 }
 
@@ -2870,7 +2202,7 @@ function renameCatModal(id){
     const v = inp.value.trim();
     if (!v) return;
     c.name = v;
-    closeModal(); renderSettings(); renderHome(); renderCatChips(); renderItems();
+    closeModal(); renderSettings(); renderCatChips(); renderItems();
     toast(`已改名为「${v}」`);
   });
 }
@@ -2896,73 +2228,27 @@ function delCatModal(id){
     orphans.forEach(i => { i.c = 'none'; });
     // 只有真有物品要安置时才补「未分类」，空删除不留垃圾分类
     if (orphans.length && !CATS.some(x => x.id === 'none')){
-      CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea', goal:0 });
+      CATS.push({ id:'none', name:'未分类', tone:'#e6e6ea' });
     }
     CATS.splice(CATS.findIndex(x => x.id === c.id), 1);
     // 删掉的正好是当前筛选的分类 → 回到不筛选
     if (state.cat === c.id) state.cat = 'all';
     closeModal();
-    renderSettings(); renderHome(); renderCatChips(); renderItems();
+    renderSettings(); renderCatChips(); renderItems();
     toast(`已删除分类「${c.name}」`);
   });
 }
 
 /* --- 目标编辑 --- */
-/* 极简目标：一屏设置 物品总额 + 软件总额 + 各分类目标
-   （原来分散在「设置 → 极简目标」里，现在点总览的目标卡就直接打开这份完整设置） */
-function goalModal(anchorEl){
-  const catRows = CATS.map(c =>
-    `<div class="st-cat">
-       <span class="dot" style="background:${c.tone}"></span>
-       <span class="nm">${c.name}</span>
-       <input type="text" data-goalcat="${c.id}" value="${c.goal || ''}" inputmode="numeric"
-         placeholder="不设" style="width:64px;flex:0 0 auto;border:2px solid var(--ink);background:#fff;
-         border-radius:9px 3px 10px 4px/4px 10px 3px 9px;padding:5px 8px;
-         font-family:'PatrickHand',sans-serif;font-size:16px;text-align:right;outline:none">
-     </div>`).join('');
 
-  openModal(`
-    <div class="modal-inner">
-      <h3>极简目标</h3>
-      <p class="mhint">留空表示不设，随时可以改</p>
-
-      <div class="fld">
-        <label>物品总目标（件）</label>
-        <input type="text" id="gmItem" value="${GOAL_TOTAL || ''}" inputmode="numeric" placeholder="留空表示不设">
-      </div>
-
-      <label style="font-family:var(--f-cn);font-size:13px;color:var(--ink2);display:block;margin:2px 0 6px">分类目标（件）</label>
-      <div style="max-height:34vh;overflow-y:auto;scrollbar-width:none">${catRows}</div>
-
-      <div class="mrow">
-        <button class="btn" id="gmCancel">取消</button>
-        <button class="btn pri" id="gmOk">保存</button>
-      </div>
-    </div>
-  `, anchorEl);
-  $('#gmCancel').addEventListener('click', closeModal);
-  $('#gmOk').addEventListener('click', () => {
-    const numOf = v => { const s = v.trim(); return /^\d+$/.test(s) ? Number(s) : 0; };
-    GOAL_TOTAL = numOf($('#gmItem').value);
-    document.querySelectorAll('[data-goalcat]').forEach(inp => {
-      const c = CATS.find(x => x.id === inp.dataset.goalcat);
-      if (c) c.goal = numOf(inp.value);
-    });
-    closeModal(); renderHome(); renderSettings();
-    toast('目标已保存');
-  });
-}
 
 /* --- 导出备份 --- */
 function exportBackup(){
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    cats: CATS, appCats: APP_CATS,
-    items: ITEMS, apps: APPS,
-    goals: { total: GOAL_TOTAL, apps: GOAL_APPS },
-    snapshots: SNAPSHOTS,
-    disposed: DISPOSED
+    cats: CATS,
+    items: ITEMS,
   };
   try {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -3043,7 +2329,11 @@ function importBackup(){
 /* mode: 'replace' 覆盖 | 'merge' 合并 */
 function applyBackup(d, mode){
   // 备份里图片是 dataURL 直接带着的，不用额外处理
-  const inItems = (d.items || []).map(i => ({ ...i }));
+  // ★ 只取白名单字段：旧备份里的 like / uses / lastUse / note 直接丢掉，
+  //   否则这些已删功能的字段会从备份里「复活」，一直跟着数据走。
+  const ITEM_FIELDS = ['id','n','c','q','loc','ic','season','buy','st','order','photo'];
+  const pick = (o, keys) => { const r = {}; keys.forEach(k => { if (o[k] !== undefined) r[k] = o[k]; }); return r; };
+  const inItems = (d.items || []).map(i => pick(i, ITEM_FIELDS));
   const inApps  = (d.apps  || []).map(a => ({ ...a }));
   // id 用唯一生成器，不要用 'bk-i'+序号：合并模式下会和库里已有的撞车
   const inIds = new Set();
@@ -3059,21 +2349,15 @@ function applyBackup(d, mode){
     APP_CATS = (d.appCats || []).map(c => ({ ...c }));
     ITEMS    = inItems;
     APPS     = inApps;
-    GOAL_TOTAL = (d.goals && d.goals.total) || 0;
-    GOAL_APPS  = (d.goals && d.goals.apps) || 0;
-    if (Array.isArray(d.snapshots) && d.snapshots.length) SNAPSHOTS = d.snapshots;
-    // 老备份没有 disposed 字段 → 保留本地已有的记录，不要清空
-    if (Array.isArray(d.disposed)) DISPOSED = d.disposed;
   } else {
     // ---- 合并 ----
     // 1) 分类：按名字去重，备份里没有的分类补进来
     const mergeCats = (cur, inc) => {
       inc.forEach(ic => {
         const hit = cur.find(c => c.name === ic.name);
-        if (hit){
-          if (!hit.goal && ic.goal) hit.goal = ic.goal;   // 本地没设目标就用备份的
-        } else {
-          cur.push({ ...ic, id: 'mg-' + Math.random().toString(36).slice(2, 8) });
+        if (!hit){
+          // 分类只留 id/name/tone：备份里的 goal 已不再使用
+          cur.push({ id:'mg-' + Math.random().toString(36).slice(2, 8), name: ic.name, tone: ic.tone || '#dfe3c8' });
         }
       });
     };
@@ -3090,11 +2374,13 @@ function applyBackup(d, mode){
         dup.q = (dup.q || 1) + (ii.q || 1);          // 数量相加
         if (!dup.photo && ii.photo) dup.photo = ii.photo;   // 没图的补图
         if (!dup.loc && ii.loc) dup.loc = ii.loc;
-        if (!dup.note && ii.note) dup.note = ii.note;
         if (!dup.buy && ii.buy) dup.buy = ii.buy;
         merged++;
       } else {
-        ITEMS.push({ ...ii, id: 'mg-i' + Math.random().toString(36).slice(2, 8),
+        // 只搬白名单字段：旧备份里的 like / uses / lastUse / note 不再带进来
+        ITEMS.push({ id:'mg-i' + Math.random().toString(36).slice(2, 8),
+          n: ii.n, q: ii.q || 1, loc: ii.loc || '', ic: ii.ic || '', season: ii.season || '',
+          buy: ii.buy || '', st: ii.st || 'inuse', photo: ii.photo || null,
           c: targetCat ? targetCat.id : ii.c });
         added++;
       }
@@ -3105,21 +2391,20 @@ function applyBackup(d, mode){
       const dup = APPS.find(x => x.n === ia.n);
       if (dup){
         if (!dup.photo && ia.photo) dup.photo = ia.photo;
-        if (!dup.note && ia.note) dup.note = ia.note;
-        if (!dup.loc && ia.loc) dup.loc = ia.loc;
+                if (!dup.loc && ia.loc) dup.loc = ia.loc;
       } else {
         APPS.push({ ...ia, id: 'mg-a' + Math.random().toString(36).slice(2, 8) });
         added++;
       }
     });
 
-    renderSettings(); renderHome(); renderCatChips();
+    renderSettings(); renderCatChips();
     renderItems();
     saveSoon();
     return { added, merged };
   }
 
-  renderSettings(); renderHome(); renderCatChips();
+  renderSettings(); renderCatChips();
   renderItems();
   saveSoon();
   return { added: inItems.length, merged: 0 };
@@ -3145,13 +2430,8 @@ function clearAllModal(){
   $('#caCancel').addEventListener('click', closeModal);
   ok.addEventListener('click', () => {
     ITEMS.length = 0;
-    APPS.length = 0;
-    CATS.forEach(c => { c.goal = 0; });
-    GOAL_TOTAL = 0;
-    GOAL_APPS = 0;
-    DISPOSED = [];
-    closeModal();
-    renderSettings(); renderHome(); renderCatChips();
+        closeModal();
+    renderSettings(); renderCatChips();
     renderItems();
     toast('已清空全部数据');
   });
@@ -3184,18 +2464,12 @@ function openDB(){
 /* 收集要存的整份状态 */
 function snapshotState(){
   return {
-    version: 1,
+    version: 2,
     savedAt: Date.now(),
     accentId,
-    lastSnapAt,
-    goals: { total: GOAL_TOTAL, apps: GOAL_APPS },
     cats: CATS.map(c => ({ ...c })),
-    appCats: APP_CATS.map(c => ({ ...c })),
     // 图片单独存，这里只留标记，避免 JSON 里塞大字符串
     items: ITEMS.map(i => { const { photo, ...rest } = i; return { ...rest, hasPhoto: !!photo }; }),
-    apps:  APPS.map(a => { const { photo, ...rest } = a; return { ...rest, hasPhoto: !!photo }; }),
-    snapshots: SNAPSHOTS,
-    disposed: DISPOSED
   };
 }
 
@@ -3209,7 +2483,7 @@ async function saveNow(){
     kv.put(snapshotState(), 'state');
     // 图片：dataURL → Blob 后存（Blob 更省空间）
     const all = [...ITEMS.map(i => ({ id:'item:' + i.id, d:i.photo })),
-                 ...APPS.map(a => ({ id:'app:' + a.id,  d:a.photo }))];
+             ];
     all.forEach(({ id, d }) => {
       if (d) ph.put(dataURLtoBlob(d), id);
       else ph.delete(id);
@@ -3291,18 +2565,18 @@ async function loadFromDB(){
 
     suppressSave = true;
 
-    CATS     = (state.cats || CATS).map(c => ({ ...c }));
-    APP_CATS = (state.appCats || APP_CATS).map(c => ({ ...c }));
-    GOAL_TOTAL = (state.goals && state.goals.total) || 0;
-    GOAL_APPS  = (state.goals && state.goals.apps) || 0;
+    // ★ 分类也只按白名单取字段：seed 里的 goal 是历史遗留（目标功能已删），
+    //   旧库里的同理，都不要再带进来。
+    const catPick = c => { const r = { id:c.id, name:c.name, tone:c.tone }; if (typeof c.order === 'number') r.order = c.order; return r; };
+    CATS = (state.cats || CATS).map(catPick);
     if (typeof state.accentId === 'string') accentId = state.accentId;
-    if (typeof state.lastSnapAt === 'number') lastSnapAt = state.lastSnapAt;
-    if (Array.isArray(state.snapshots) && state.snapshots.length) SNAPSHOTS = state.snapshots;
-    // 老数据没有 disposed 字段 → 当成空数组，不能因为缺字段就报错
-    DISPOSED = Array.isArray(state.disposed) ? state.disposed : [];
 
-    ITEMS = (state.items || []).map(i => ({ ...i, photo: null }));
-    APPS  = (state.apps  || []).map(a => ({ ...a, photo: null }));
+    // ★ 物品只按白名单取字段：喜欢程度（like）、使用次数（uses/lastUse）、备注（note）
+    //   这些功能已经整块删除，旧库里还存着，如果 {...i} 全量拷进来就会一直留着，
+    //   下次保存又写回库 —— 那就是"不用的字段越堆越多"。这里直接丢掉。
+    const ITEM_FIELDS = ['id','n','c','q','loc','ic','season','buy','st','order'];
+    const pick = (o, keys) => { const r = {}; keys.forEach(k => { if (o[k] !== undefined) r[k] = o[k]; }); return r; };
+    ITEMS = (state.items || []).map(i => ({ ...pick(i, ITEM_FIELDS), photo: null, hasPhoto: !!i.hasPhoto }));
 
     // 并发取回图片
     await Promise.all([
@@ -3310,11 +2584,6 @@ async function loadFromDB(){
         if (!i.hasPhoto) return;
         const b = await getPhoto('item:' + i.id);
         if (b) i.photo = await blobToDataURL(b);
-      }),
-      ...APPS.map(async a => {
-        if (!a.hasPhoto) return;
-        const b = await getPhoto('app:' + a.id);
-        if (b) a.photo = await blobToDataURL(b);
       })
     ]);
 
@@ -3337,31 +2606,7 @@ async function loadFromDB(){
   }
 }
 
-/* ================= 每周自动快照 =================
-   规则（照 PRD）：每次打开 App 时检查，距上次记录满 7 天才记一条；
-   记录的是「持有量」（在用 + 收纳中 + 消耗中，不含待处理）；用户完全无感。 */
-function maybeSnapshot(){
-  const WEEK = 7 * 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  if (lastSnapAt && (now - lastSnapAt) < WEEK) return false;
 
-  // 一条都没录时不记，免得曲线起点是 0 看着奇怪
-  if (!ITEMS.length && !APPS.length) return false;
-
-  const d = new Date();
-  const label = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  // 同一天不重复记
-  if (SNAPSHOTS.length && SNAPSHOTS[SNAPSHOTS.length - 1].d === label){
-    lastSnapAt = now;
-    return false;
-  }
-
-  const held = sumQty(ITEMS.filter(i => i.st !== 'todo'));
-  SNAPSHOTS.push({ d: label, items: held, entries: ITEMS.length, apps: APPS.length });
-  if (SNAPSHOTS.length > 60) SNAPSHOTS.shift();   // 最多留 60 条，约一年
-  lastSnapAt = now;
-  return true;
-}
 
 /* ================= 轻提示 ================= */
 let toastTimer, undoFn = null;
@@ -3533,54 +2778,14 @@ on('#igrid', 'click', e => {
   if (e.target.closest('#itemShowAll')){
     state.cat = 'all';
     state.st = 'all';
-    state.like = 'all';
-    state.loc = 'all';
-    state.season = 'all';
     renderCatChips(); renderStChips(); renderItems();
     toast('已显示全部物品');
     return;
   }
 
-  // 点喜欢圆点 → 归类喜欢程度
-  const lk = e.target.closest('.lk');
-  if (lk){
-    const card = lk.closest('[data-item]');
-    if (card) openPop(lk, 'like', card.dataset.item);
-    return;
-  }
   // 点状态标签 → 归类状态
   const stBtn = e.target.closest('[data-status]');
   if (stBtn){ openPop(stBtn, 'st', stBtn.dataset.status); return; }
-
-  // 点「用过 N 次」角标 → 减 1 次（误点勾选后的回退口）
-  const undoBtn = e.target.closest('[data-useundo]');
-  if (undoBtn){
-    const it = ITEMS.find(x => x.id === undoBtn.dataset.useundo);
-    if (it && (it.uses || 0) > 0){
-      it.uses -= 1;
-      if (it.uses <= 0){ it.uses = 0; }
-      it.lastUse = todayStr();
-      renderItems(); renderHome();
-      toast(it.uses > 0 ? `「${it.n}」今天用过 ${it.uses} 次` : `已撤销「${it.n}」今天的记录`);
-    }
-    return;
-  }
-
-  // 点「记一次使用」
-  const useBtn = e.target.closest('[data-usebtn]');
-  if (useBtn){
-    const it = ITEMS.find(x => x.id === useBtn.dataset.usebtn);
-    if (it){
-      it.uses = (it.uses || 0) + 1;
-      it.lastUse = todayStr();
-      useBtn.classList.add('bump');
-      // ★ 飘字要在 renderItems() 之前量位置：重绘会把这张卡整个换掉，
-      //   换掉之后 useBtn 已经脱离文档，量不到矩形了
-      popUsePlusOne(useBtn);
-      renderItems(); renderHome();
-    }
-    return;
-  }
 
   // 点数量角标 → 改数量
   const qb = e.target.closest('.qty');
@@ -3634,7 +2839,7 @@ function editItemModal(id, anchorEl){
       </div>
     </div>
     <div class="mrow">
-      <button class="btn dan" id="eiDel">送走了</button>
+      <button class="btn dan" id="eiDel">删除</button>
       <button class="btn pri" id="eiOk">保存</button>
     </div>
   `, anchorEl);
@@ -3644,15 +2849,14 @@ function editItemModal(id, anchorEl){
   if (delPhBtn) delPhBtn.addEventListener('click', () => { it.photo = null; closeModal(); renderItems(); toast('照片已删除'); });
   const clearBtn = $('#eiBuyClear');
   if (clearBtn) clearBtn.addEventListener('click', () => { $('#eiBuy').value = ''; });
-  // ★ 「送走了」不是删除：先问一句去了哪，再移出，并且能被看见地记在案上
-  $('#eiDel').addEventListener('click', () => { closeModal(); disposeModal(it.id, anchorEl); });
+  $('#eiDel').addEventListener('click', () => { closeModal(); deleteItem(it.id); });
   $('#eiOk').addEventListener('click', () => {
     const v = nameIn.value.trim();
     if (!v) return;
     it.n = v;
     it.loc = $('#eiLoc').value.trim();
     it.buy = $('#eiBuy').value || '';
-    closeModal(); renderHome(); renderItems();
+    closeModal(); renderItems();
     toast('已保存');
   });
 }
@@ -3852,7 +3056,7 @@ function qtyModal(it){
   $('#qmPlus').addEventListener('click', () => { q = Math.min(999, q + 1); $('#qmV').textContent = q; });
   $('#qmCancel').addEventListener('click', closeModal);
   $('#qmOk').addEventListener('click', () => {
-    it.q = q; closeModal(); renderHome(); renderItems();
+    it.q = q; closeModal(); renderItems();
     toast(`数量已改为 ${q}`);
   });
 }
@@ -3872,7 +3076,6 @@ on('#fab', 'click', newItemModal);
 /* ================= 初始化 ================= */
 function renderAll(){
   applyAccent(accentId);
-  renderHome();
   renderCatChips();
   renderItems();
   // 新渲染出来的按钮也要有按压反馈
@@ -3905,12 +3108,7 @@ async function boot(){
     const had = await loadFromDB();
     suppressSave = false;
     if (had){
-      // ★ 使用次数按天算：不是今天的记录清零。原来这个函数从没被调用过，
-      //   导致 uses 是终身累计（一个只涨、又没有任何地方读的数字）。
-      //   必须放在 loadFromDB() 之后：之前跑的话清的是种子数据，不是库里的。
-      const usesChanged = normalizeUses();
       renderAll();
-      if (usesChanged) saveSoon();
       console.log('[极简] 已从本地存储恢复', ITEMS.length, '条物品');
     } else {
       console.log(dbReady ? '[极简] 首次使用' : '[极简] 当前环境不支持本地存储，改动不会保存');
