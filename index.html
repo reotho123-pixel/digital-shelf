@@ -1434,6 +1434,16 @@ function renderCatChips(){
   // 分类行 = 状态行的分支：只算「当前状态」里的物品，
   // 并且**只列出该状态下真有东西的分类**（数量为 0 的不出现，
   // 否则「收纳中只有 1 个」时下面还挂着 5 个 0，看不出从属关系）。
+  //
+  // ★ 「消耗中」不显示分类行（用户要求）：正在消耗的日用品没必要再按分类挑。
+  //   分类筛选的清空在 renderItems() 里做（那样一次重绘就对了，不会闪）。
+  const hideRow = (state.st === 'consuming');
+  if (hideRow){
+    const row0 = $('#catRow');
+    if (row0) row0.style.display = 'none';
+    return;
+  }
+
   // ★ 筛选的分类在当前状态下已经空了 → 换成**该状态的第一个分类**
   //   （跟进页面时的默认一致；直接退回「全部」会变成一行里一个都没选中，
   //    用户就分不清当前在看什么了）。
@@ -1490,6 +1500,10 @@ function renderStChips(){
      位置（i.loc）则整套删掉了 —— 筛选、显示、编辑输入都没有了。 */
 
 function renderItems(){
+  // ★ 「消耗中」不显示分类行，所以进这一档时先把分类筛选清掉 ——
+  //   必须在 syncFilterGroup()（会渲染分类行）和下面的过滤之前做，
+  //   否则会出现"分类行没了、列表却还在按分类筛"的错位。
+  if (state.st === 'consuming' && state.cat !== 'all') state.cat = 'all';
   syncFilterGroup();
   // 筛选只剩「分类 × 状态」两个维度（喜欢 / 位置 / 季节 / 搜索框都已删除）。
   const rows = ITEMS.filter(i =>
@@ -2660,13 +2674,20 @@ const ITEM_GESTURE = { swiping: false };
   };
 
   const onDown = (x, y, target) => {
-    // 点在按钮/输入框/爱心/状态标签上 → 不参与滑动（那是点击操作）
-    if (target && target.closest('button,input,.lk,.st-tag,.used,.ph')) return;
+    // 点在按钮/输入框/状态标签/删除按钮/缩略图上 → 不参与滑动（那是点击操作）
+    if (target && target.closest('button,input,.st-tag,.del-x,.ph')) return;
+    // 分类行被隐藏（「消耗中」）时没有"下一个分类"可切 → 不接管横滑手势
+    const catRow = $('#catRow');
+    if (catRow && catRow.style.display === 'none') return;
     startX = x; startY = y; locked = null; tracking = true;
     ITEM_GESTURE.swiping = false;
   };
   const onMove = (x, y, e) => {
     if (!tracking) return;
+    // ★ 拖拽排序已经开始了 → 横滑手势必须完全让路。
+    //   原来这里在纵向移动 >8px 时会 cancelAllHolds()，而拖拽的 ghost 也在
+    //   pendingHoldCancels 里 → 一拖就自杀（这正是「长按不能移动」的第二个原因）。
+    if (document.querySelector('.drag-ghost')) { tracking = false; locked = null; return; }
     const dx = x - startX, dy = y - startY;
     if (locked === null){
       if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) locked = 'x';
@@ -2758,6 +2779,7 @@ on('#igrid', 'click', e => {
   const grid = $('#igrid');
   let holdTimer = null, card = null, id = null, started = false;
   let ghost = null, offsetX = 0, offsetY = 0, lastSwapEl = null;
+  let holdStartX = 0, holdStartY = 0;   // 长按起点，用来区分「手抖」和「真在滚动」
   const tracker = makeVelocityTracker();
 
   const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
@@ -2857,8 +2879,9 @@ on('#igrid', 'click', e => {
   const onStart = (x, y, target) => {
     card = target.closest('#igrid .icard[data-item]');
     if (!card) return;
-    if (target.closest('input,button,.lk,.st,.use')){ card = null; return; }
+    if (target.closest('input,button,.st-tag,.del-x')){ card = null; return; }
     id = card.dataset.item;
+    holdStartX = x; holdStartY = y;
     clearHold();
     holdTimer = setTimeout(() => begin(x, y), 420);   // 按住 0.42 秒才进入拖拽
   };
@@ -2869,7 +2892,11 @@ on('#igrid', 'click', e => {
   grid.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (started){ if (e.cancelable) e.preventDefault(); move(t.clientX, t.clientY); }
-    else clearHold();
+    // ★ 长按还没触发时**不能无条件清掉计时器**：真机上手指几乎不可能完全不动，
+    //   一抖就 clearHold() → 420ms 永远等不到 → 长按拖动彻底失灵（这一版就是这么坏的）。
+    //   正确做法：只有「明显在滑动」（超过 10px）才判定为滚动并放弃长按；
+    //   10px 以内视为手抖，继续等计时器。
+    else if (Math.hypot(t.clientX - holdStartX, t.clientY - holdStartY) > 10) clearHold();
   }, { passive: false });
   grid.addEventListener('touchend', end);
   grid.addEventListener('touchcancel', end);
