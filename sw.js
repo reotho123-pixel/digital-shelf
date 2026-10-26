@@ -5,7 +5,7 @@
      manifest 的 start_url 指向 app-prototype.html（桌面图标打开的是它），
      index.html 只服务目录网址 /digital-shelf/。
      所以每次部署必须把两个都推上去，少推一个就会出现「桌面图标还是旧版」。 */
-const CACHE = 'digital-shelf-v55';
+const CACHE = 'digital-shelf-v56';
 
 const ASSETS = [
   './',

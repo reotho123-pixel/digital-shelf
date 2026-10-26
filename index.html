@@ -1435,13 +1435,23 @@ function renderCatChips(){
   // 并且**只列出该状态下真有东西的分类**（数量为 0 的不出现，
   // 否则「收纳中只有 1 个」时下面还挂着 5 个 0，看不出从属关系）。
   //
-  // ★ 「消耗中」不显示分类行（用户要求）：正在消耗的日用品没必要再按分类挑。
-  //   分类筛选的清空在 renderItems() 里做（那样一次重绘就对了，不会闪）。
-  const hideRow = (state.st === 'consuming');
-  if (hideRow){
+  // ★ 「消耗中」**不要分类行**（用户要求：消耗品就是日用品，不用再按分类挑）。
+  //   这里把这一行整个从 DOM 摘掉（不是 display:none 留空白）；
+  //   切回别的状态时由 ensureCatRow() 插回去。cat 在 renderItems 里已归 'all'。
+  if (state.st === 'consuming'){
     const row0 = $('#catRow');
-    if (row0) row0.style.display = 'none';
+    if (row0) row0.remove();
     return;
+  }
+  ensureCatRow();
+
+  // ★ 兜底：分类没选中任何一项（'all'）时，默认选「当前状态下第一个有物品的分类」。
+  //   正常路径下状态行点击已经选好了，这里是防止从别的入口进来时漏掉
+  //   （比如空状态的「显示全部」、导入备份、首次渲染），
+  //   否则会出现"分类行显示了、但一个都没选中"，用户不知道现在在看什么。
+  if (state.cat === 'all'){
+    const first = firstCatWithItems(state.st);
+    if (first !== 'all') state.cat = first;
   }
 
   // ★ 筛选的分类在当前状态下已经空了 → 换成**该状态的第一个分类**
@@ -1456,13 +1466,16 @@ function renderCatChips(){
     .map(c => ({ ...c, qty: catQtyIn(c.id, state.st) }))
     .filter(c => c.qty > 0 || state.cat === c.id);
   const keys = list.map(c => c.id);
+  // 容器可能刚被 ensureCatRow() 插回来，取一次并确认存在
+  const catBox = $('#catChips');
+  if (!catBox) return;
   // 复用已有节点（标签让位要求同一批 DOM 跨越改动前后）
-  const reused = syncChips($('#catChips'), keys,
+  const reused = syncChips(catBox, keys,
     k => { const c = list.find(x => x.id === k);
            return `${c.name}<span class="n">${c.qty}</span>`; },
     k => 'chip' + (state.cat === k ? ' on' : ''));
   if (!reused){
-    $('#catChips').innerHTML = list.map(c =>
+    catBox.innerHTML = list.map(c =>
       `<button class="chip${state.cat === c.id ? ' on' : ''}" data-cat="${c.id}" data-chip-key="${c.id}">${c.name}<span class="n">${c.qty}</span></button>`
     ).join('');
   }
@@ -1499,13 +1512,29 @@ function renderStChips(){
    ★ 物品的 i.season 字段还在：季节是衣物卡上要显示的信息，不是筛选维度。
      位置（i.loc）则整套删掉了 —— 筛选、显示、编辑输入都没有了。 */
 
+/* 消耗中那一档会把 #catRow 从 DOM 摘掉（用户要求：消耗品不要分类行）。
+   切回其他状态时用它把这一行插回原位 —— 紧跟状态行之后。 */
+function ensureCatRow(){
+  if ($('#catRow')) return;
+  const over = document.querySelector('.hero .over');
+  const stRow = over && over.querySelector('.chipRow.master');
+  if (!over || !stRow) return;
+  const div = document.createElement('div');
+  div.className = 'chipRow branch';
+  div.id = 'catRow';
+  div.innerHTML = '<div class="chips center" id="catChips"></div>';
+  stRow.insertAdjacentElement('afterend', div);
+}
+
 function renderItems(){
-  // ★ 「消耗中」不显示分类行，所以进这一档时先把分类筛选清掉 ——
-  //   必须在 syncFilterGroup()（会渲染分类行）和下面的过滤之前做，
-  //   否则会出现"分类行没了、列表却还在按分类筛"的错位。
-  if (state.st === 'consuming' && state.cat !== 'all') state.cat = 'all';
-  syncFilterGroup();
-  // 筛选只剩「分类 × 状态」两个维度（喜欢 / 位置 / 季节 / 搜索框都已删除）。
+  // ★ 「消耗中」不要分类行（那一档 cat 归 all，列表显示全部消耗品）。
+  //   其他状态会把分类行插回来（如果上一帧刚被摘掉）。
+  if (state.st === 'consuming'){
+    state.cat = 'all';
+  } else {
+    ensureCatRow();
+  }
+  syncFilterGroup();  // 筛选只剩「分类 × 状态」两个维度（喜欢 / 位置 / 季节 / 搜索框都已删除）。
   const rows = ITEMS.filter(i =>
     (state.cat === 'all' || i.c === state.cat) &&
     (state.st === 'all' || i.st === state.st)
@@ -2733,6 +2762,13 @@ on('#stChips', 'click', e => {
   const k = chip.dataset.st;
   chipsReflow($('#stChips'), '.chip', () => {
     state.st = (state.st === k) ? 'all' : k;       // 再点一次取消
+    // ★ 每次点状态行都重新选「该状态下第一个有物品的分类」（用户明确要求）。
+    //   不这么做的话：进过「消耗中」之后再切回任何一档，分类行都没有选中项 ——
+    //   因为 renderCatChips 只在「选中的分类在新状态下为空」时才换，
+    //   而 'all' 永远不会被判成空。用户实测就报了这个。
+    //   「消耗中」没有分类行（那一行会被摘掉），所以 cat 归 'all' 显示全部消耗品。
+    state.cat = (state.st === 'consuming' || state.st === 'all')
+      ? 'all' : firstCatWithItems(state.st);
     $$('#stChips .chip').forEach(c => c.classList.toggle('on', c.dataset.st === state.st));
   });
   syncFilterGroup();
