@@ -201,6 +201,17 @@ body{
   border-radius:11px 4px 12px 5px/5px 12px 4px 11px;background:rgba(255,255,255,.72);
   color:#3d6f9e;transform:rotate(-1.6deg);display:inline-block;font-family:var(--f-cn);
   white-space:nowrap;flex:0 0 auto}
+/* 主卡标题行里的小按钮（清理队列入口）。
+   ★ 放这一行是为了不多占高度：这里标题右边本来就有空位。 */
+.hero .hbtn{border:1.9px solid var(--ink);background:rgba(255,255,255,.86);
+  font-family:var(--f-cn);font-size:11px;padding:3px 9px;cursor:pointer;color:var(--ink2);
+  border-radius:11px 4px 12px 5px/5px 12px 4px 11px;box-shadow:2px 2px 0 rgba(22,23,27,.12);
+  white-space:nowrap;flex:0 0 auto;margin-left:auto;margin-bottom:1px}
+.hero .hbtn[hidden]{display:none}
+/* 「已送走 N 件」：单独一行小字，只在真送过东西时出现 */
+.hero .hmeta2{font-size:11.5px;opacity:.68;font-family:'PatrickHand',sans-serif;
+  text-shadow:0 1px 0 rgba(255,255,255,.4);margin-top:-3px}
+.hero .hmeta2[hidden]{display:none}
 /* 合并后的主卡里的「分类目标」清单。
    现在这块在浅绿手绘卡上（原来是白卡），所以文字/描边要按绿底调。 */
 .goal-cats{margin-top:3px;padding-top:10px;border-top:1.8px dashed rgba(22,23,27,.22)}
@@ -562,6 +573,20 @@ body{
 .opt.sel{background:var(--accent)}
 .opt .dot{width:12px;height:12px;border-radius:50% 44% 52% 46%;border:1.8px solid var(--ink);flex:0 0 auto}
 .opt .sub{margin-left:auto;font-family:'PatrickHand',sans-serif;font-size:11.5px;color:var(--sub)}
+/* ---------- 清理队列：一次只显示一件 ----------
+   大图 + 一行事实（上次使用 / 买了多久）+ 三个按钮。
+   ★ 刻意不放"还剩几件"的进度条 —— 那会立刻变成一张要填满的量表。 */
+.qcard{position:relative;width:100%;aspect-ratio:1/1;max-height:190px;display:grid;place-items:center;
+  border:2.2px solid var(--ink);border-radius:16px 6px 17px 7px/7px 17px 6px 16px;overflow:hidden;
+  box-shadow:3px 4px 0 rgba(22,23,27,.12);margin-bottom:10px}
+.qcard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* 图标用固定像素尺寸：图标 symbol 的 viewBox 是 0 0 24 24，
+   百分比宽高在 grid place-items 里会算出不确定的高度，`<use>` 就画不出来（显示成方框） */
+.qcard svg{width:96px;height:96px;color:var(--ink);opacity:.82;overflow:visible}
+.qmeta{font-size:12px;color:var(--sub);font-family:'PatrickHand',sans-serif;
+  text-align:center;margin-bottom:2px}
+.mrow.qacts{gap:7px}
+.mrow.qacts .btn{font-size:13px;padding:10px 4px}
 .opt.sel .sub{color:var(--ink2)}
 
 
@@ -860,9 +885,12 @@ body{
             </svg>
           </div>
           <div class="over">
-            <!-- 标题 + 设置齿轮同一行：齿轮在右上，正好落在下面「超出 N 件」标签的正上方 -->
+            <!-- 标题 + 设置齿轮同一行：齿轮在右上，正好落在下面「目标」标签的正上方。
+                 ★ 清理队列入口也放这一行（标题右侧、齿轮左边）—— 这里本来就有空位，
+                   放进卡片里会多占一整行（卡高 326 → 378），而这个 app 一直在往"少占高度"走。 -->
             <div class="ttlrow">
               <div class="ttl">我的收纳</div>
+              <button class="hbtn" id="openQueue" hidden></button>
               <button class="circ c1 cardgear" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
             </div>
 
@@ -884,6 +912,11 @@ body{
               <span class="split" id="heroSplit"></span>
               <span class="hint" id="goalHint">—</span>
             </div>
+
+            <!-- 「已送走 N 件」挂在状态分布那行末尾（原来这里放的是目标提示，现在两者共用一行）。
+                 ★ 送走是这套数据里唯一能被完成的事，给它一个位置；
+                   但只记累计，不做目标、不做同比 —— 不做成第二个要达标的考核。 -->
+            <div class="hmeta2" id="disposedLine" hidden></div>
 
             <!-- 分类目标（没设目标时整块隐藏） -->
             <div class="goal-cats" id="goalCats" style="display:none"></div>
@@ -1410,6 +1443,10 @@ let GOAL_APPS  = 0;           // 软件总目标（0 = 未设）
 let SNAPSHOTS = [];           // 每周快照（由 maybeSnapshot 自动追加）
 let lastSnapAt = 0;           // 上次记快照的时间戳
 let suppressCardClickUntil = 0; // 拖拽后短暂屏蔽点击，避免误触展开
+/* 处置记录：东西离开时的去向。一条 = 一次「送走」，形状 { d:'YYYY-MM-DD', n:名称, q:件数, why }
+   ★ 为什么单独存一份：删掉的物品会从 ITEMS 里消失，等于从没存在过。
+     有了这份记录，"我送走了多少东西"才是可以被看见的完成，而不是一片空白。 */
+let DISPOSED = [];
 
 /* ================= 数据 ================= */
 let CATS = [
@@ -1559,8 +1596,9 @@ function renderHome(){
   $('#heroSplit').textContent = `在用 ${inuse} · 收纳 ${stored} · 消耗 ${consuming} · 待处理 ${todo}`;
 
   // 目标：没设目标时显示引导，不假装有个默认值
-  // ★ 标签只用中性说法（进行中 / 超出 / 达标），**不写「还差 N 件」**——
-  //   用户说那种措辞像在提醒他"该买了"。
+  // ★ 标签只描述状态，不做评判（进行中 / 达标）。**不写「还差 N 件」，也不写「超出 N 件」**——
+  //   前者像催买，后者像催扔，两者是同一句话的正反两面。
+  //   超没超，看「97 / 100」这两个数字就够了，不需要再被下一个判断。
   const GOAL = GOAL_TOTAL;
   const goalOf = $('#goalOf');
   goalOf.textContent = GOAL > 0 ? `/ ${GOAL}` : '';
@@ -1568,7 +1606,7 @@ function renderHome(){
   if (GOAL > 0){
     const diff = GOAL - held;
     if (diff > 0){ tag.textContent = '进行中'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
-    else if (diff < 0){ tag.textContent = `超出 ${-diff} 件`; tag.style.background = 'rgba(217,134,31,.2)'; tag.style.color = '#a8640c'; }
+    else if (diff < 0){ tag.textContent = '已到目标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
     else { tag.textContent = '刚好达标'; tag.style.background = 'rgba(91,152,200,.22)'; tag.style.color = '#3d6f9e'; }
     const pct = Math.min(1, held / GOAL);
     $('#goalBar').setAttribute('x2', String(5 + 272 * pct));
@@ -1579,6 +1617,29 @@ function renderHome(){
     tag.style.color = '#5f6068';
     $('#goalBar').setAttribute('x2', '5');
     $('#goalHint').textContent = ITEMS.length ? '点卡片设个目标' : '先录几件东西';
+  }
+
+  // 清理队列入口：只有真有东西可看时才出现（必备豁免，所以可能一个都没有）
+  const qn = queueCount();
+  const qBtn = $('#openQueue');
+  if (qBtn){
+    if (qn > 0){
+      qBtn.hidden = false;
+      qBtn.textContent = `看看这 ${qn} 件`;
+    } else {
+      qBtn.hidden = true;
+    }
+  }
+  // 已送走：只记累计，没送过就整条不出现
+  const dTotal = disposedTotal();
+  const dLine = $('#disposedLine');
+  if (dLine){
+    if (dTotal > 0){
+      dLine.textContent = `已送走 ${dTotal} 件`;
+      dLine.hidden = false;
+    } else {
+      dLine.hidden = true;
+    }
   }
 
   // 分类目标：只列设了目标的分类，一个都没设时整块不占地方。
@@ -1606,8 +1667,9 @@ function renderGoalCats(){
     ${list.map(c => {
       const qty = catQty(c.id);
       const ratio = c.goal > 0 ? qty / c.goal : 0;
-      const over = qty > c.goal;
-      const color = over ? 'var(--warn)' : (ratio >= .95 ? 'var(--blue-deep)' : 'var(--green)');
+      // ★ 不按"超没超"换色 —— 原来超出就用橙色（--warn），那是"出错了"的颜色，
+      //   等于给主卡换了个地方继续做评判。这里只用主色深浅表示进度。
+      const color = ratio >= .95 ? 'var(--blue-deep)' : 'var(--green)';
       return `<div class="gc-row">
         <span class="dot" style="background:${c.tone}"></span>
         <span class="nm">${c.name}</span>
@@ -2065,6 +2127,233 @@ function deleteItem(id){
   });
 }
 
+/* ================= 处置：让「送走」成为一件可以完成的事 =================
+   ★ 为什么不是直接删：删掉的物品会从 ITEMS 里消失，等于从没存在过。
+     这个 app 的每个数字都在说"你还有多少"，没有一个能说"你放掉了多少"。
+     送走 30 件是真正完成过的事，它需要一个能被看见的地方。
+   ★ 只记一条累计，不做目标、不做同比、不做"本月送走" ——
+     那会立刻变成一个要达标的考核，而这个 app 里已经有一个目标了。 */
+
+const WHY_TEXT = { give:'送人了', sell:'卖掉了', toss:'扔掉了', used:'用完了' };
+const WHY_KEYS = ['give', 'sell', 'toss', 'used'];
+
+function disposedTotal(){
+  return DISPOSED.reduce((s, d) => s + (d.q || 0), 0);
+}
+
+/* 把一件物品移出清单，并记下它去了哪。qty 为空 = 整条；否则只减数量 */
+function disposeItem(id, why, qty){
+  const idx = ITEMS.findIndex(i => i.id === id); if (idx < 0) return null;
+  const it = ITEMS[idx];
+  const out = qty && qty < (it.q || 1) ? qty : (it.q || 1);
+  // ★ 记录里带上 id：撤销时按 id 找回，按名称找会在同名物品上加错地方
+  const rec = { d: todayStr(), n: it.n, q: out, why: why || 'toss', id: it.id };
+  DISPOSED.push(rec);
+
+  let snapshot = null;
+  if (out >= (it.q || 1)){
+    // 整条走掉 → 记住原位置和整条数据，撤销时原样插回
+    snapshot = { idx, item: JSON.parse(JSON.stringify({ ...it, photo: it.photo })) };
+    ITEMS.splice(idx, 1);
+  } else {
+    it.q = (it.q || 1) - out;
+  }
+
+  renderSettings(); renderHome(); renderCatChips(); renderItems();
+  return { rec, snapshot };
+}
+
+/* 撤销一次处置：把记录撤掉，物品原样回来 */
+function undoDispose(res){
+  if (!res) return;
+  const di = DISPOSED.indexOf(res.rec);
+  if (di >= 0) DISPOSED.splice(di, 1);
+  if (res.snapshot){
+    const { idx, item } = res.snapshot;
+    ITEMS.splice(Math.min(idx, ITEMS.length), 0, item);
+  } else {
+    // 只减了数量 → 按 id 找回，把数量加回去
+    const it = ITEMS.find(x => x.id === res.rec.id);
+    if (it) it.q = (it.q || 1) + res.rec.q;
+  }
+  renderSettings(); renderHome(); renderCatChips(); renderItems();
+}
+
+/* 处置面板：问一句去向，选完才真的移出。
+   ★ 默认不预选任何一项 —— 预选会把"送人"变成顺手点掉的默认值，
+     而这正是这个 app 里唯一需要用户自己说出口的一句话。 */
+function disposeModal(id, anchorEl, onDone){
+  const it = ITEMS.find(x => x.id === id); if (!it) return;
+  const total = it.q || 1;
+  let why = null;
+  let qty = total;
+
+  const whyChips = () => WHY_KEYS.map(k =>
+    `<button class="chip${why === k ? ' on' : ''}" data-why="${k}">${WHY_TEXT[k]}</button>`).join('');
+
+  openModal(`
+    <h3>${it.n} 去哪了</h3>
+    <p class="mhint">选一个去向。这一步只是记下来，随时可以撤销。</p>
+    <div class="fld">
+      <label>去向</label>
+      <div class="chips" id="dwWhy" style="padding-bottom:2px">${whyChips()}</div>
+    </div>
+    ${total > 1 ? `<div class="fld">
+      <label>几件（共 ${total} 件）</label>
+      <div class="stepper">
+        <button id="dwMinus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+        <span class="v" id="dwQty">${qty}</span>
+        <button id="dwPlus"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+      </div>
+    </div>` : ''}
+    <div class="mrow">
+      <button class="btn" id="dwCancel">先留着</button>
+      <button class="btn pri" id="dwOk" disabled>记下来</button>
+    </div>
+  `, anchorEl);
+
+  const okBtn = $('#dwOk');
+  $('#dwWhy').addEventListener('click', e => {
+    const b = e.target.closest('[data-why]'); if (!b) return;
+    why = b.dataset.why;
+    $('#dwWhy').innerHTML = whyChips();
+    okBtn.disabled = false;
+  });
+  const minus = $('#dwMinus'), plus = $('#dwPlus');
+  if (minus) minus.addEventListener('click', () => {
+    qty = Math.max(1, qty - 1); $('#dwQty').textContent = qty;
+  });
+  if (plus) plus.addEventListener('click', () => {
+    qty = Math.min(total, qty + 1); $('#dwQty').textContent = qty;
+  });
+  $('#dwCancel').addEventListener('click', closeModal);
+  okBtn.addEventListener('click', () => {
+    if (!why) return;
+    const res = disposeItem(it.id, why, qty);
+    closeModal();
+    if (!res) return;
+    toastUndo(`「${res.rec.n}」· ${WHY_TEXT[why]}`, () => { undoDispose(res); toast('已放回去'); });
+    if (onDone) onDone(res);
+  });
+}
+
+/* ================= 清理队列：一次只问一件 =================
+   ★ 依据：if-then 计划绕过"决定"这一步，而决定恰恰是最耗神的地方。
+     从「97 件里挑哪件来想」这种开放式反刍，变成一个封闭任务 —— 一次只有一件。
+   ★ 它能做完。有一个明确的结束状态，这是这个 app 里唯一有终点的东西。
+   ★ 不显示"还剩 N 件"的进度条（那又变成量表了）；「再看看」不算失败，放回队尾。 */
+
+let queueList = [];      // 本次队列（物品 id，按处理顺序）
+let queuePos = 0;
+let queueDecided = 0;    // 这一轮已经决定了几件
+let queueSkipped = [];   // 「再看看」跳过的（这一轮不再问，避免原地打转）
+
+/* 候选：必备 豁免；其余按「不喜欢 → 很久没碰 → 其他」排优先级。
+   ★ 没有数据就不猜：新加的东西没有 lastUse，不参与"很久没碰"的判断。 */
+function buildQueue(){
+  const now = Date.now();
+  const DAY = 86400000;
+  const cand = ITEMS.filter(i => i.like !== 'neutral');   // neutral = 必备，免死
+  const score = i => {
+    if (i.like === 'dislike') return 0;                   // 先问"不喜欢"的
+    if (!i.lastUse) return 2;                             // 从没用过、也没有记录
+    const days = (now - new Date(i.lastUse + 'T00:00:00').getTime()) / DAY;
+    if (days >= 90) return 1;                             // 三个月没碰
+    return 3;
+  };
+  return cand
+    .map(i => ({ i, s: score(i) }))
+    .sort((a, b) => a.s - b.s)
+    .map(x => x.i.id);
+}
+
+/* 队列里还有多少件「可以再看看」（用于主卡入口，不参与目标计算） */
+function queueCount(){
+  return ITEMS.filter(i => i.like !== 'neutral').length;
+}
+
+function openQueue(anchorEl){
+  queueList = buildQueue();
+  queuePos = 0;
+  queueDecided = 0;
+  queueSkipped = [];
+  if (!queueList.length){ toast('没有需要看的：剩下的都是必备'); return; }
+  renderQueueCard(anchorEl);
+}
+
+function renderQueueCard(anchorEl){
+  const id = queueList[queuePos];
+  const it = id ? ITEMS.find(x => x.id === id) : null;
+
+  // 队列走完（或被删光了）→ 收尾。不报"还剩几件"，只说这一轮做了什么
+  if (!it){
+    const parts = [];
+    if (queueDecided) parts.push(`做了 ${queueDecided} 个决定`);
+    if (queueSkipped.length) parts.push(`${queueSkipped.length} 件先放着`);
+    openModal(`
+      <h3>这一轮看完了</h3>
+      <p class="mhint">${parts.length ? parts.join('，') + '。' : '什么都没改，也是可以的。'}</p>
+      <div class="mrow"><button class="btn pri" id="qDone">好</button></div>
+    `, anchorEl);
+    $('#qDone').addEventListener('click', closeModal);
+    return;
+  }
+
+  const c = catOf(it.c);
+  // ★ 显示「多久以前」而不是日期本身：2026-03-14 要心算，而"7 个月前"直接就能判断
+  const daysAgo = d => Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
+  const humanAgo = n => n < 1 ? '今天' : n < 30 ? `${n} 天前`
+    : n < 365 ? `${Math.floor(n / 30)} 个月前` : `${Math.floor(n / 365)} 年前`;
+  let usedTxt = '还没有使用记录';
+  if (it.lastUse) usedTxt = `上次记使用 ${humanAgo(daysAgo(it.lastUse))}`;
+  const buyTxt = it.buy ? ` · ${humanAgo(daysAgo(it.buy))}买的` : '';
+  const likeTxt = it.like === 'like' ? '喜欢' : it.like === 'dislike' ? '不喜欢' : '必备';
+  const photo = it.photo
+    ? `<img src="${it.photo}" alt="">`
+    // ★ 必须带 viewBox="0 0 24 24"：图标 symbol 的坐标是 0-24，
+    //   没有 viewBox 时 <use> 按 1:1 用户单位画，在 96px 画布里只有中间一小块，
+    //   看起来就是个方框（列表卡能用是因为它自己的 svg 上写了 viewBox）。
+    : `<svg class="phic" viewBox="0 0 24 24"><use href="#${it.ic || 'ic-box'}"/></svg>`;
+
+  openModal(`
+    <h3>${it.n}</h3>
+    <p class="mhint">${c.name} · ${likeTxt}${it.q > 1 ? ` · ${it.q} 件` : ''}</p>
+    <div class="qcard" style="background:${it.photo ? '#fff' : TINTS[ITEMS.indexOf(it) % TINTS.length]}">
+      ${photo}
+    </div>
+    <div class="qmeta">${usedTxt}${buyTxt}</div>
+    <div class="mrow qacts">
+      <button class="btn" id="qKeep">留着</button>
+      <button class="btn" id="qLater">再看看</button>
+      <button class="btn dan" id="qGo">送走</button>
+    </div>
+  `, anchorEl);
+
+  // 留着 = 这一轮不再问它。★ 不改动用户选的喜欢档位 ——
+  // 他说"留着"只是此刻的决定，不是重新给这件东西定性。
+  $('#qKeep').addEventListener('click', () => {
+    queueDecided++;
+    queuePos++;
+    renderQueueCard(anchorEl);
+  });
+  // 再看看 → 跳过这一件，本轮不再问（否则放回队尾会原地打转，永远停在同一件）
+  $('#qLater').addEventListener('click', () => {
+    queueSkipped.push(queueList[queuePos]);
+    queuePos++;
+    renderQueueCard(anchorEl);
+  });
+  // 送走 → 走处置流程（问去向）；处置完自动接下一件
+  $('#qGo').addEventListener('click', () => {
+    closeModal();
+    disposeModal(it.id, anchorEl, () => {
+      queueDecided++;
+      // 这件已经不在 ITEMS 里了，queuePos 不前进就会指向它自己 → 从队列里摘掉
+      queueList.splice(queuePos, 1);
+      renderQueueCard(anchorEl);
+    });
+  });
+}
+
 
 /* ================= 照片 ================= */
 let photoTargetId = null;
@@ -2377,8 +2666,14 @@ function closeSettings(fromProgress){
 on('#qSettings', 'click', e => { e.stopPropagation(); goSettings(); });
 // 点合并后的主卡 → 打开完整的目标设置（物品总额 + 各分类目标）
 // ★ 齿轮现在在卡里，点它必须挡住这条冒泡，否则会同时开出设置和目标两个面板
+// ★ 同理：清理队列按钮也在卡里，必须一起挡（stopPropagation + 处理器里 closest 双保险）
+on('#openQueue', 'click', e => {
+  e.stopPropagation();
+  openQueue($('#openQueue'));
+});
 on('#mergedCard', 'click', e => {
   if (e.target.closest('#qSettings')) return;
+  if (e.target.closest('#openQueue')) return;
   goalModal($('#mergedCard'));
 });
 // 返回按钮始终可用（手势是增强，不是唯一入口）
@@ -2619,7 +2914,8 @@ function exportBackup(){
     cats: CATS, appCats: APP_CATS,
     items: ITEMS, apps: APPS,
     goals: { total: GOAL_TOTAL, apps: GOAL_APPS },
-    snapshots: SNAPSHOTS
+    snapshots: SNAPSHOTS,
+    disposed: DISPOSED
   };
   try {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2719,6 +3015,8 @@ function applyBackup(d, mode){
     GOAL_TOTAL = (d.goals && d.goals.total) || 0;
     GOAL_APPS  = (d.goals && d.goals.apps) || 0;
     if (Array.isArray(d.snapshots) && d.snapshots.length) SNAPSHOTS = d.snapshots;
+    // 老备份没有 disposed 字段 → 保留本地已有的记录，不要清空
+    if (Array.isArray(d.disposed)) DISPOSED = d.disposed;
   } else {
     // ---- 合并 ----
     // 1) 分类：按名字去重，备份里没有的分类补进来
@@ -2784,7 +3082,7 @@ function applyBackup(d, mode){
 function clearAllModal(){
   openModal(`
     <h3>清空全部数据？</h3>
-    <p class="mhint">所有物品、软件、目标、快照都会删掉，且无法撤销。清空前强烈建议先导出备份。</p>
+    <p class="mhint">所有物品、目标、快照和处置记录都会删掉，且无法撤销。清空前强烈建议先导出备份。</p>
     <div class="fld">
       <label>输入「清空」两个字确认</label>
       <input type="text" id="caConfirm" placeholder="清空">
@@ -2804,6 +3102,7 @@ function clearAllModal(){
     CATS.forEach(c => { c.goal = 0; });
     GOAL_TOTAL = 0;
     GOAL_APPS = 0;
+    DISPOSED = [];
     closeModal();
     renderSettings(); renderHome(); renderCatChips();
     renderItems();
@@ -2848,7 +3147,8 @@ function snapshotState(){
     // 图片单独存，这里只留标记，避免 JSON 里塞大字符串
     items: ITEMS.map(i => { const { photo, ...rest } = i; return { ...rest, hasPhoto: !!photo }; }),
     apps:  APPS.map(a => { const { photo, ...rest } = a; return { ...rest, hasPhoto: !!photo }; }),
-    snapshots: SNAPSHOTS
+    snapshots: SNAPSHOTS,
+    disposed: DISPOSED
   };
 }
 
@@ -2951,6 +3251,8 @@ async function loadFromDB(){
     if (typeof state.accentId === 'string') accentId = state.accentId;
     if (typeof state.lastSnapAt === 'number') lastSnapAt = state.lastSnapAt;
     if (Array.isArray(state.snapshots) && state.snapshots.length) SNAPSHOTS = state.snapshots;
+    // 老数据没有 disposed 字段 → 当成空数组，不能因为缺字段就报错
+    DISPOSED = Array.isArray(state.disposed) ? state.disposed : [];
 
     ITEMS = (state.items || []).map(i => ({ ...i, photo: null }));
     APPS  = (state.apps  || []).map(a => ({ ...a, photo: null }));
@@ -3285,7 +3587,7 @@ function editItemModal(id, anchorEl){
       </div>
     </div>
     <div class="mrow">
-      <button class="btn dan" id="eiDel">删除</button>
+      <button class="btn dan" id="eiDel">送走了</button>
       <button class="btn pri" id="eiOk">保存</button>
     </div>
   `, anchorEl);
@@ -3295,7 +3597,8 @@ function editItemModal(id, anchorEl){
   if (delPhBtn) delPhBtn.addEventListener('click', () => { it.photo = null; closeModal(); renderItems(); toast('照片已删除'); });
   const clearBtn = $('#eiBuyClear');
   if (clearBtn) clearBtn.addEventListener('click', () => { $('#eiBuy').value = ''; });
-  $('#eiDel').addEventListener('click', () => { closeModal(); deleteItem(it.id); });
+  // ★ 「送走了」不是删除：先问一句去了哪，再移出，并且能被看见地记在案上
+  $('#eiDel').addEventListener('click', () => { closeModal(); disposeModal(it.id, anchorEl); });
   $('#eiOk').addEventListener('click', () => {
     const v = nameIn.value.trim();
     if (!v) return;
