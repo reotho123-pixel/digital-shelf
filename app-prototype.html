@@ -430,10 +430,13 @@ body{
   border:1.7px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;cursor:pointer;
   transition:transform .12s}
 .icard .meta .st-tag:active{transform:translate(1px,1px)}
-/* 第三行：用过 N 次（可点减 1） */
+/* 第三行：使用信息（今天用过 N 次 / 上次 X 前） */
 .icard .meta .used{font-family:'PatrickHand',sans-serif;font-size:10.5px;color:var(--sub);
   background:none;border:none;padding:0;text-align:left;cursor:pointer;align-self:flex-start}
 .icard .meta .used:active{color:var(--ink)}
+/* 「上次 X 前」只是事实，不可点 → 不要手型光标，也别给按压反馈 */
+.icard .meta .used.quiet{cursor:default}
+.icard .meta .used.quiet:active{color:var(--sub)}
 /* 右侧竖排：数量 / 爱心 / 打勾 */
 .icard .side{flex:0 0 auto;display:flex;align-items:center;gap:7px}
 .icard .side .qty{font-family:var(--f-num);font-weight:700;font-size:13px;color:var(--ink);
@@ -913,10 +916,9 @@ body{
               <span class="hint" id="goalHint">—</span>
             </div>
 
-            <!-- 「已送走 N 件」挂在状态分布那行末尾（原来这里放的是目标提示，现在两者共用一行）。
-                 ★ 送走是这套数据里唯一能被完成的事，给它一个位置；
-                   但只记累计，不做目标、不做同比 —— 不做成第二个要达标的考核。 -->
+            <!-- 「已送走 N 件」/「必备 N 条」两行小字，各自在没内容时不出现 -->
             <div class="hmeta2" id="disposedLine" hidden></div>
+            <div class="hmeta2" id="mustLine" hidden></div>
 
             <!-- 分类目标（没设目标时整块隐藏） -->
             <div class="goal-cats" id="goalCats" style="display:none"></div>
@@ -1642,6 +1644,20 @@ function renderHome(){
     }
   }
 
+  // ★ 「必备」现在要看得见 —— 它原来只是三档里的中间档、一个灰圆环，
+  //   但它其实回答的是另一个问题："不管喜不喜欢都得留的，是哪几件。"
+  //   这行同时把"清理队列会跳过它们"这件事说出来，不然用户不知道为什么少了几件。
+  const mustKeep = ITEMS.filter(i => i.like === 'neutral');
+  const mustLine = $('#mustLine');
+  if (mustLine){
+    if (mustKeep.length){
+      mustLine.textContent = `必备 ${mustKeep.length} 条 · 不会进清理队列`;
+      mustLine.hidden = false;
+    } else {
+      mustLine.hidden = true;
+    }
+  }
+
   // 分类目标：只列设了目标的分类，一个都没设时整块不占地方。
   renderGoalCats();
 
@@ -1814,11 +1830,11 @@ function renderItems(){
          <svg class="phic"><use href="#${i.ic || 'ic-box'}"/></svg>`;
 
     const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
-    const useCount = i.uses || 0;
-    // 「用过 N 次」：可点，点一下减 1（防止误点勾选后没法回退）
-    const useBadge = useCount > 0
-      ? `<button class="used" data-useundo="${i.id}" title="点一下减 1 次">用过 ${useCount} 次</button>`
-      : '';
+    // ★ 这一行现在有两个作用（原来「用过 N 次」是个终身累计、没人读的数字）：
+    //   今天记过 → 显示「今天用过 N 次」，可点减 1（误点的回退口）；
+    //   今天没记过但有历史 → 显示「上次 X 前」，让「多久没碰」在卡片上就看得见。
+    //   两者都不满足（从没用过）→ 整行不出现，不硬塞一个 0。
+    const useBadge = useLine(i);
 
     // 日期角标放缩略图左上角（没有日期就不显示）
     const dateBadge = i.buy ? `<span class="buy">${i.buy.slice(5).replace('-', '/')}</span>` : '';
@@ -2300,10 +2316,7 @@ function renderQueueCard(anchorEl){
   }
 
   const c = catOf(it.c);
-  // ★ 显示「多久以前」而不是日期本身：2026-03-14 要心算，而"7 个月前"直接就能判断
-  const daysAgo = d => Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
-  const humanAgo = n => n < 1 ? '今天' : n < 30 ? `${n} 天前`
-    : n < 365 ? `${Math.floor(n / 30)} 个月前` : `${Math.floor(n / 365)} 年前`;
+  // 「多久以前」的换算统一走 humanAgo()（定义在 todayStr 那边）
   let usedTxt = '还没有使用记录';
   if (it.lastUse) usedTxt = `上次记使用 ${humanAgo(daysAgo(it.lastUse))}`;
   const buyTxt = it.buy ? ` · ${humanAgo(daysAgo(it.buy))}买的` : '';
@@ -2424,7 +2437,10 @@ function todayStr(){
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/* 使用次数按天算：不是今天的记录就清零重算 */
+/* 使用次数按天算：不是今天的记录就清零重算。
+   ★ 原来这个函数定义了却**从来没被调用**，所以 uses 实际是终身累计 ——
+     一个只会涨、又没有任何地方读的数字（跟"连续天数"是同一个模式，而且更糟）。
+     现在在 boot() 里接上，它才真的是"今天用过几次"。 */
 function normalizeUses(){
   const t = todayStr();
   let changed = false;
@@ -2435,6 +2451,37 @@ function normalizeUses(){
     }
   });
   return changed;
+}
+
+/* 把日期变成人话：2026-03-14 要心算，"7 个月前"直接就能判断 */
+function daysAgo(d){
+  return Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
+}
+function humanAgo(n){
+  if (n < 1) return '今天';
+  if (n < 30) return `${n} 天前`;
+  if (n < 365) return `${Math.floor(n / 30)} 个月前`;
+  return `${Math.floor(n / 365)} 年前`;
+}
+
+/* 卡片上那一行「使用」信息：
+   今天记过 → 可点的「今天用过 N 次」（点一下减 1）
+   今天没记过但有历史 → 「上次 X 前」（不可点，它只是事实）
+   从没用过 → 空（不硬塞一个 0） */
+function useLine(i){
+  const n = i.uses || 0;
+  const t = todayStr();
+  if (n > 0 && i.lastUse === t){
+    return `<button class="used" data-useundo="${i.id}" title="点一下减 1 次">今天用过 ${n} 次</button>`;
+  }
+  if (i.lastUse === t){
+    // 今天记过但已经减到 0 → 别写「上次 今天」，读起来别扭
+    return `<span class="used quiet">今天记过</span>`;
+  }
+  if (i.lastUse){
+    return `<span class="used quiet">上次 ${humanAgo(daysAgo(i.lastUse))}</span>`;
+  }
+  return '';
 }
 
 /* 点勾选后飘一个「+1」：从按钮位置向上飘并淡出，飘完自己删掉。
@@ -3858,9 +3905,12 @@ async function boot(){
     const had = await loadFromDB();
     suppressSave = false;
     if (had){
-      // ★ 原来这里会调 migrateNeedValues()（把软件的 todel 转 temp）。
-      //   软件页已整页删除，这个迁移不再需要 —— 留着会 ReferenceError 中断 boot。
+      // ★ 使用次数按天算：不是今天的记录清零。原来这个函数从没被调用过，
+      //   导致 uses 是终身累计（一个只涨、又没有任何地方读的数字）。
+      //   必须放在 loadFromDB() 之后：之前跑的话清的是种子数据，不是库里的。
+      const usesChanged = normalizeUses();
       renderAll();
+      if (usesChanged) saveSoon();
       console.log('[极简] 已从本地存储恢复', ITEMS.length, '条物品');
     } else {
       console.log(dbReady ? '[极简] 首次使用' : '[极简] 当前环境不支持本地存储，改动不会保存');
