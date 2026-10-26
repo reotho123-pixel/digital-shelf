@@ -120,11 +120,9 @@ body{
   .phone{width:378px;height:812px;border-radius:42px;border:2.8px solid var(--ink);
     box-shadow:7px 9px 0 rgba(22,23,27,.13);flex:0 0 auto}
   .screen{padding:22px 20px 40px}
-  /* 桌面预览时安全区为 0，位置固定即可 */
-  .fab{right:22px}
 }
 
-/* 顶栏（设置页还在用；主页的顶栏已删，齿轮搬进卡里了） */
+/* 顶栏（设置页还在用；主页的顶栏/齿轮都已删，设置收进底部卡片行） */
 .topbar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px}
 .topbar .grp{display:flex;gap:10px;align-items:center}
 .circ{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);color:var(--ink);
@@ -138,9 +136,6 @@ body{
 .back{width:45px;height:45px;background:#fff;border:2.3px solid var(--ink);display:grid;place-items:center;
   cursor:pointer;box-shadow:2px 3px 0 rgba(22,23,27,.14);border-radius:46% 50% 44% 50%/50% 44% 50% 46%}
 .back svg{width:20px;height:20px}
-
-/* 顶栏：主卡删掉后设置齿轮没了去处，这里给它一行（卡片都没了，不用再挤高度） */
-.topline{display:flex;justify-content:flex-end;margin-bottom:10px}
 
 /* ===== 筛选框（原是「我的收纳」主卡，现在只框住状态行 + 分类行）=====
    ★ 绿框、胶带、干笔白条纹原样保留，只是里面装的东西换了。
@@ -301,22 +296,20 @@ body{
 .igrid{display:flex;flex-direction:column;gap:10px}
 .icard{background:#fff;border:2.2px solid var(--ink);
   border-radius:15px 6px 16px 7px/7px 16px 6px 15px;overflow:hidden;
-  box-shadow:4px 5px 0 rgba(22,23,27,.14);transition:transform .12s,box-shadow .12s;position:relative;
+  box-shadow:4px 5px 0 rgba(22,23,27,.14);position:relative;
   display:flex;align-items:center;gap:11px;padding:9px 10px 9px 9px}
-.icard:nth-child(odd){transform:rotate(-.4deg)}
-.icard:nth-child(even){transform:rotate(.4deg)}
-/* 卡片区左右滑动切分类时的过场：方向跟手势一致（左滑 → 新内容从右进来）。
-   用 keyframes 而不是 transition —— 动画万一不执行，内容本身也是可见的。 */
-.igrid.slide-in-r{animation:cardsInR .26s cubic-bezier(.22,1,.36,1)}
-.igrid.slide-in-l{animation:cardsInL .26s cubic-bezier(.22,1,.36,1)}
-@keyframes cardsInR{from{opacity:.35;transform:translateX(26px)}to{opacity:1;transform:translateX(0)}}
-@keyframes cardsInL{from{opacity:.35;transform:translateX(-26px)}to{opacity:1;transform:translateX(0)}}
+/* ★ 奇偶倾斜放在 wrapper 上，不放在 .icard 上 ——
+   .icard 的 transform 要留给「左滑露出删除块」用，两者会互相覆盖。
+   倾斜放在外层槽上，卡片在里面平移就不会打架。 */
+.icard-wrap:nth-child(odd){transform:rotate(-.4deg)}
+.icard-wrap:nth-child(even){transform:rotate(.4deg)}
 /* 改了状态 → 卡片「离开这里、落到别处」的两段动画。
    注意卡片自身带轻微旋转（奇偶 ±0.5°），所以动效里要把旋转写进去，
    否则动画期间会把那张卡的倾斜抹平，看起来会"正"一下再回去。 */
 .icard.leaving{opacity:0;transform:scale(.88) rotate(0deg);
   transition:opacity .2s ease,transform .2s cubic-bezier(.4,0,1,1)}
-.icard.arriving{animation:cardArrive .42s cubic-bezier(.22,1.15,.36,1)}
+/* 落位动画加在 wrapper 上（卡片外面包了一层左滑删除的槽） */
+.icard-wrap.arriving{animation:cardArrive .42s cubic-bezier(.22,1.15,.36,1)}
 @keyframes cardArrive{
   0%{opacity:0;transform:translateY(14px) scale(.9)}
   60%{opacity:1;transform:translateY(-2px) scale(1.015)}
@@ -360,16 +353,29 @@ body{
   border:1.7px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;cursor:pointer;
   transition:transform .12s}
 .icard .meta .st-tag:active{transform:translate(1px,1px)}
-/* 右侧：数量 + 删除 */
+/* 右侧：数量 */
 .icard .side{flex:0 0 auto;display:flex;align-items:center;gap:7px}
 .icard .side .qty{font-family:var(--f-num);font-weight:700;font-size:13px;color:var(--ink);
   background:#fff;border:1.8px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:0 6px}
-/* 删除按钮（卡片不再点开详情页，删除要在卡片上直接够到） */
-.icard .del-x{width:23px;height:23px;flex:0 0 auto;display:grid;place-items:center;cursor:pointer;
-  background:#fff;border:1.8px solid var(--ink);border-radius:50% 46% 52% 48%;
-  color:var(--ink);opacity:.5;transition:opacity .12s,background .12s,transform .12s}
-.icard .del-x svg{width:11px;height:11px}
-.icard .del-x:active{opacity:1;background:#f3c9d8;transform:scale(.9)}
+/* ---------- 左滑删除 ----------
+   .icard-wrap 是「槽」：overflow:hidden 裁掉滑出去的部分，底层放删除块。
+   ★ 卡片自身的硬阴影/倾斜都还在 .icard 上；槽只负责裁剪和定位。
+   ★ 槽不能跟着倾斜（否则删除块也跟着歪），所以倾斜留在卡片上。
+   ★ 槽要留一点外边距给阴影，否则 overflow:hidden 会把 4px 硬阴影切掉。 */
+.icard-wrap{position:relative;overflow:hidden;
+  border-radius:17px 10px 18px 11px/11px 18px 10px 17px;
+  margin:0 4px 4px 0;padding:0 0 5px 0}
+.icard-wrap .swipe-del{position:absolute;top:0;right:0;bottom:5px;width:76px;
+  display:grid;place-items:center;background:#f3c9d8;
+  border-radius:0 10px 18px 0/0 18px 10px 0}
+.icard-wrap .del-go{width:40px;height:40px;display:grid;place-items:center;cursor:pointer;
+  background:#fff;border:2px solid var(--ink);border-radius:50% 46% 52% 48%;color:var(--ink)}
+.icard-wrap .del-go svg{width:17px;height:17px}
+.icard-wrap .del-go:active{transform:scale(.92)}
+/* 滑开状态：卡片左移露出删除块 */
+.icard-wrap.swiped .icard{transform:translateX(-76px) rotate(0deg)}
+/* 卡片本身也要 transition（滑开/收回），但不能影响倾斜的基础态 */
+.icard{transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .12s}
 /* 拖拽排序 */
 .icard.dragging-src{opacity:.3}
 .drag-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.94;
@@ -397,13 +403,28 @@ body{
 /* 空状态里的小按钮（如「显示全部」）：别继承 .btn 的 flex:1，否则会被拉满宽 */
 .empty .btn{flex:0 0 auto;margin:12px auto 0;padding:8px 16px;font-size:13px}
 
-/* 悬浮添加（在底栏之上） */
-.fab{position:absolute;right:20px;width:56px;height:56px;background:var(--accent);
-  bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
-  border:2.4px solid var(--ink);display:grid;place-items:center;cursor:pointer;z-index:12;
-  border-radius:50% 46% 52% 48%/48% 52% 46% 50%;box-shadow:3px 4px 0 rgba(22,23,27,.2)}
-.fab svg{width:24px;height:24px}
-.fab:active{transform:translate(2px,3px);box-shadow:1px 2px 0 rgba(22,23,27,.2)}
+/* ===== 底部两张大卡：添加物品（8）+ 设置（2） =====
+   ★ 样式跟物品卡一样：白底、2.2px 黑边、不对称手绘圆角、4px 硬阴影、轻微倾斜。
+   原来这里是右下角悬浮加号（.fab）和顶栏齿轮，两个都删了收进这一行。
+   ★ 比例用 width 百分比写死（8:2），不用 flex:8/flex:2 ——
+     flex 的数字是「按内容基准宽度分配剩余空间」，会被文字长度带偏
+     （实测 8:2 出来是 75:25）。 */
+.bottombar{display:flex;gap:10px;margin-top:12px}
+.bottombar .bigcard{
+  border:2.2px solid var(--ink);background:#fff;cursor:pointer;box-sizing:border-box;
+  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;
+  box-shadow:4px 5px 0 rgba(22,23,27,.14);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--f-cn);font-size:14.5px;color:var(--ink);
+  padding:14px 10px;transition:transform .12s,box-shadow .12s}
+.bottombar .addnew{
+  width:calc((100% - 10px) * 0.8);
+  transform:rotate(-.4deg)}
+.bottombar .gearcard{
+  width:calc((100% - 10px) * 0.2);
+  transform:rotate(.4deg);padding:14px 4px}
+.bottombar .bigcard svg{width:19px;height:19px;flex:0 0 auto}
+.bottombar .bigcard:active{transform:translate(2px,3px) rotate(0deg);box-shadow:1px 2px 0 rgba(22,23,27,.14)}
 
 /* ===== 弹层 =====
    动画用 @keyframes 而不是 transition：万一动画不执行，元素的基础状态就是可见的，
@@ -506,13 +527,7 @@ body{
 .st-addrow{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 0;
   font-family:var(--f-cn);font-size:13px;color:var(--ink2);cursor:pointer}
 .st-addrow svg{width:19px;height:19px}
-/* 外观选择 */
-.st-swatches{display:flex;gap:9px;padding:4px 0 12px;flex-wrap:wrap}
-.st-sw{width:44px;height:44px;border:2.2px solid var(--ink);cursor:pointer;position:relative;
-  border-radius:14px 5px 15px 6px/6px 15px 5px 14px;box-shadow:2px 3px 0 rgba(22,23,27,.14)}
-.st-sw.on::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;
-  font-family:'PatrickHand',sans-serif;font-size:19px;color:var(--ink)}
-.st-sw:active{transform:translate(1px,2px);box-shadow:0 0 0 rgba(0,0,0,0)}
+/* 外观（主色）选择已删除 —— 用户要求去掉主色功能，相关样式一并清掉 */
 .st-note{font-size:12px;color:var(--sub);line-height:1.6;padding:2px 0 12px}
 .st-meter{margin:0 0 12px}
 .st-meter .tr{height:10px;border:2.1px solid var(--ink);border-radius:6px 3px 7px 3px/3px 7px 3px 6px;
@@ -737,12 +752,6 @@ body{
                所以去掉原来那条写死 y=54 的 SVG 分隔线，改用 CSS 分隔。
              ★ 设置齿轮原来在卡上方的顶栏里，现在搬进卡内标题行（用户要求），
                顶栏因此整个删掉，卡片也跟着往上顶了 61px。 -->
-        <!-- 顶栏：只放设置齿轮（主卡删掉后设置没了入口，这里给它一个位置）。
-             卡片都没了，这一行不用再挤高度。 -->
-        <div class="topline">
-          <button class="circ c1" id="qSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg></button>
-        </div>
-
         <!-- ===== 筛选框 =====
              ★ 绿框保留，但内容换成「状态行 + 分类行」——
                它是这个 app 现在唯一剩下的"面板"，筛选用它是主要动作。
@@ -767,16 +776,30 @@ body{
           </div>
         </div>
 
+        <!-- 计数行 -->
         <div class="count-row">
           <b id="resTitle">全部物品</b>
           <span id="resCnt"></span>
         </div>
 
+        <!-- 物品卡片列表 -->
         <div class="igrid" id="igrid"></div>
 
-      </div>
+        <!-- 底部两张大卡：添加物品（8）+ 设置（2）。
+             ★ 用户要求：放在列表下方、样式跟物品卡一样（白底黑边、手绘圆角、硬阴影），
+               添加占 8 成宽、设置占 2 成宽。
+             ★ 原来是右下角悬浮加号和顶栏齿轮 —— 两个都删了，收进这一行。 -->
+        <div class="bottombar">
+          <button class="bigcard addnew" id="fab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
+            <span>添加物品</span>
+          </button>
+          <button class="bigcard gearcard" id="qSettings" title="设置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6v2.2M12 18.2v2.2M4.7 7.8l1.9 1.1M17.4 15.1l1.9 1.1M4.7 16.2l1.9-1.1M17.4 8.9l1.9-1.1"/></svg>
+          </button>
+        </div>
 
-      <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="#16171b" stroke-width="2.7" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+      </div>
 
       <!-- ================= 设置 ================= -->
       <div class="screen overlay" id="scr-settings">
@@ -1262,7 +1285,6 @@ function focusInputWhenSettled(input, opts){
 }
 
 /* ================= 全局状态（必须最先声明，后面的渲染函数会用到） ================= */
-let accentId = 'green';       // 主色预设 id
 let dbReady = false;          // IndexedDB 是否可用
 let db = null;                // IndexedDB 句柄
 let saveTimer = null;         // 防抖保存的定时器
@@ -1574,23 +1596,29 @@ function renderItems(){
     const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
 
     // 单列横卡：左缩略图 → 右文字（名称/季节/状态）→ 右侧数量
-    // ★ 日期角标和位置都已删除（用户要求），卡片上只剩「这是什么 + 几件 + 什么状态」
-    return `<div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
-      <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
-        ${phInner}
-      </div>
-      <div class="meta">
-        <div class="nm">${i.n}</div>
-        <div class="line2">
-          ${seasonTxt ? `<span class="se-txt">${seasonTxt}</span>` : ''}
-          <span class="st-tag" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
-        </div>
-      </div>
-      <div class="side">
-        ${qtyBadge}
-        <button class="del-x" data-delitem="${i.id}" title="删除">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    // ★ 日期、位置、删除按钮都已删除（用户要求）：
+    //   卡片只剩「这是什么 + 几件 + 什么状态」，删除改成在卡片上左滑。
+    // ★ 外层 .icard-wrap 是左滑删除的「槽」：底层放删除块，上层 .icard 会滑开。
+    return `<div class="icard-wrap" data-wrap="${i.id}">
+      <div class="swipe-del">
+        <button class="del-go" data-delitem="${i.id}" title="删除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
         </button>
+      </div>
+      <div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
+        <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
+          ${phInner}
+        </div>
+        <div class="meta">
+          <div class="nm">${i.n}</div>
+          <div class="line2">
+            ${seasonTxt ? `<span class="se-txt">${seasonTxt}</span>` : ''}
+            <span class="st-tag" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
+          </div>
+        </div>
+        <div class="side">
+          ${qtyBadge}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1616,10 +1644,12 @@ function renderItems(){
 
   // 刚改完状态的那张卡：在新位置上播一个"落位"动画并滚到可见处，
   // 让人看清它到底挪到哪里去了
+  // ★ 动画加在 .icard-wrap 上（不是 .icard）—— .icard 自己要带倾斜，
+  //   而且左滑删除会用 transform 移动它，两者叠在一起会互相覆盖。
   if (state.justMovedId){
     const movedId = state.justMovedId;
     state.justMovedId = null;
-    const el = $('#igrid').querySelector(`.icard[data-item="${movedId}"]`);
+    const el = $('#igrid').querySelector(`.icard-wrap[data-wrap="${movedId}"]`);
     if (el){
       el.classList.add('arriving');
       setTimeout(() => el.classList.remove('arriving'), 480);
@@ -1901,13 +1931,6 @@ function renderSettings(){
     </div>
 
     <!-- 软件分类已删除（软件页整页删掉了） -->
-    <div class="st-group">外观</div>
-    <div class="st-sec">
-      <div class="st-row" style="cursor:default;border-bottom:none;padding-bottom:6px">
-        <span class="tx" style="flex:1"><b>主色</b><span>涂笔、按钮、高亮块的颜色</span></span>
-      </div>
-      <div class="st-swatches" id="stSwatches"></div>
-    </div>
 
     <!-- 数据 -->
     <div class="st-group">数据</div>
@@ -1947,38 +1970,6 @@ function renderSettings(){
     </div>
   `;
 
-  renderSwatches();
-}
-
-/* 主色选择：只改 CSS 变量，立即生效 */
-const ACCENT_PRESETS = [
-  { id:'green',  name:'浅绿',  accent:'#c9e8cf', deep:'#6fa87d', hl:'rgba(201,232,207,.92)', hl2:'rgba(201,232,207,.85)' },
-  { id:'blue',   name:'浅蓝',  accent:'#c6e0f4', deep:'#7fb0d4', hl:'rgba(198,224,244,.92)', hl2:'rgba(198,224,244,.85)' },
-  { id:'pink',   name:'浅粉',  accent:'#f3c8dd', deep:'#d484ac', hl:'rgba(243,200,221,.92)', hl2:'rgba(243,200,221,.85)' },
-  { id:'sand',   name:'浅杏',  accent:'#f7e0b8', deep:'#cb9d55', hl:'rgba(247,224,184,.92)', hl2:'rgba(247,224,184,.85)' },
-  { id:'lilac',  name:'浅紫',  accent:'#ded0f0', deep:'#a68ccb', hl:'rgba(222,208,240,.92)', hl2:'rgba(222,208,240,.85)' }
-];
-
-function applyAccent(id){
-  const p = ACCENT_PRESETS.find(x => x.id === id) || ACCENT_PRESETS[0];
-  accentId = p.id;
-  const root = document.documentElement.style;
-  root.setProperty('--accent', p.accent);
-  root.setProperty('--accent-deep', p.deep);
-  root.setProperty('--hl', p.hl);
-  root.setProperty('--hl-soft', p.hl2);
-  // 主卡是 SVG <use>，fill 属性不吃 CSS 变量，得单独设
-  const hero = document.querySelector('.hero svg use');
-  if (hero) hero.setAttribute('fill', p.accent);
-  saveSoon();
-}
-
-function renderSwatches(){
-  const box = $('#stSwatches');
-  if (!box) return;
-  box.innerHTML = ACCENT_PRESETS.map(p =>
-    `<button class="st-sw${accentId === p.id ? ' on' : ''}" data-accent="${p.id}"
-       style="background:${p.accent}" title="${p.name}"></button>`).join('');
 }
 
 /* ================= 设置页：手势转场（推拉门） =================
@@ -2172,46 +2163,7 @@ on('#stBody', 'click', e => {
   const rm = e.target.closest('[data-delcat]');
   if (rm){ delCatModal(rm.dataset.delcat); return; }
   if (e.target.closest('#stAddCat')){ newCatModal(); return; }
-
-  // 主色
-  const sw = e.target.closest('[data-accent]');
-  if (sw){ applyAccent(sw.dataset.accent); renderSwatches(); toast('主色已切换'); return; }
-
-  // 数据
-  if (e.target.closest('#stExport')){ exportBackup(); return; }
-  if (e.target.closest('#stImport')){ importBackup(); return; }
-  if (e.target.closest('#stClear')){ clearAllModal(); return; }
 });
-
-/* 「只清空软件」与「软件分类增删改」已删除（软件页整页删掉了，这些入口不再存在）。 */
-
-/* --- 分类改名 --- */
-function renameCatModal(id){
-  const c = CATS.find(x => x.id === id);
-  if (!c) return;
-  openModal(`
-    <h3>重命名分类</h3>
-    <p class="mhint">分类下的条目不会变，只是换个名字</p>
-    <div class="fld">
-      <label>分类名称</label>
-      <input type="text" id="rcName" value="${c.name}" maxlength="8">
-    </div>
-    <div class="mrow">
-      <button class="btn" id="rcCancel">取消</button>
-      <button class="btn pri" id="rcOk">保存</button>
-    </div>
-  `);
-  const inp = $('#rcName');
-  focusInputWhenSettled(inp, { select:true });
-  $('#rcCancel').addEventListener('click', closeModal);
-  $('#rcOk').addEventListener('click', () => {
-    const v = inp.value.trim();
-    if (!v) return;
-    c.name = v;
-    closeModal(); renderSettings(); renderCatChips(); renderItems();
-    toast(`已改名为「${v}」`);
-  });
-}
 
 /* --- 分类删除（条目归入未分类） --- */
 function delCatModal(id){
@@ -2455,7 +2407,6 @@ function snapshotState(){
   return {
     version: 2,
     savedAt: Date.now(),
-    accentId,
     cats: CATS.map(c => ({ ...c })),
     // 图片单独存，这里只留标记，避免 JSON 里塞大字符串
     items: ITEMS.map(i => { const { photo, ...rest } = i; return { ...rest, hasPhoto: !!photo }; }),
@@ -2558,7 +2509,6 @@ async function loadFromDB(){
     //   旧库里的同理，都不要再带进来。
     const catPick = c => { const r = { id:c.id, name:c.name, tone:c.tone }; if (typeof c.order === 'number') r.order = c.order; return r; };
     CATS = (state.cats || CATS).map(catPick);
-    if (typeof state.accentId === 'string') accentId = state.accentId;
 
     // ★ 物品只按白名单取字段：喜欢程度（like）、使用次数（uses/lastUse）、备注（note）
     //   这些功能已经整块删除，旧库里还存着，如果 {...i} 全量拷进来就会一直留着，
@@ -2647,116 +2597,6 @@ on('#catChips', 'click', e => {
 });
 // 位置行 / 季节行的点击处理已删除（那两行筛选已按用户要求移除）
 
-/* ================= 物品页「卡片区」：左右滑动切换分类 =================
-   用户要求：在**物品卡片那块区域**左滑 → 下一个分类，右滑 → 上一个分类。
-   （例：在「在用中 · 日常物品」里左滑到夏装，再左滑到第三个；右滑回上一个）
-   ★ 注意：手势绑在 #igrid（卡片区）上，**不是分类行** —— 分类行有自己的
-     原生横向滚动，抢它的横滑会导致滑不到后面的分类。
-
-   与「长按拖动排序」共存：两套手势都在卡片区，
-     · 方向锁：|dx|>8 且 |dx|>|dy| → 判为横滑（切分类）
-     · 纵向移动 → 立刻交还给页面滚动，并且**取消长按计时器**
-     · 判定为横滑后置 ITEM_GESTURE.swiping，拖动排序的 begin() 见到就放弃
-   阈值 34px（跟软件行左滑同一套），太短不算，防误触。 */
-const ITEM_GESTURE = { swiping: false };
-
-(function initCardSwipe(){
-  const grid = $('#igrid');
-  if (!grid) return;
-  let startX = 0, startY = 0, locked = null, tracking = false;
-
-  // 当前分类在「分类行」里的位置 → 用来算上/下一个
-  const chipsInOrder = () => [...document.querySelectorAll('#catChips .chip')];
-
-  const step = (dir) => {
-    const chips = chipsInOrder();
-    if (chips.length < 2) return false;
-    const curIdx = chips.findIndex(c => c.classList.contains('on'));
-    let next;
-    if (curIdx < 0) next = dir > 0 ? 0 : chips.length - 1;
-    else next = curIdx + dir;
-    if (next < 0 || next >= chips.length) return false;   // 到两端不循环
-    const k = chips[next].dataset.cat;
-    if (!k) return false;
-
-    // 切分类：卡片区做一个横向推移的过场，让「翻到下一类」有方向感
-    const box = $('#catChips');
-    chipsReflow(box, '.chip', () => {
-      state.cat = k;
-      chips.forEach(c => c.classList.toggle('on', c.dataset.cat === state.cat));
-    });
-    renderCatChips();
-    // ★ 卡片重绘前先播过场，方向跟手势一致（左滑 → 新内容从右进来）
-    slideCards(dir);
-    renderItems();
-    return true;
-  };
-
-  // 卡片区横向推移过场（用 keyframes，失败安全）
-  const slideCards = (dir) => {
-    if (typeof FX !== 'undefined' && FX.motionOff) return;
-    const cls = dir > 0 ? 'slide-in-r' : 'slide-in-l';
-    grid.classList.remove('slide-in-r', 'slide-in-l');
-    void grid.offsetWidth;
-    grid.classList.add(cls);
-    setTimeout(() => grid.classList.remove(cls), 300);
-  };
-
-  const onDown = (x, y, target) => {
-    // 点在按钮/输入框/状态标签/删除按钮/缩略图上 → 不参与滑动（那是点击操作）
-    if (target && target.closest('button,input,.st-tag,.del-x,.ph')) return;
-    // 分类行被隐藏（「消耗中」）时没有"下一个分类"可切 → 不接管横滑手势
-    const catRow = $('#catRow');
-    if (catRow && catRow.style.display === 'none') return;
-    startX = x; startY = y; locked = null; tracking = true;
-    ITEM_GESTURE.swiping = false;
-  };
-  const onMove = (x, y, e) => {
-    if (!tracking) return;
-    // ★ 拖拽排序已经开始了 → 横滑手势必须完全让路。
-    //   原来这里在纵向移动 >8px 时会 cancelAllHolds()，而拖拽的 ghost 也在
-    //   pendingHoldCancels 里 → 一拖就自杀（这正是「长按不能移动」的第二个原因）。
-    if (document.querySelector('.drag-ghost')) { tracking = false; locked = null; return; }
-    const dx = x - startX, dy = y - startY;
-    if (locked === null){
-      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) locked = 'x';
-      else if (Math.abs(dy) > 8){ locked = 'y'; tracking = false; cancelAllHolds(); return; }
-      else return;
-    }
-    if (locked !== 'x') return;
-    // 判定为横滑 → 标记，长按拖动排序见到就放弃
-    ITEM_GESTURE.swiping = true;
-    if (e && e.cancelable) e.preventDefault();
-  };
-  const onUp = (x) => {
-    if (!tracking){ locked = null; return; }
-    const wasX = locked === 'x';
-    const dx = x - startX;
-    tracking = false; locked = null;
-    if (!wasX){ setTimeout(() => { ITEM_GESTURE.swiping = false; }, 50); return; }
-    // 横滑过 → 抑制随后的点击（避免顺手把卡片当成"点开编辑"）
-    suppressCardClickUntil = Date.now() + 400;
-    setTimeout(() => { ITEM_GESTURE.swiping = false; }, 450);
-    if (Math.abs(dx) < 34) return;            // 太短不算
-    step(dx < 0 ? 1 : -1);                     // 左滑 dx<0 → 下一个
-  };
-
-  grid.addEventListener('touchstart', e => {
-    const t = e.touches[0]; onDown(t.clientX, t.clientY, e.target);
-  }, { passive: true });
-  grid.addEventListener('touchmove', e => {
-    const t = e.touches[0]; onMove(t.clientX, t.clientY, e);
-  }, { passive: false });
-  grid.addEventListener('touchend', e => {
-    const t = e.changedTouches[0]; onUp(t ? t.clientX : startX);
-  });
-  grid.addEventListener('touchcancel', () => { tracking = false; locked = null; ITEM_GESTURE.swiping = false; });
-
-  // 桌面/无头环境也要能验：鼠标拖拽同效
-  grid.addEventListener('mousedown', e => onDown(e.clientX, e.clientY, e.target));
-  window.addEventListener('mousemove', e => { if (tracking) onMove(e.clientX, e.clientY, null); });
-  window.addEventListener('mouseup', e => { if (tracking) onUp(e.clientX); });
-})();
 on('#stChips', 'click', e => {
   const chip = e.target.closest('[data-st]'); if (!chip) return;
   const k = chip.dataset.st;
@@ -2810,6 +2650,131 @@ on('#igrid', 'click', e => {
   //   改名/换图/改数量/改状态/删除都有各自的小入口，不需要一个"详情页"当总闸。
 });
 
+/* ================= 卡片左滑删除 =================
+   ★ 替代原来的「删除按钮」（用户要求），也替代了已删掉的「左滑切分类」。
+   手势分工（同一片区域有三套动作）：
+     · 横滑（|dx|>8 且 |dx|>|dy|）→ 左滑滑开卡片露出删除块
+     · 纵向 → 交还页面滚动，并取消长按计时器
+     · 长按 420ms → 拖拽排序（CARD_GESTURE.swiping 置位时放弃）
+   滑开阈值 34px（跟原来软件行左滑同一套），同时只允许一张滑开。 */
+const CARD_GESTURE = { swiping: false };
+
+(function initCardSwipeDel(){
+  const grid = $('#igrid');
+  if (!grid) return;
+  const OPEN_W = 76;                 // 与 .swipe-del 的 width 一致
+  let startX = 0, startY = 0, locked = null, tracking = false;
+  let wrap = null;                   // 本次手势操作的那张卡
+  let baseX = 0;                     // 手势开始前的位移（已滑开则是 -OPEN_W）
+
+  const closeAll = (except) => {
+    grid.querySelectorAll('.icard-wrap.swiped').forEach(w => {
+      if (w === except) return;
+      w.classList.remove('swiped');
+      const c = w.querySelector('.icard');
+      if (c){ c.style.transition = 'transform .18s cubic-bezier(.22,1,.36,1)'; c.style.transform = ''; }
+    });
+  };
+
+  const onDown = (x, y, target) => {
+    // 点在按钮/输入框/状态标签/缩略图上 → 不参与滑动（那是点击操作）
+    if (target && target.closest('button,input,.st-tag,.ph')) return;
+    const w = target && target.closest('.icard-wrap');
+    if (!w) return;
+    wrap = w;
+    startX = x; startY = y; locked = null; tracking = true;
+    baseX = w.classList.contains('swiped') ? -OPEN_W : 0;
+    CARD_GESTURE.swiping = false;
+  };
+
+  const onMove = (x, y, e) => {
+    if (!tracking || !wrap) return;
+    // 拖拽排序已经开始 → 完全让路
+    if (document.querySelector('.drag-ghost')){ tracking = false; locked = null; return; }
+    const dx = x - startX, dy = y - startY;
+    if (locked === null){
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) locked = 'x';
+      else if (Math.abs(dy) > 8){ locked = 'y'; tracking = false; cancelAllHolds(); return; }
+      else return;
+    }
+    if (locked !== 'x') return;
+    CARD_GESTURE.swiping = true;
+    // 跟手：只往左走，右边界是 0，左边界是 -OPEN_W（加一点橡皮筋）
+    const card = wrap.querySelector('.icard');
+    if (!card) return;
+    let nx = baseX + dx;
+    if (nx > 0) nx *= .25;                        // 往右超界 → 橡皮筋
+    if (nx < -OPEN_W) nx = -OPEN_W + (nx + OPEN_W) * .25;
+    card.style.transition = 'none';
+    card.style.transform = `translateX(${nx.toFixed(1)}px)`;
+    if (e && e.cancelable) e.preventDefault();
+  };
+
+  const onUp = (x) => {
+    if (!wrap){ tracking = false; locked = null; return; }
+    const wasX = locked === 'x';
+    const dx = x - startX;
+    const card = wrap.querySelector('.icard');
+    tracking = false; locked = null;
+    if (!wasX){
+      setTimeout(() => { CARD_GESTURE.swiping = false; }, 50);
+      // 只是点了一下：如果这张是滑开的，点它收回
+      if (wrap.classList.contains('swiped') && card && Math.abs(dx) < 8){
+        wrap.classList.remove('swiped');
+        card.style.transition = 'transform .18s cubic-bezier(.22,1,.36,1)';
+        card.style.transform = '';
+      }
+      wrap = null;
+      return;
+    }
+    setTimeout(() => { CARD_GESTURE.swiping = false; }, 450);
+    if (!card){ wrap = null; return; }
+    const nx = baseX + dx;
+    const shouldOpen = nx < -34 || (baseX < 0 && dx > 34);   // 左滑超过阈值就开；已开时右滑超过阈值就关
+    card.style.transition = 'transform .2s cubic-bezier(.22,1,.36,1)';
+    if (shouldOpen && baseX === 0){
+      closeAll(wrap);
+      wrap.classList.add('swiped');
+      card.style.transform = `translateX(-${OPEN_W}px)`;
+    } else if (baseX < 0 && dx > 34){
+      wrap.classList.remove('swiped');
+      card.style.transform = '';
+    } else {
+      // 没够阈值 → 回到原状态
+      card.style.transform = baseX < 0 ? `translateX(-${OPEN_W}px)` : '';
+      if (baseX >= 0) wrap.classList.remove('swiped');
+    }
+    wrap = null;
+  };
+
+  grid.addEventListener('touchstart', e => {
+    const t = e.touches[0]; onDown(t.clientX, t.clientY, e.target);
+  }, { passive: true });
+  grid.addEventListener('touchmove', e => {
+    const t = e.touches[0]; onMove(t.clientX, t.clientY, e);
+  }, { passive: false });
+  grid.addEventListener('touchend', e => {
+    const t = e.changedTouches[0]; onUp(t ? t.clientX : startX);
+  });
+  grid.addEventListener('touchcancel', () => {
+    if (wrap){
+      const card = wrap.querySelector('.icard');
+      if (card){ card.style.transition = 'transform .18s'; card.style.transform = wrap.classList.contains('swiped') ? `translateX(-${OPEN_W}px)` : ''; }
+    }
+    tracking = false; locked = null; wrap = null; CARD_GESTURE.swiping = false;
+  });
+
+  // 桌面/无头环境也要能验：鼠标拖拽同效
+  grid.addEventListener('mousedown', e => onDown(e.clientX, e.clientY, e.target));
+  window.addEventListener('mousemove', e => { if (tracking) onMove(e.clientX, e.clientY, null); });
+  window.addEventListener('mouseup', e => { if (tracking) onUp(e.clientX); });
+  // 点空白/滚动列表 → 收起已滑开的卡
+  on('#scr-home', 'scroll', () => closeAll(null));
+  grid.addEventListener('click', e => {
+    if (!e.target.closest('.icard-wrap.swiped')) closeAll(null);
+  }, true);
+})();
+
 /* 长按卡片 → 进入拖拽排序模式（松手落到新位置） */
 (function initCardDrag(){
   const grid = $('#igrid');
@@ -2830,8 +2795,8 @@ on('#igrid', 'click', e => {
   const begin = (x, y) => {
     // 兜底：卡片已被重绘/移除，或计时器早该被取消 → 绝不凭空造一个 ghost
     if (!card || !card.isConnected) return;
-    // 手势已被判定为「横滑切分类」→ 不要再起拖动排序
-    if (typeof ITEM_GESTURE !== 'undefined' && ITEM_GESTURE.swiping) return;
+    // 手势已被判定为「左滑删除」→ 不要再起拖动排序
+    if (typeof CARD_GESTURE !== 'undefined' && CARD_GESTURE.swiping) return;
     started = true;
     tracker.reset(x, y);
     const r = card.getBoundingClientRect();
@@ -2879,11 +2844,15 @@ on('#igrid', 'click', e => {
         // 交换 order，并立刻重排 DOM（不整表重绘，避免闪烁）
         const ao = a.order ?? 9999, bo = b.order ?? 9999;
         a.order = bo; b.order = ao;
+        // ★ 卡片外面包了一层 .icard-wrap（左滑删除用的槽），所以换位要操作 wrapper：
+        //   .icard 已经不是 #igrid 的直接子元素了。
+        const aWrap = card.parentElement, bWrap = over.parentElement;
         const parent = grid;
         const kids = [...parent.children];
-        const ai = kids.indexOf(card), bi = kids.indexOf(over);
-        if (ai < bi) parent.insertBefore(card, over.nextSibling);
-        else parent.insertBefore(card, over);
+        const ai = kids.indexOf(aWrap), bi = kids.indexOf(bWrap);
+        if (ai < 0 || bi < 0) return;
+        if (ai < bi) parent.insertBefore(aWrap, bWrap.nextSibling);
+        else parent.insertBefore(aWrap, bWrap);
       }
     }
   };
@@ -2915,7 +2884,10 @@ on('#igrid', 'click', e => {
   const onStart = (x, y, target) => {
     card = target.closest('#igrid .icard[data-item]');
     if (!card) return;
-    if (target.closest('input,button,.st-tag,.del-x')){ card = null; return; }
+    if (target.closest('input,button,.st-tag')){ card = null; return; }
+    // 已经滑开的那张卡不要进入拖拽（先让它滑回去）
+    const w = card.closest('.icard-wrap');
+    if (w && w.classList.contains('swiped')){ card = null; return; }
     id = card.dataset.item;
     holdStartX = x; holdStartY = y;
     clearHold();
@@ -3030,7 +3002,6 @@ on('#fab', 'click', newItemModal);
 
 /* ================= 初始化 ================= */
 function renderAll(){
-  applyAccent(accentId);
   renderCatChips();
   renderItems();
   // 新渲染出来的按钮也要有按压反馈
