@@ -351,64 +351,31 @@ body{
 /* 名称（单列变宽了，可以显示更长） */
 .icard .meta .nm{font-family:var(--f-cn);font-size:14.5px;color:var(--ink);line-height:1.2;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* 第二行：位置 + 状态标签 */
+/* 第二行：季节 + 状态标签 */
 .icard .meta .line2{display:flex;align-items:center;gap:6px;min-width:0}
-.icard .loc-txt{font-size:11px;color:var(--sub);min-width:0;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.icard .loc-txt:empty{display:none}
-/* 季节（只有衣物才有）单独一个小字，比拼在位置后面好截断 */
+/* 季节（只有衣物才有）单独一个小字 */
 .icard .se-txt{flex:0 0 auto;font-size:10.5px;color:#a3a4ab}
 /* 卡片上的状态小标签（缩略图里放不下，挪到文字区） */
 .icard .meta .st-tag{flex:0 0 auto;font-family:var(--f-cn);font-size:10px;padding:1px 7px;
   border:1.7px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;cursor:pointer;
   transition:transform .12s}
 .icard .meta .st-tag:active{transform:translate(1px,1px)}
-/* 右侧：数量 */
+/* 右侧：数量 + 删除 */
 .icard .side{flex:0 0 auto;display:flex;align-items:center;gap:7px}
 .icard .side .qty{font-family:var(--f-num);font-weight:700;font-size:13px;color:var(--ink);
   background:#fff;border:1.8px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:0 6px}
-/* 购入日期角标（缩略图左上角，字号收小） */
-.icard .ph .buy{position:absolute;top:4px;left:4px;font-family:'PatrickHand',sans-serif;
-  font-size:9px;background:rgba(255,255,255,.94);border:1.5px solid var(--ink);
-  border-radius:7px 3px 8px 4px/4px 8px 3px 7px;padding:0 4px;z-index:3}
-/* 展开态相关样式已移除：物品卡的编辑改为从卡片形变长出的面板 */
-.icard .nm-in,.icard .loc-in,.icard .date-in,.icard .del-btn,.icard .expand{display:none}
-.icard .nm-in{width:100%;border:none;background:transparent;padding:2px 0;
-  font-family:var(--f-cn);font-size:13.5px;color:var(--ink);outline:none;
-  border-bottom:1.6px dashed transparent;transition:border-color .15s}
-.icard .nm-in:focus{border-bottom-color:var(--ink)}
-.icard .nm-in::placeholder{color:#b5b6bd}
-.icard .date-row{display:flex;align-items:center;gap:6px}
+/* 删除按钮（卡片不再点开详情页，删除要在卡片上直接够到） */
+.icard .del-x{width:23px;height:23px;flex:0 0 auto;display:grid;place-items:center;cursor:pointer;
+  background:#fff;border:1.8px solid var(--ink);border-radius:50% 46% 52% 48%;
+  color:var(--ink);opacity:.5;transition:opacity .12s,background .12s,transform .12s}
+.icard .del-x svg{width:11px;height:11px}
+.icard .del-x:active{opacity:1;background:#f3c9d8;transform:scale(.9)}
 /* 拖拽排序 */
 .icard.dragging-src{opacity:.3}
 .drag-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.94;
   transform:rotate(-1.4deg) scale(1.04);border:2.4px solid var(--ink);border-radius:14px;
   background:#fff;overflow:hidden;box-shadow:8px 12px 24px rgba(22,23,27,.28)}
 .icard.held{transform:scale(.97);box-shadow:0 0 0 2.4px var(--accent)}
-/* 长按期间被「提起来」的那一行：抬起 + 放大 + 投影变散（跟总览分类卡同一套观感）。
-   ★ 效果加在 .arow-wrap 上而不是行上 —— 外层有 overflow:hidden（左滑用的裁剪），
-   放大行会被裁掉；所以提到外层，并在长按时临时放开裁剪。 */
-.arow-wrap.held{overflow:visible;z-index:5;
-  transform:rotate(-.35deg) scale(1.035) translateY(-2px);
-  box-shadow:7px 10px 20px rgba(22,23,27,.24);
-  transition:transform .18s cubic-bezier(.22,1,.36,1),box-shadow .18s}
-.arow-wrap:nth-child(even).held{transform:rotate(.35deg) scale(1.035) translateY(-2px)}
-.arow-wrap.held .arow{box-shadow:none}
-/* 改分类时：旧位置淡出 → 新位置落位（跟物品卡改状态同一套两段动画） */
-.arow.leaving{opacity:0;transform:scale(.94);
-  transition:opacity .2s ease,transform .2s cubic-bezier(.4,0,1,1)}
-.arow-wrap.arriving .arow{animation:cardArrive .42s cubic-bezier(.22,1.15,.36,1)}
-/* 位置 / 日期 */
-.icard .loc-in,.icard .date-in{flex:1;min-width:0;border:none;background:transparent;padding:1px 0;
-  font-size:11.5px;color:var(--sub);outline:none;
-  font-family:'PatrickHand','ZCOOLKuaiLe',sans-serif;
-  border-bottom:1.6px dashed transparent;transition:border-color .15s}
-.icard .loc-in:focus,.icard .date-in:focus{border-bottom-color:var(--ink);color:var(--ink)}
-.icard .loc-in::placeholder{color:#c2c3c9}
-.icard .date-in{color:#8b8c94}
-/* 「用过 N 次」已从图片下方的角标改成文字区第三行（见 .icard .meta .used），
-   旧角标样式删除。 */
-/* 点勾选后从按钮位置飘一个 +1，飘完自动消失 */
 .use-pop{position:fixed;z-index:9999;pointer-events:none;font-family:var(--f-num);font-weight:700;
   font-size:19px;color:var(--accent-deep);text-shadow:0 1px 0 #fff,0 -1px 0 #fff,1px 0 0 #fff,-1px 0 0 #fff;
   animation:usePop .78s cubic-bezier(.22,.9,.24,1) forwards}
@@ -1320,41 +1287,41 @@ const SEASONS = [
 
 /* 示例数据：方便上手试各类操作，可随时在设置里清空 */
 let ITEMS = [
-  { n:'白 T 恤',     c:'cloth', q:6, loc:'衣柜左上层', ic:'ic-tshirt', season:'summer',  buy:'2025-05-18' },
-  { n:'黑色印花T恤', c:'cloth', q:4, loc:'衣柜左上层', ic:'ic-tshirt', season:'summer' },
-  { n:'灰色卫衣',    c:'cloth', q:5, loc:'衣柜中层',   ic:'ic-long',   season:'allyear' },
-  { n:'牛仔外套',    c:'cloth', q:2, loc:'衣柜挂区',   ic:'ic-jacket', season:'allyear', buy:'2023-11-24' },
-  { n:'条纹衬衫',    c:'cloth', q:5, loc:'衣柜挂区',   ic:'ic-shirt',  season:'allyear' },
-  { n:'黑色长裤',    c:'cloth', q:4, loc:'衣柜下层',   ic:'ic-pants',  season:'allyear' },
-  { n:'米色阔腿裤',  c:'cloth', q:3, loc:'收纳箱 3',   ic:'ic-pants',  season:'summer', st:'todo' },
-  { n:'羽绒服',      c:'cloth', q:2, loc:'收纳箱 3',   ic:'ic-down',   season:'winter', st:'stored' },
-  { n:'连衣裙',      c:'cloth', q:4, loc:'衣柜挂区',   ic:'ic-dress',  season:'summer' },
-  { n:'半身裙',      c:'cloth', q:3, loc:'衣柜下层',   ic:'ic-skirt',  season:'summer' },
-  { n:'白色运动鞋',  c:'shoe',  q:3, loc:'鞋柜',       ic:'ic-shoe' },
-  { n:'黑色皮鞋',    c:'shoe',  q:1, loc:'鞋柜',       ic:'ic-shoe' },
-  { n:'帆布鞋',      c:'shoe',  q:3, loc:'鞋柜',       ic:'ic-shoe' },
-  { n:'拖鞋',        c:'shoe',  q:4, loc:'玄关',       ic:'ic-shoe' },
-  { n:'双肩包',      c:'shoe',  q:1, loc:'玄关挂钩',   ic:'ic-bag' },
-  { n:'托特包',      c:'shoe',  q:2, loc:'衣柜顶层',   ic:'ic-bag' },
-  { n:'单肩包',      c:'shoe',  q:1, loc:'衣柜顶层',   ic:'ic-bag', st:'todo' },
-  { n:'旅行箱',      c:'shoe',  q:1, loc:'床底',       ic:'ic-box', st:'stored' },
-  { n:'手机',        c:'tech',  q:1, loc:'随身',       ic:'ic-phone' },
-  { n:'笔记本电脑',  c:'tech',  q:1, loc:'书桌',       ic:'ic-phone' },
-  { n:'平板',        c:'tech',  q:1, loc:'书桌抽屉',   ic:'ic-phone' },
-  { n:'无线耳机',    c:'tech',  q:2, loc:'随身',       ic:'ic-box' },
-  { n:'有线耳机',    c:'tech',  q:3, loc:'书桌抽屉',   ic:'ic-box', st:'todo' },
-  { n:'充电头',      c:'tech',  q:4, loc:'书桌抽屉',   ic:'ic-box' },
-  { n:'数据线',      c:'tech',  q:6, loc:'书桌抽屉',   ic:'ic-box' },
-  { n:'台灯',        c:'home',  q:1, loc:'书桌',       ic:'ic-lamp' },
-  { n:'抱枕',        c:'home',  q:3, loc:'沙发',       ic:'ic-cup' },
-  { n:'毛毯',        c:'home',  q:2, loc:'沙发',       ic:'ic-cup', st:'stored' },
-  { n:'马克杯',      c:'home',  q:5, loc:'厨房吊柜',   ic:'ic-cup' },
-  { n:'收纳盒',      c:'home',  q:6, loc:'储物间',     ic:'ic-box' },
-  { n:'洗发水',      c:'care',  q:2, loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
-  { n:'沐浴露',      c:'care',  q:2, loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
-  { n:'洗面奶',      c:'care',  q:3, loc:'浴室台面',   ic:'ic-bottle', st:'consuming' },
-  { n:'牙膏',        c:'care',  q:4, loc:'浴室镜柜',   ic:'ic-bottle', st:'consuming' },
-  { n:'牙刷',        c:'care',  q:4, loc:'浴室台面',   ic:'ic-bottle' }
+  { n:'白 T 恤',     c:'cloth', q:6, ic:'ic-tshirt', season:'summer' },
+  { n:'黑色印花T恤', c:'cloth', q:4, ic:'ic-tshirt', season:'summer' },
+  { n:'灰色卫衣',    c:'cloth', q:5, ic:'ic-long',   season:'allyear' },
+  { n:'牛仔外套',    c:'cloth', q:2, ic:'ic-jacket', season:'allyear' },
+  { n:'条纹衬衫',    c:'cloth', q:5, ic:'ic-shirt',  season:'allyear' },
+  { n:'黑色长裤',    c:'cloth', q:4, ic:'ic-pants',  season:'allyear' },
+  { n:'米色阔腿裤',  c:'cloth', q:3, ic:'ic-pants',  season:'summer', st:'todo' },
+  { n:'羽绒服',      c:'cloth', q:2, ic:'ic-down',   season:'winter', st:'stored' },
+  { n:'连衣裙',      c:'cloth', q:4, ic:'ic-dress',  season:'summer' },
+  { n:'半身裙',      c:'cloth', q:3, ic:'ic-skirt',  season:'summer' },
+  { n:'白色运动鞋',  c:'shoe',  q:3, ic:'ic-shoe' },
+  { n:'黑色皮鞋',    c:'shoe',  q:1, ic:'ic-shoe' },
+  { n:'帆布鞋',      c:'shoe',  q:3, ic:'ic-shoe' },
+  { n:'拖鞋',        c:'shoe',  q:4, ic:'ic-shoe' },
+  { n:'双肩包',      c:'shoe',  q:1, ic:'ic-bag' },
+  { n:'托特包',      c:'shoe',  q:2, ic:'ic-bag' },
+  { n:'单肩包',      c:'shoe',  q:1, ic:'ic-bag', st:'todo' },
+  { n:'旅行箱',      c:'shoe',  q:1, ic:'ic-box', st:'stored' },
+  { n:'手机',        c:'tech',  q:1, ic:'ic-phone' },
+  { n:'笔记本电脑',  c:'tech',  q:1, ic:'ic-phone' },
+  { n:'平板',        c:'tech',  q:1, ic:'ic-phone' },
+  { n:'无线耳机',    c:'tech',  q:2, ic:'ic-box' },
+  { n:'有线耳机',    c:'tech',  q:3, ic:'ic-box', st:'todo' },
+  { n:'充电头',      c:'tech',  q:4, ic:'ic-box' },
+  { n:'数据线',      c:'tech',  q:6, ic:'ic-box' },
+  { n:'台灯',        c:'home',  q:1, ic:'ic-lamp' },
+  { n:'抱枕',        c:'home',  q:3, ic:'ic-cup' },
+  { n:'毛毯',        c:'home',  q:2, ic:'ic-cup', st:'stored' },
+  { n:'马克杯',      c:'home',  q:5, ic:'ic-cup' },
+  { n:'收纳盒',      c:'home',  q:6, ic:'ic-box' },
+  { n:'洗发水',      c:'care',  q:2, ic:'ic-bottle', st:'consuming' },
+  { n:'沐浴露',      c:'care',  q:2, ic:'ic-bottle', st:'consuming' },
+  { n:'洗面奶',      c:'care',  q:3, ic:'ic-bottle', st:'consuming' },
+  { n:'牙膏',        c:'care',  q:4, ic:'ic-bottle', st:'consuming' },
+  { n:'牙刷',        c:'care',  q:4, ic:'ic-bottle' }
 ];
 
 /* 物品 id：必须全局唯一且跨会话稳定。
@@ -1407,7 +1374,7 @@ const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
 /* 选中态的填充色：比圆点色淡，避免「必备」看起来像禁用 */
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 
-const state = { cat:'all', st:'all', season:'allyear', loc:'all', q:'', justMovedId:null };
+const state = { cat:'all', st:'all', season:'allyear', q:'', justMovedId:null };
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 /* 安全绑定：元素不存在时跳过，避免一处缺失就中断整个脚本（曾因此导致页面空白） */
@@ -1518,14 +1485,13 @@ function renderStChips(){
    ★ 数据字段保留：APPS / APP_CATS / appState 仍在内存与备份结构里
      （删掉会让旧备份导入报错），只是界面上不再有入口。 */
 
-/* 季节 / 位置筛选行已删除（用户要求：筛选只保留「状态 + 分类」两行）。
-   ★ 数据字段没删：物品的 i.loc / i.season 仍在，卡片、详情、编辑面板照常显示和编辑，
-     只是不再有「按位置 / 按季节筛选」这两行。 */
+/* 季节筛选行已删除（用户要求：筛选只保留「状态 + 分类」两行）。
+   ★ 物品的 i.season 字段还在：季节是衣物卡上要显示的信息，不是筛选维度。
+     位置（i.loc）则整套删掉了 —— 筛选、显示、编辑输入都没有了。 */
 
 function renderItems(){
   syncFilterGroup();
-  // 筛选只剩「分类 × 状态」两个维度（喜欢行 / 位置行 / 季节行 / 搜索框都已删除）。
-  // 物品自身的 i.loc / i.season 字段照常显示在卡片和编辑面板里。
+  // 筛选只剩「分类 × 状态」两个维度（喜欢 / 位置 / 季节 / 搜索框都已删除）。
   const rows = ITEMS.filter(i =>
     (state.cat === 'all' || i.c === state.cat) &&
     (state.st === 'all' || i.st === state.st)
@@ -1552,8 +1518,6 @@ function renderItems(){
     const k = ITEMS.indexOf(i);
     const tint = TINTS[k % TINTS.length];
     const seasonTxt = i.season ? (SEASONS.find(s => s.id === i.season) || {}).name : '';
-    // 单列横卡的位置区很窄，位置和季节分开两个 span（比 "A · B" 更好截断）
-    const locOnly = i.loc || '';
 
     // 缩略图只有 79px：「加照片」的文字放不下（会和图标叠在一起），
     // 只留一个淡淡的 + 提示，具体文案靠点击后的行为表达。
@@ -1566,25 +1530,24 @@ function renderItems(){
 
     const qtyBadge = i.q > 1 ? `<span class="qty">×${i.q}</span>` : '';
 
-    // 日期角标放缩略图左上角（没有日期就不显示）
-    const dateBadge = i.buy ? `<span class="buy">${i.buy.slice(5).replace('-', '/')}</span>` : '';
-
-    // 单列横卡：左缩略图（只放日期角标）→ 右文字（名称/位置+季节/状态）→ 右侧数量
+    // 单列横卡：左缩略图 → 右文字（名称/季节/状态）→ 右侧数量
+    // ★ 日期角标和位置都已删除（用户要求），卡片上只剩「这是什么 + 几件 + 什么状态」
     return `<div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
       <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
         ${phInner}
-        ${dateBadge}
       </div>
       <div class="meta">
         <div class="nm">${i.n}</div>
         <div class="line2">
-          <span class="loc-txt">${locOnly}</span>
           ${seasonTxt ? `<span class="se-txt">${seasonTxt}</span>` : ''}
           <span class="st-tag" data-status="${i.id}" style="background:${ST_COLOR[i.st]}">${ST_TEXT[i.st]}</span>
         </div>
       </div>
       <div class="side">
         ${qtyBadge}
+        <button class="del-x" data-delitem="${i.id}" title="删除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -1753,7 +1716,7 @@ function newItemModal(){
     const name = nameIn.value.trim();
     if (!name) return;
     // 喜欢默认「必备」，之后在卡片上点爱心改
-    const item = { id:newItemId(), n:name, c:cat, q:qty, loc:'', st, ic:'ic-box' };
+    const item = { id:newItemId(), n:name, c:cat, q:qty, st, ic:'ic-box' };
     ITEMS.push(item);
     closeModal();
     renderSettings(); renderCatChips(); renderItems();
@@ -2311,7 +2274,9 @@ function importBackup(){
       fr.onload = ev => {
         try {
           const d = JSON.parse(ev.target.result);
-          if (!d || !Array.isArray(d.items) || !Array.isArray(d.apps)) throw new Error('bad');
+          // ★ 只认 items：旧备份里的 apps / appCats / goals / snapshots / disposed
+          //   都是已删功能留下的，不必校验也不必搬进来（缺 apps 不算坏文件）。
+          if (!d || !Array.isArray(d.items)) throw new Error('bad');
           const res = applyBackup(d, mode);
           toast(mode === 'merge'
             ? `已合并：新增 ${res.added} 条 · 合并数量 ${res.merged} 条`
@@ -2331,10 +2296,9 @@ function applyBackup(d, mode){
   // 备份里图片是 dataURL 直接带着的，不用额外处理
   // ★ 只取白名单字段：旧备份里的 like / uses / lastUse / note 直接丢掉，
   //   否则这些已删功能的字段会从备份里「复活」，一直跟着数据走。
-  const ITEM_FIELDS = ['id','n','c','q','loc','ic','season','buy','st','order','photo'];
+  const ITEM_FIELDS = ['id','n','c','q','ic','season','st','order','photo'];
   const pick = (o, keys) => { const r = {}; keys.forEach(k => { if (o[k] !== undefined) r[k] = o[k]; }); return r; };
   const inItems = (d.items || []).map(i => pick(i, ITEM_FIELDS));
-  const inApps  = (d.apps  || []).map(a => ({ ...a }));
   // id 用唯一生成器，不要用 'bk-i'+序号：合并模式下会和库里已有的撞车
   const inIds = new Set();
   inItems.forEach(i => {
@@ -2342,13 +2306,10 @@ function applyBackup(d, mode){
     inIds.add(i.id);
     if (!i.st) i.st = 'inuse';
   });
-  inApps.forEach(a => { if (!a.id) a.id = 'bk-a' + Math.random().toString(36).slice(2, 8); });
 
   if (mode === 'replace'){
-    CATS     = (d.cats || []).map(c => ({ ...c }));
-    APP_CATS = (d.appCats || []).map(c => ({ ...c }));
-    ITEMS    = inItems;
-    APPS     = inApps;
+    CATS  = (d.cats || []).map(c => { const r = { id:c.id, name:c.name, tone:c.tone }; if (typeof c.order === 'number') r.order = c.order; return r; });
+    ITEMS = inItems;
   } else {
     // ---- 合并 ----
     // 1) 分类：按名字去重，备份里没有的分类补进来
@@ -2362,7 +2323,6 @@ function applyBackup(d, mode){
       });
     };
     mergeCats(CATS, d.cats || []);
-    mergeCats(APP_CATS, d.appCats || []);
 
     // 2) 物品：同名 + 同分类 → 合并数量；否则新增
     let added = 0, merged = 0;
@@ -2373,27 +2333,13 @@ function applyBackup(d, mode){
       if (dup){
         dup.q = (dup.q || 1) + (ii.q || 1);          // 数量相加
         if (!dup.photo && ii.photo) dup.photo = ii.photo;   // 没图的补图
-        if (!dup.loc && ii.loc) dup.loc = ii.loc;
-        if (!dup.buy && ii.buy) dup.buy = ii.buy;
         merged++;
       } else {
         // 只搬白名单字段：旧备份里的 like / uses / lastUse / note 不再带进来
         ITEMS.push({ id:'mg-i' + Math.random().toString(36).slice(2, 8),
-          n: ii.n, q: ii.q || 1, loc: ii.loc || '', ic: ii.ic || '', season: ii.season || '',
-          buy: ii.buy || '', st: ii.st || 'inuse', photo: ii.photo || null,
+          n: ii.n, q: ii.q || 1, ic: ii.ic || '', season: ii.season || '',
+          st: ii.st || 'inuse', photo: ii.photo || null,
           c: targetCat ? targetCat.id : ii.c });
-        added++;
-      }
-    });
-
-    // 3) 软件：同名 → 跳过；否则新增（软件不分分类）
-    inApps.forEach(ia => {
-      const dup = APPS.find(x => x.n === ia.n);
-      if (dup){
-        if (!dup.photo && ia.photo) dup.photo = ia.photo;
-                if (!dup.loc && ia.loc) dup.loc = ia.loc;
-      } else {
-        APPS.push({ ...ia, id: 'mg-a' + Math.random().toString(36).slice(2, 8) });
         added++;
       }
     });
@@ -2574,7 +2520,7 @@ async function loadFromDB(){
     // ★ 物品只按白名单取字段：喜欢程度（like）、使用次数（uses/lastUse）、备注（note）
     //   这些功能已经整块删除，旧库里还存着，如果 {...i} 全量拷进来就会一直留着，
     //   下次保存又写回库 —— 那就是"不用的字段越堆越多"。这里直接丢掉。
-    const ITEM_FIELDS = ['id','n','c','q','loc','ic','season','buy','st','order'];
+    const ITEM_FIELDS = ['id','n','c','q','ic','season','st','order'];
     const pick = (o, keys) => { const r = {}; keys.forEach(k => { if (o[k] !== undefined) r[k] = o[k]; }); return r; };
     ITEMS = (state.items || []).map(i => ({ ...pick(i, ITEM_FIELDS), photo: null, hasPhoto: !!i.hasPhoto }));
 
@@ -2799,67 +2745,13 @@ on('#igrid', 'click', e => {
   const ph = e.target.closest('[data-photo]');
   if (ph){ photoTargetId = ph.dataset.photo; photoTargetMode = 'card'; $('#filePick').click(); return; }
 
-  // 点卡片（非按钮区域）→ 弹出编辑面板，面板从这张卡的位置形变长出来
-  const card = e.target.closest('#igrid .icard[data-item]');
-  if (card && !e.target.closest('input,button')){
-    // 刚拖拽完的那一下点击不算（拖拽与点击共用同一片区域，必须互斥）
-    if (Date.now() < suppressCardClickUntil) return;
-    editItemModal(card.dataset.item, card);
-    return;
-  }
-});
+  // 点删除按钮 → 直接删（5 秒内可撤销）
+  const delBtn = e.target.closest('[data-delitem]');
+  if (delBtn){ deleteItem(delBtn.dataset.delitem); return; }
 
-/* 物品编辑面板：从被点的那张卡片形变长出来（和软件行、新建分类同一套） */
-function editItemModal(id, anchorEl){
-  const it = ITEMS.find(x => x.id === id); if (!it) return;
-  const c = catOf(it.c);
-  openModal(`
-    <h3>${it.n}</h3>
-    <p class="mhint">${c.name} · ${ST_TEXT[it.st]}</p>
-    <div class="fld">
-      <label>名称</label>
-      <input type="text" id="eiName" value="${it.n}" maxlength="14">
-    </div>
-    <div class="fld">
-      <label>放在哪</label>
-      <input type="text" id="eiLoc" value="${it.loc || ''}" maxlength="16" placeholder="比如 衣柜左上层">
-    </div>
-    <div class="fld">
-      <label>购入日期</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="date" id="eiBuy" value="${it.buy || ''}" style="flex:1;min-width:0;border:2.1px solid var(--ink);background:#fff;border-radius:11px 4px 12px 5px/5px 12px 4px 11px;padding:8px 10px;font-family:'PatrickHand',sans-serif;font-size:16px;color:var(--ink);outline:none">
-        ${it.buy ? '<button class="btn" id="eiBuyClear" style="flex:0 0 auto;padding:8px 12px;font-size:12.5px">清除</button>' : ''}
-      </div>
-    </div>
-    <div class="fld">
-      <label>照片</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:12.5px;color:var(--sub)">${it.photo ? '已有照片，点卡片图片可换一张' : '点卡片上的「加照片」上传'}</span>
-        ${it.photo ? '<button class="btn" id="eiDelPh" style="flex:0 0 auto;padding:8px 12px;font-size:12.5px">删除照片</button>' : ''}
-      </div>
-    </div>
-    <div class="mrow">
-      <button class="btn dan" id="eiDel">删除</button>
-      <button class="btn pri" id="eiOk">保存</button>
-    </div>
-  `, anchorEl);
-  const nameIn = $('#eiName');
-  focusInputWhenSettled(nameIn, { select:true });
-  const delPhBtn = $('#eiDelPh');
-  if (delPhBtn) delPhBtn.addEventListener('click', () => { it.photo = null; closeModal(); renderItems(); toast('照片已删除'); });
-  const clearBtn = $('#eiBuyClear');
-  if (clearBtn) clearBtn.addEventListener('click', () => { $('#eiBuy').value = ''; });
-  $('#eiDel').addEventListener('click', () => { closeModal(); deleteItem(it.id); });
-  $('#eiOk').addEventListener('click', () => {
-    const v = nameIn.value.trim();
-    if (!v) return;
-    it.n = v;
-    it.loc = $('#eiLoc').value.trim();
-    it.buy = $('#eiBuy').value || '';
-    closeModal(); renderItems();
-    toast('已保存');
-  });
-}
+  // ★ 点卡片本身不再有任何反应（用户要求：物品卡片不需要点开详情页）。
+  //   改名/换图/改数量/改状态/删除都有各自的小入口，不需要一个"详情页"当总闸。
+});
 
 /* 长按卡片 → 进入拖拽排序模式（松手落到新位置） */
 (function initCardDrag(){
