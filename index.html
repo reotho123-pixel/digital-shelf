@@ -390,7 +390,7 @@ body{
   22%{opacity:1;transform:translate(-50%,-14px) scale(1.18)}
   100%{opacity:0;transform:translate(-50%,-44px) scale(1)}
 }
-.icard.todo .ph{filter:saturate(.35)}
+/* 「待处理」状态的降饱和样式已删除（该状态整个移除） */
 .icard.add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
   min-height:180px;border-style:dashed;background:rgba(255,255,255,.6);
   box-shadow:3px 4px 0 rgba(22,23,27,.1);cursor:pointer}
@@ -786,10 +786,12 @@ body{
         <div class="igrid" id="igrid"></div>
 
         <!-- 底部两张大卡：添加物品（8）+ 设置（2）。
-             ★ 用户要求：放在列表下方、样式跟物品卡一样（白底黑边、手绘圆角、硬阴影），
-               添加占 8 成宽、设置占 2 成宽。
-             ★ 原来是右下角悬浮加号和顶栏齿轮 —— 两个都删了，收进这一行。 -->
-        <div class="bottombar">
+             ★ 样式跟物品卡一样（白底黑边、手绘圆角、硬阴影），添加占 8 成、设置占 2 成。
+             ★ **只在「消耗中」这一档出现**（用户要求：其他地方都删掉，太多了）——
+               这一档没有分类行、内容也少，底下空着正好放这两张；
+               其他档位列表更长，不放。
+               显隐由 renderItems() 里 syncBottomBar() 控制。 -->
+        <div class="bottombar" id="bottombar" style="display:none">
           <button class="bigcard addnew" id="fab">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>
             <span>添加物品</span>
@@ -1308,43 +1310,10 @@ const SEASONS = [
 ];
 
 /* 示例数据：方便上手试各类操作，可随时在设置里清空 */
-let ITEMS = [
-  { n:'白 T 恤',     c:'cloth', q:6, ic:'ic-tshirt', season:'summer' },
-  { n:'黑色印花T恤', c:'cloth', q:4, ic:'ic-tshirt', season:'summer' },
-  { n:'灰色卫衣',    c:'cloth', q:5, ic:'ic-long',   season:'allyear' },
-  { n:'牛仔外套',    c:'cloth', q:2, ic:'ic-jacket', season:'allyear' },
-  { n:'条纹衬衫',    c:'cloth', q:5, ic:'ic-shirt',  season:'allyear' },
-  { n:'黑色长裤',    c:'cloth', q:4, ic:'ic-pants',  season:'allyear' },
-  { n:'米色阔腿裤',  c:'cloth', q:3, ic:'ic-pants',  season:'summer', st:'todo' },
-  { n:'羽绒服',      c:'cloth', q:2, ic:'ic-down',   season:'winter', st:'stored' },
-  { n:'连衣裙',      c:'cloth', q:4, ic:'ic-dress',  season:'summer' },
-  { n:'半身裙',      c:'cloth', q:3, ic:'ic-skirt',  season:'summer' },
-  { n:'白色运动鞋',  c:'shoe',  q:3, ic:'ic-shoe' },
-  { n:'黑色皮鞋',    c:'shoe',  q:1, ic:'ic-shoe' },
-  { n:'帆布鞋',      c:'shoe',  q:3, ic:'ic-shoe' },
-  { n:'拖鞋',        c:'shoe',  q:4, ic:'ic-shoe' },
-  { n:'双肩包',      c:'shoe',  q:1, ic:'ic-bag' },
-  { n:'托特包',      c:'shoe',  q:2, ic:'ic-bag' },
-  { n:'单肩包',      c:'shoe',  q:1, ic:'ic-bag', st:'todo' },
-  { n:'旅行箱',      c:'shoe',  q:1, ic:'ic-box', st:'stored' },
-  { n:'手机',        c:'tech',  q:1, ic:'ic-phone' },
-  { n:'笔记本电脑',  c:'tech',  q:1, ic:'ic-phone' },
-  { n:'平板',        c:'tech',  q:1, ic:'ic-phone' },
-  { n:'无线耳机',    c:'tech',  q:2, ic:'ic-box' },
-  { n:'有线耳机',    c:'tech',  q:3, ic:'ic-box', st:'todo' },
-  { n:'充电头',      c:'tech',  q:4, ic:'ic-box' },
-  { n:'数据线',      c:'tech',  q:6, ic:'ic-box' },
-  { n:'台灯',        c:'home',  q:1, ic:'ic-lamp' },
-  { n:'抱枕',        c:'home',  q:3, ic:'ic-cup' },
-  { n:'毛毯',        c:'home',  q:2, ic:'ic-cup', st:'stored' },
-  { n:'马克杯',      c:'home',  q:5, ic:'ic-cup' },
-  { n:'收纳盒',      c:'home',  q:6, ic:'ic-box' },
-  { n:'洗发水',      c:'care',  q:2, ic:'ic-bottle', st:'consuming' },
-  { n:'沐浴露',      c:'care',  q:2, ic:'ic-bottle', st:'consuming' },
-  { n:'洗面奶',      c:'care',  q:3, ic:'ic-bottle', st:'consuming' },
-  { n:'牙膏',        c:'care',  q:4, ic:'ic-bottle', st:'consuming' },
-  { n:'牙刷',        c:'care',  q:4, ic:'ic-bottle' }
-];
+/* ★ 物品数据从空开始（用户要求：演示数据全部删掉）。
+   以前这里塞了 35 条假数据（白 T 恤、牛仔外套…），会让用户以为自己的清单里
+   有这些东西。现在首次打开是空清单，引导去点「添加物品」。 */
+let ITEMS = [];
 
 /* 物品 id：必须全局唯一且跨会话稳定。
    ★ 不要用「内存计数器」生成（如 let uid=1; 'i'+(uid++)）—— 计数器不会存进数据库，
@@ -1386,12 +1355,14 @@ ITEMS.forEach(i => {
 });
 repairDuplicateItemIds();
 
-const ST_TEXT  = { inuse:'在用中', stored:'收纳中', consuming:'消耗中', todo:'待处理' };
-const ST_COLOR = { inuse:'#fdfaf1', stored:'#dbeaf7', consuming:'#d9eddd', todo:'#f7d9e4' };
-/* 状态的固定顺序（列表排序、筛选 chip、添加弹窗都用这一份，别各写各的） */
-const ST_KEYS  = ['inuse', 'stored', 'consuming', 'todo'];
+const ST_TEXT  = { inuse:'在用中', stored:'收纳中', consuming:'消耗中' };
+const ST_COLOR = { inuse:'#fdfaf1', stored:'#dbeaf7', consuming:'#d9eddd' };
+/* 状态的固定顺序（列表排序、筛选 chip、添加弹窗都用这一份，别各写各的）
+   ★ 「待处理」已删除（用户要求）：它只进不出、又不影响任何汇总口径，
+     还带一个降饱和的视觉否定，是四个状态里最没有功能的一个。 */
+const ST_KEYS  = ['inuse', 'stored', 'consuming'];
 /* 分段控件里的选中填充：在用也要看得出被选中，所以不用纯白 */
-const ST_FILL  = { inuse:'#e8e6dc', stored:'#cfe4f4', consuming:'#c9e8cf', todo:'#f3c9d8' };
+const ST_FILL  = { inuse:'#e8e6dc', stored:'#cfe4f4', consuming:'#c9e8cf' };
 const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
 /* 选中态的填充色：比圆点色淡，避免「必备」看起来像禁用 */
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
@@ -1556,6 +1527,9 @@ function renderItems(){
   } else {
     ensureCatRow();
   }
+  // 底部两张大卡（添加物品 + 设置）只在「消耗中」出现（用户要求）
+  const bar = $('#bottombar');
+  if (bar) bar.style.display = (state.st === 'consuming') ? 'flex' : 'none';
   syncFilterGroup();  // 筛选只剩「分类 × 状态」两个维度（喜欢 / 位置 / 季节 / 搜索框都已删除）。
   const rows = ITEMS.filter(i =>
     (state.cat === 'all' || i.c === state.cat) &&
@@ -1564,7 +1538,7 @@ function renderItems(){
   // 排序：先按状态聚在一起（在用中 → 收纳中 → 消耗中 → 待处理），
   // 状态内部再按用户拖拽的顺序。这样改了状态的卡片是真会挪到另一堆里去，
   // 而不是留在原地不动。
-  const ST_ORDER = { inuse:0, stored:1, consuming:2, todo:3 };
+  const ST_ORDER = { inuse:0, stored:1, consuming:2 };
   rows.sort((a, b) => {
     const d = (ST_ORDER[a.st] ?? 9) - (ST_ORDER[b.st] ?? 9);
     if (d) return d;
@@ -1605,7 +1579,7 @@ function renderItems(){
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.6 7V5.2h4.8V7M7 7l1 12.4h8L17 7"/></svg>
         </button>
       </div>
-      <div class="icard${i.st === 'todo' ? ' todo' : ''}" data-item="${i.id}" draggable="false">
+      <div class="icard" data-item="${i.id}" draggable="false">
         <div class="ph" style="background:${i.photo ? '#fff' : tint}" data-photo="${i.id}">
           ${phInner}
         </div>
@@ -1630,9 +1604,13 @@ function renderItems(){
     // 空状态分两种：库里真没有 vs 只是被当前筛选挡住了（后者给一键显示全部，
     // 否则用户会以为"刚加的东西没进去"）
     // ★ 容器现在是 flex 单列，用 flex:0 0 auto + width:100% 占满（grid-column 在 flex 里无效）
+    // ★ 底部那两张卡只在「消耗中」出现，所以在其他档位空列表时，
+    //   这里必须自带一个添加入口，否则用户无处可点（会以为 app 坏了）。
     if (!ITEMS.length){
       $('#igrid').innerHTML = `<div class="empty" style="flex:0 0 auto;width:100%">
-        <b>还没有物品</b><span>点右下角的加号添加</span></div>`;
+        <b>还没有物品</b><span>从这里加第一件</span>
+        <button class="btn pri" id="emptyAdd" style="max-width:170px;margin:12px auto 0">添加物品</button>
+      </div>`;
     } else {
       $('#igrid').innerHTML = `<div class="empty" style="flex:0 0 auto;width:100%">
         <b>当前筛选下没有物品</b>
@@ -2299,7 +2277,8 @@ function applyBackup(d, mode){
   inItems.forEach(i => {
     if (!i.id || inIds.has(i.id)) i.id = newItemId();
     inIds.add(i.id);
-    if (!i.st) i.st = 'inuse';
+    // ★ 待处理状态已删除：旧备份里的 todo 一律转成在用中，别让它变成隐形条目
+    if (!i.st || i.st === 'todo') i.st = 'inuse';
   });
 
   if (mode === 'replace'){
@@ -2516,6 +2495,11 @@ async function loadFromDB(){
     const ITEM_FIELDS = ['id','n','c','q','ic','season','st','order'];
     const pick = (o, keys) => { const r = {}; keys.forEach(k => { if (o[k] !== undefined) r[k] = o[k]; }); return r; };
     ITEMS = (state.items || []).map(i => ({ ...pick(i, ITEM_FIELDS), photo: null, hasPhoto: !!i.hasPhoto }));
+    // ★ 旧库里的 st:'todo'（待处理已删）要转成「在用中」再无效 ——
+    //   否则这些条目在任何状态下都筛不出来，等于凭空消失。
+    let todoFixed = 0;
+    ITEMS.forEach(i => { if (i.st === 'todo'){ i.st = 'inuse'; todoFixed++; } });
+    if (todoFixed) console.log('[极简] 待处理已移除，' + todoFixed + ' 条转入在用中');
 
     // 并发取回图片
     await Promise.all([
@@ -2617,6 +2601,8 @@ on('#stChips', 'click', e => {
 // 搜索框已删除（用户要求）——state.q 保留但恒为空，筛选逻辑不再读它
 // 物品卡：照片 / 归类 / 删除 / 进详情
 on('#igrid', 'click', e => {
+  // 空状态里的「添加物品」（底部两张卡只在消耗中出现，其他档位空列表靠这个入口）
+  if (e.target.closest('#emptyAdd')){ newItemModal(); return; }
   // 空状态里的「显示全部」：清掉分类/状态筛选，把物品都找回来
   if (e.target.closest('#itemShowAll')){
     state.cat = 'all';
