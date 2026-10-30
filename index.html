@@ -137,24 +137,173 @@ body{
   cursor:pointer;box-shadow:2px 3px 0 rgba(22,23,27,.14);border-radius:46% 50% 44% 50%/50% 44% 50% 46%}
 .back svg{width:20px;height:20px}
 
-/* ===== 筛选框（原是「我的收纳」主卡，现在只框住状态行 + 分类行）=====
-   ★ 绿框、胶带、干笔白条纹原样保留，只是里面装的东西换了。
-   ★ 边框用 CSS 画（粗细恒定 3px），不用固定 viewBox 的 SVG 路径 ——
-     框高度会变，preserveAspectRatio="none" 会把描边一起纵向拉粗。
-     手绘抖动靠 .hero-frame 上的 SVG filter 作用在 CSS 边框上。 */
-.hero{position:relative;margin-bottom:9px;transform:rotate(-.55deg)}
-.hero-frame{position:absolute;inset:0;background:#c9e8cf;border:3px solid var(--ink);
-  border-radius:22px 9px 23px 10px/10px 23px 9px 22px;
-  filter:url(#rough);
-  box-shadow:5px 6px 0 rgba(22,23,27,.15)}
-/* 干笔白条纹：铺在框内，拉伸无所谓（那是颜料），用 clip 收进圆角 */
-.hero-brush{position:absolute;inset:0;width:100%;height:100%;display:block;
-  border-radius:22px 9px 23px 10px/10px 23px 9px 22px;overflow:hidden}
-.hero .over{position:relative;padding:13px 14px 9px;display:flex;flex-direction:column;gap:2px}
-.hero .over > *{position:relative}
-/* 框里的筛选行：去掉原来外面那层的底部间距（框内边距自己管） */
-.hero .chipRow{margin-bottom:0}
-.hero .chips{padding-bottom:4px}
+/* ===== 底部 Tab 栏（状态行）+ 分类抽屉 =====
+   ★ 造型沿用这个 App 原来的底栏（见 预览-新-总览.png）：
+     一条**悬浮的米白胶囊**，2.5px 黑描边 + 右下硬阴影，左右各留 16px，
+     不贴屏幕边。选中项是一枚**纯黑实心胶囊**（白字 + 白图标）滑到哪亮到哪。
+     未选中项是浅灰细线图标 + 灰字。
+
+   ★ 结构分三层：
+       .tabbar            —— 定位壳子（贴底，管左右边距和安全区）
+       .catdrawer         —— 分类抽屉，浮在胶囊上方，translateY 收放
+       .tabbar-main       —— 胶囊本体（外框）里面装三个状态 tab
+   ★ 抽屉必须挂在**定位壳子**上而不是胶囊本体上：
+     胶囊本体是 overflow:hidden 的圆角块（要让内部黑色指示块被圆角裁住），
+     抽屉挂在它里面会被一起裁掉。 */
+
+/* ---- 定位壳子：贴底、管边距、不画任何视觉 ----
+   ★ 抽屉要相对"胶囊顶边"定位，而胶囊高度是内容撑出来的（字体/行高都会影响），
+     所以这里不在 CSS 里写死像素，而是让抽屉用 bottom:100% 相对**胶囊本身**定位
+     —— 做法是把抽屉放进 .tabbar-main 内，并把胶囊的 overflow 从 hidden 改成 visible，
+     用一个内层 .tabbar-track 负责裁切指示块的圆角。
+   ★ 壳子本身零高度（只有 padding），别在它上面挂 bottom:100% 的东西。 */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:12;
+  padding:0 16px calc(env(safe-area-inset-bottom,0px) + 12px);
+  pointer-events:none}      /* 壳子透明区域不该挡住列表点击 */
+.tabbar > *{pointer-events:auto}
+
+/* ---- 胶囊本体（原底栏造型）---- */
+.tabbar-main{position:relative;
+  display:flex;align-items:center;
+  background:var(--screen);
+  border:2.5px solid var(--ink);
+  border-radius:999px;
+  box-shadow:3px 4px 0 rgba(22,23,27,.16);
+  padding:5px}
+/* 裁切层：指示块滑到两端时会被这个圆角框裁住（不能放在 .tabbar-main 上，
+   否则同级的抽屉也会被一起裁掉） */
+.tabbar-track{position:relative;display:flex;align-items:center;
+  flex:1;min-width:0;border-radius:999px;overflow:hidden}
+
+/* 三个状态 tab：等宽平分，等于原来「物品/总览/软件」那三格 */
+.tabbar #stChips{display:flex;gap:0;overflow-x:visible;
+  padding:0;position:relative;flex:1;
+  /* 状态行的液态指示块要用外面这层做定位基准 */
+  border-radius:999px}
+.tabbar #stChips .chip{flex:1 1 0;justify-content:center;
+  display:inline-flex;align-items:center;
+  font-family:var(--f-cn);font-size:13px;font-weight:400;
+  padding:9px 6px;border:none;background:transparent;box-shadow:none;
+  color:var(--sub);border-radius:999px;cursor:pointer;
+  position:relative;z-index:1;
+  transition:color .16s}
+/* ★ 图标和文字的间距写在图标自己的右边距上，不用 flex gap：
+   一旦用 gap，计数 <span class="n"> 也会被同样推开，
+   变成「在用中    0」这种断开的观感。 */
+.tabbar #stChips .chip .n{font-family:'PatrickHand',sans-serif;font-size:11px;
+  margin-left:3px;opacity:.7}
+/* 选中项：白字（黑色底由 .chip-ind 指示块画，见外层 .has-ind 规则） */
+.tabbar #stChips.has-ind .chip.on{color:#fdfaf1;background:transparent}
+/* 万一指示块没挂上（首帧/异常），选中项自己也要能看清 */
+.tabbar #stChips:not(.has-ind) .chip.on{background:var(--ink);color:#fdfaf1}
+.tabbar #stChips .chip:active{transform:scale(.97)}
+.tabbar #stChips .chip .n{font-family:'PatrickHand',sans-serif;font-size:11px;
+  margin-left:2px;opacity:.75}
+
+/* 指示块改成纯黑胶囊（原来那条用的是 --accent 淡绿，底栏上要深色才像旧版） */
+.tabbar #stChips .chip-ind{background:var(--ink);border-radius:999px}
+
+/* tab 内的图标：跟着 tab 文字颜色走（选中白、未选中灰）。
+   图标右边留 5px 当"图标↔文字"的间距（不用 flex gap，见上条注释）。 */
+.tabbar #stChips .chip svg{width:15px;height:15px;flex:0 0 auto;
+  margin-right:5px;stroke:currentColor;display:block}
+
+/* ---- 分类抽屉：浮在胶囊上方，独立于 .tabbar 定位 ----
+   ★ 它是 .phone 的直接子元素（不是 .tabbar 的后代），原因见 HTML 注释：
+     挂在 .tabbar 里会受父级 pointer-events:none 和边界裁切影响，
+     分类一多折行就有部分点不动。
+   ★ 位置用「贴底 + 让出胶囊所占高度」表达：胶囊高度 = 52px（内容）+ 12px（底距），
+     这里用 CSS 变量统一，改胶囊内边距时只动一处。 */
+.tabbar{--cap-h:52px;--cap-gap:12px}
+.catdrawer{position:absolute;left:16px;right:16px;
+  /* 52px = 胶囊内容高度；12px = 胶囊底距；7px = 与胶囊的间隙。
+     这三个数跟着 .tabbar 的 padding / 胶囊内边距同步（改一处要一起改）。 */
+  bottom:calc(env(safe-area-inset-bottom,0px) + 12px + 52px + 7px);
+  background:var(--screen);
+  border:2.5px solid var(--ink);
+  border-radius:26px;
+  box-shadow:3px 4px 0 rgba(22,23,27,.16);
+  padding:7px 8px;
+  transform:translateY(10px) scaleY(.96);
+  opacity:0;
+  pointer-events:none;
+  transform-origin:50% 100%;
+  transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .22s ease;
+  z-index:11;
+  max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.catdrawer.open{transform:translateY(0) scaleY(1);opacity:1;pointer-events:auto}
+
+/* 抽屉里的分类行：去掉顶部那条「从属竖线」（不再需要暗示父子关系）
+   ★ 选择器一律用 #catDrawer 开头：抽屉已经不在 .tabbar 里了（见 HTML 注释），
+     写成 .tabbar .chipRow 会一条都命中不了。 */
+#catDrawer .chipRow.branch{padding-left:0}
+#catDrawer .chipRow.branch::before{display:none}
+#catDrawer .chipRow{margin-bottom:0}
+/* ★ 分类行必须能折行。基础 .chips 是 overflow-x:auto + 单行 flex，
+   分类一多就横向溢出、被挤出抽屉边界 —— 那些 chip 落在抽屉外面，
+   elementFromPoint 打不到、点了完全没反应（就是"点多了点不了"这个 bug）。
+   这里改成 wrap + overflow:visible，让抽屉跟着内容长高。 */
+#catDrawer .chipRow .chips{display:flex;flex-wrap:wrap;overflow:visible;
+  padding-bottom:0;justify-content:center;gap:7px;row-gap:7px}
+
+/* 分类 chip：和上方状态 tab 同一套胶囊语言（圆角、无倾斜、无手绘方片），
+   只是小一号、且选中时用淡绿填充而不是纯黑 —— 免得跟状态 tab
+   抢"当前在哪一档"的视觉焦点。 */
+#catDrawer .chipRow .chip{flex:0 0 auto;
+  font-family:var(--f-cn);font-size:12.5px;
+  padding:7px 14px;border:2.2px solid var(--ink);
+  border-radius:999px;background:#fff;color:var(--ink2);
+  box-shadow:2px 2px 0 rgba(22,23,27,.12);
+  transform:none;transition:background .14s,color .14s,box-shadow .14s}
+#catDrawer .chipRow .chip .n{font-family:'PatrickHand',sans-serif;font-size:11px;
+  margin-left:4px;opacity:.65}
+/* 选中：淡绿实心 + 黑字（去掉原来那套「变大 + 旋转」的标签让位） */
+#catDrawer .chipRow .chip.on,
+#catDrawer .chipRow .chips.has-ind .chip.on{background:var(--accent);color:var(--ink);
+  transform:none;padding:7px 14px;font-size:12.5px;
+  box-shadow:2px 3px 0 rgba(22,23,27,.18)}
+#catDrawer .chipRow .chip.on:active,
+#catDrawer .chipRow .chip:active{transform:scale(.96)}
+
+/* 分类抽屉里不挂液态指示块（那套是给状态 tab 用的，分类是普通选择） */
+#catDrawer .chipRow .chip-ind{display:none}
+
+/* 抽屉空态 */
+.cat-empty{font-size:11.5px;color:var(--sub);text-align:center;
+  padding:2px 0 5px;line-height:1.5}
+
+/* ===== 圆角胶囊 chip（弹窗里的「分类 / 状态」选择）=====
+   和底部 tab 栏、分类抽屉、物品卡片同一套圆形语言。
+   ★ 要写在 .chips .chip.on 之后并在特异性上压过它：
+     基础选中态会加大 padding 并 rotate(-1.2deg)，这里全部归零。
+   ★ 允许折行：分类可能很多，弹窗宽度有限，不能横向溢出到看不见。 */
+.chips.round{display:flex;flex-wrap:wrap;overflow:visible;
+  justify-content:flex-start;gap:7px;row-gap:7px}
+.chips.round .chip{flex:0 0 auto;border-radius:999px;
+  font-family:var(--f-cn);font-size:12.5px;padding:6px 13px;
+  border:2.1px solid var(--ink);background:#fff;color:var(--ink2);
+  box-shadow:2px 2px 0 rgba(22,23,27,.12);
+  transform:none;transition:background .14s,color .14s,box-shadow .14s}
+.chips.round .chip.on{background:var(--accent);color:var(--ink);
+  transform:none;padding:6px 13px;font-size:12.5px;
+  box-shadow:2px 3px 0 rgba(22,23,27,.18)}
+.chips.round .chip:active,
+.chips.round .chip.on:active{transform:scale(.96)}
+
+/* 抽屉把手：胶囊上方一道小横杠，暗示"上面这块能拉开"。
+   ★ pointer-events:none —— 它只是视觉提示，点击必须落到胶囊 tab 上。 */
+.drawer-grip{position:absolute;left:0;right:0;bottom:100%;height:11px;
+  margin-bottom:1px;
+  display:grid;place-items:center;pointer-events:none}.drawer-grip span{width:34px;height:4px;border-radius:99px;background:var(--ink);
+  opacity:.16;transition:opacity .2s,width .25s}
+.tabbar.catopen .drawer-grip span{opacity:0;width:26px}
+/* 「消耗中」没有分类可展开 → 把手也藏起来，别给假提示 */
+.tabbar.nocat .drawer-grip{display:none}
+
+/* 主页滚动区：给浮动胶囊留出空间，最后一条物品不会被压住。
+   ★ 精确高度由 syncTabPad() 写内联（抽屉展开时还要加上抽屉高度），
+     这里只给一个兜底值，避免 JS 还没跑时内容被压住。 */
+#scr-home{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px)}
 .tape{position:absolute;width:74px;height:25px;z-index:5;opacity:.8;box-shadow:0 1px 4px rgba(22,23,27,.13);
   clip-path:polygon(0 3%,4% 0,96% 2%,100% 0,99% 96%,95% 100%,5% 98%,1% 100%)}
 .tape.p{background:var(--hl)}
@@ -295,9 +444,10 @@ body{
    ★ 单列后卡片变宽，一屏能看到的张数反而更多（原来两列每屏约 4 张）。 */
 .igrid{display:flex;flex-direction:column;gap:10px}
 .icard{background:#fff;border:2.2px solid var(--ink);
-  border-radius:15px 6px 16px 7px/7px 16px 6px 15px;overflow:hidden;
+  /* ★ 圆角胶囊：和底部 tab 栏同一套圆形语言（原来是手绘抖动方片） */
+  border-radius:999px;overflow:hidden;
   box-shadow:4px 5px 0 rgba(22,23,27,.14);position:relative;
-  display:flex;align-items:center;gap:11px;padding:9px 10px 9px 9px}
+  display:flex;align-items:center;gap:11px;padding:7px 14px 7px 7px}
 /* ★ 奇偶倾斜放在 wrapper 上，不放在 .icard 上 ——
    .icard 的 transform 要留给「左滑露出删除块」用，两者会互相覆盖。
    倾斜放在外层槽上，卡片在里面平移就不会打架。 */
@@ -316,8 +466,8 @@ body{
   100%{opacity:1;transform:translateY(0) scale(1)}
 }
 /* 方形缩略图（原来是占满卡宽的方图，现在缩成左侧固定 78×78） */
-.icard .ph{position:relative;width:78px;height:78px;flex:0 0 auto;display:grid;place-items:center;
-  border:2px solid var(--ink);border-radius:11px 4px 12px 5px/5px 12px 4px 11px;
+.icard .ph{position:relative;width:74px;height:74px;flex:0 0 auto;display:grid;place-items:center;
+  border:2px solid var(--ink);border-radius:999px;
   cursor:pointer;overflow:hidden}
 .icard .ph svg{width:54%;height:54%;color:var(--ink);opacity:.82}
 .icard .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -349,25 +499,25 @@ body{
 /* 季节（只有衣物才有）单独一个小字 */
 .icard .se-txt{flex:0 0 auto;font-size:10.5px;color:#a3a4ab}
 /* 卡片上的状态小标签（缩略图里放不下，挪到文字区） */
-.icard .meta .st-tag{flex:0 0 auto;font-family:var(--f-cn);font-size:10px;padding:1px 7px;
-  border:1.7px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;cursor:pointer;
+.icard .meta .st-tag{flex:0 0 auto;font-family:var(--f-cn);font-size:10px;padding:1px 8px;
+  border:1.7px solid var(--ink);border-radius:999px;cursor:pointer;
   transition:transform .12s}
 .icard .meta .st-tag:active{transform:translate(1px,1px)}
 /* 右侧：数量 */
 .icard .side{flex:0 0 auto;display:flex;align-items:center;gap:7px}
 .icard .side .qty{font-family:var(--f-num);font-weight:700;font-size:13px;color:var(--ink);
-  background:#fff;border:1.8px solid var(--ink);border-radius:8px 3px 9px 4px/4px 9px 3px 8px;padding:0 6px}
+  background:#fff;border:1.8px solid var(--ink);border-radius:999px;padding:0 8px}
 /* ---------- 左滑删除 ----------
    .icard-wrap 是「槽」：overflow:hidden 裁掉滑出去的部分，底层放删除块。
    ★ 卡片自身的硬阴影/倾斜都还在 .icard 上；槽只负责裁剪和定位。
    ★ 槽不能跟着倾斜（否则删除块也跟着歪），所以倾斜留在卡片上。
    ★ 槽要留一点外边距给阴影，否则 overflow:hidden 会把 4px 硬阴影切掉。 */
 .icard-wrap{position:relative;overflow:hidden;
-  border-radius:17px 10px 18px 11px/11px 18px 10px 17px;
+  border-radius:999px;
   margin:0 4px 4px 0;padding:0 0 5px 0}
 .icard-wrap .swipe-del{position:absolute;top:0;right:0;bottom:5px;width:76px;
   display:grid;place-items:center;background:#f3c9d8;
-  border-radius:0 10px 18px 0/0 18px 10px 0}
+  border-radius:0 999px 999px 0}
 .icard-wrap .del-go{width:40px;height:40px;display:grid;place-items:center;cursor:pointer;
   background:#fff;border:2px solid var(--ink);border-radius:50% 46% 52% 48%;color:var(--ink)}
 .icard-wrap .del-go svg{width:17px;height:17px}
@@ -397,7 +547,7 @@ body{
 .icard.add svg{width:30px;height:30px}
 .icard.add span{font-family:var(--f-cn);font-size:13.5px;color:var(--ink2)}
 .icard.add small{font-size:11px;color:var(--sub)}
-.empty{background:#fff;border:2.2px dashed var(--ink);border-radius:16px;padding:26px 18px;text-align:center}
+.empty{background:#fff;border:2.2px dashed var(--ink);border-radius:26px;padding:26px 18px;text-align:center}
 .empty b{display:block;font-family:var(--f-cn);font-size:15px;font-weight:400;margin-bottom:7px}
 .empty span{font-size:13px;color:var(--sub)}
 /* 空状态里的小按钮（如「显示全部」）：别继承 .btn 的 flex:1，否则会被拉满宽 */
@@ -462,7 +612,8 @@ body{
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .stepper{display:flex;align-items:center;gap:12px}
 .stepper button{width:38px;height:38px;border:2.2px solid var(--ink);background:#fff;cursor:pointer;
-  border-radius:13px 5px 14px 6px/6px 14px 5px 13px;display:grid;place-items:center;
+  /* 圆形图标按钮：和胶囊 chip 同一套圆形语言 */
+  border-radius:50%;display:grid;place-items:center;
   box-shadow:2px 2px 0 rgba(22,23,27,.14)}
 .stepper button svg{width:15px;height:15px}
 .stepper button:active{transform:translate(1px,2px);box-shadow:0 0 0 rgba(0,0,0,0)}
@@ -600,7 +751,9 @@ body{
 
 /* 轻提示 */
 .toast{position:absolute;left:50%;transform:translateX(-50%) translateY(8px);
-  bottom:calc(env(safe-area-inset-bottom,0px) + 92px);
+  /* 抬到固定底栏之上（栏本体约 66px + 安全区）。抽屉展开时栏更高，
+     所以用 78px 而不是原来的 92px —— 那 92px 是给已删除的 Tab 栏留的。 */
+  bottom:calc(env(safe-area-inset-bottom,0px) + 78px);
   background:var(--ink);color:#fdfaf1;font-family:var(--f-cn);font-size:13px;padding:9px 12px 9px 16px;
   border-radius:13px 5px 14px 6px/6px 14px 5px 13px;opacity:0;pointer-events:none;
   transition:opacity .2s,transform .2s;z-index:40;display:flex;align-items:center;gap:11px;
@@ -752,31 +905,10 @@ body{
                所以去掉原来那条写死 y=54 的 SVG 分隔线，改用 CSS 分隔。
              ★ 设置齿轮原来在卡上方的顶栏里，现在搬进卡内标题行（用户要求），
                顶栏因此整个删掉，卡片也跟着往上顶了 61px。 -->
-        <!-- ===== 筛选框 =====
-             ★ 绿框保留，但内容换成「状态行 + 分类行」——
-               它是这个 app 现在唯一剩下的"面板"，筛选用它是主要动作。
-               干笔白条纹 + 手绘抖动边框沿用原来的（见 .hero-frame）。 -->
-        <div class="hero" id="filterBox">
-          <span class="tape p" style="left:-13px;top:-10px;transform:rotate(-16deg)"></span>
-          <span class="tape b" style="right:-12px;bottom:-9px;transform:rotate(-14deg)"></span>
-          <div class="hero-frame">
-            <svg class="hero-brush" viewBox="0 0 338 151" preserveAspectRatio="none" aria-hidden="true">
-              <use href="#dryStrokes"/>
-            </svg>
-          </div>
-          <div class="over">
-            <!-- 状态行是「总行」（.master），分类行是它的分支（.branch） -->
-            <div class="chipRow master">
-              <div class="chips small center master" id="stChips"></div>
-            </div>
-            <!-- 分类行（一直显示）。★ 居中行在内容超宽时会自动退回左对齐 -->
-            <div class="chipRow branch" id="catRow">
-              <div class="chips center" id="catChips"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 计数行 -->
+        <!-- ===== 计数行 =====
+             ★ 原来顶部是「筛选框（状态行 + 分类行）」+ 计数行两块。
+               现在筛选整体搬到底部 Tab 栏（见 .tabbar），顶部只留这一行计数，
+               标题里的「衣物 · 在用中」就是当前筛选的唯一可见说明。 -->
         <div class="count-row">
           <b id="resTitle">全部物品</b>
           <span id="resCnt"></span>
@@ -822,7 +954,37 @@ body{
 
       </div>
 
-      <!-- 底部 Tab 栏已删除（用户不需要软件页，只有一个页面了） -->
+      <!-- ===== 底部 Tab 栏（状态行）+ 分类抽屉 =====
+           ★ 抽屉放在 .tabbar **外面**，是 .phone 的直接子元素。
+             原因（踩过的坑）：.tabbar 为了不挡住列表点击而设了
+             pointer-events:none，只对直接子元素恢复。抽屉是靠绝对定位
+             向上溢出到 .tabbar 之外的，一旦分类多到折行，超出父级边界的那部分
+             在命中测试里会被跳过 —— 表现就是"分类点多了之后后几行点不动"。
+             挪到外面后它自成一层，点哪都算数。
+           ★ 点当前已选中的状态 tab 才展开（.catopen）。 -->
+      <div class="catdrawer" id="catDrawer">
+        <div class="chipRow branch" id="catRow">
+          <div class="chips center" id="catChips"></div>
+        </div>
+        <!-- 空态：这一档下没有物品时，抽屉里不该只剩一片空白 -->
+        <div class="cat-empty" id="catEmpty" style="display:none">
+          这一档还没有物品，加进来才有分类可筛
+        </div>
+      </div>
+
+      <div class="tabbar" id="tabbar">
+        <div class="tabbar-main">
+          <!-- 状态行 = 三个 tab（再点一次当前 tab 展开/收起分类抽屉） -->
+          <div class="tabbar-track">
+            <div class="chips small center master" id="stChips"></div>
+          </div>
+
+          <!-- 抽屉把手：胶囊上方一道小横杠，暗示"上面这块能拉开" -->
+          <div class="drawer-grip" id="drawerGrip" aria-hidden="true">
+            <span></span>
+          </div>
+        </div>
+      </div>
 
       <!-- 归类小菜单 -->
       <div class="pop" id="pop"></div>
@@ -1368,6 +1530,10 @@ const LIKE_COLOR = { like:'#e0a03a', neutral:'#8b8c94', dislike:'#d4517f' };
 const TINTS = ['#f9dcec','#dbeaf7','#f7e9cf','#d9eddd','#e9e1f4','#f9e0d3'];
 
 const state = { cat:'all', st:'all', season:'allyear', q:'', justMovedId:null };
+/* 用户主动点了「清除分类筛选」时置 true：此时 state.cat='all' 是**用户意图**，
+   renderCatChips 的「兜底自动选第一个分类」不能把它又改回去。
+   用户重新点任意分类或切换状态时复位。 */
+let catShowAll = false;
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 /* 安全绑定：元素不存在时跳过，避免一处缺失就中断整个脚本（曾因此导致页面空白） */
@@ -1442,7 +1608,9 @@ function renderCatChips(){
   //   正常路径下状态行点击已经选好了，这里是防止从别的入口进来时漏掉
   //   （比如空状态的「显示全部」、导入备份、首次渲染），
   //   否则会出现"分类行显示了、但一个都没选中"，用户不知道现在在看什么。
-  if (state.cat === 'all'){
+  //   ★ 但用户主动点了「清除筛选」(catShowAll) 时不兜底 —— 那是他的明确意图，
+  //     弹回第一个分类等于把他刚做的操作撤销掉。
+  if (state.cat === 'all' && !catShowAll){
     const first = firstCatWithItems(state.st);
     if (first !== 'all') state.cat = first;
   }
@@ -1474,20 +1642,40 @@ function renderCatChips(){
   }
   const row = $('#catRow');
   if (row) row.style.display = list.length ? 'flex' : 'none';
+
+  // ★ 空态：这一档下一条物品都没有（或所有分类都空），抽屉里会只剩一片空白，
+  //   看起来像坏了。给一句说明，别让用户以为功能失效。
+  const emptyEl = $('#catEmpty');
+  if (emptyEl) emptyEl.style.display = list.length ? 'none' : 'block';
 }
 
-/* 状态行 = 总行：每一档显示**该状态下的全部条数**（不受分类影响）。
-   这样它跟下面的分支行才是真正的父子关系：
-   状态 6 → 点进去，分类那行加起来正好是 6。 */
+/* 状态 tab 的图标：三个状态各一个，线条风格和页面里其它图标一致
+   （stroke:currentColor，粗细 2，跟着 tab 的选中/未选中变色）。 */
+const ST_ICON = {
+  // 在用中：一只举手/人形 —— 正在被使用的意思
+  inuse: '<path d="M12 12.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z"/><path d="M5.4 19.4c0-3.1 2.9-5.2 6.6-5.2s6.6 2.1 6.6 5.2"/>',
+  // 收纳中：一个收好的箱子
+  stored: '<path d="M4.2 8.2 12 4.6l7.8 3.6v7.6L12 19.4 4.2 15.8Z"/><path d="M4.2 8.2 12 11.8l7.8-3.6M12 11.8v7.6"/>',
+  // 消耗中：一滴水（用掉一点少一点）
+  consuming: '<path d="M12 4.4c3.1 3.6 5.2 6.3 5.2 8.9a5.2 5.2 0 0 1-10.4 0c0-2.6 2.1-5.3 5.2-8.9Z"/>',
+};
+
+function stChipHTML(k){
+  const ico = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ST_ICON[k] || ''}</svg>`;
+  return `${ico}${ST_TEXT[k]}<span class="n">${itemsInSt(k).length}</span>`;
+}
+
+/* 状态行 = 底部三个 tab：每一档显示**该状态下的全部条数**（不受分类影响）。 */
 function renderStChips(){
   const sts = ST_KEYS;
   const keys = sts;
   const reused = syncChips($('#stChips'), keys,
-    k => `${ST_TEXT[k]}<span class="n">${itemsInSt(k).length}</span>`,
+    k => stChipHTML(k),
     k => 'chip' + (state.st === k ? ' on' : ''));
   if (!reused){
     $('#stChips').innerHTML = sts.map(k =>
-      `<button class="chip${state.st === k ? ' on' : ''}" data-st="${k}" data-chip-key="${k}">${ST_TEXT[k]}<span class="n">${itemsInSt(k).length}</span></button>`
+      `<button class="chip${state.st === k ? ' on' : ''}" data-st="${k}" data-chip-key="${k}">${stChipHTML(k)}</button>`
     ).join('');
   }
 }
@@ -1505,18 +1693,67 @@ function renderStChips(){
    ★ 物品的 i.season 字段还在：季节是衣物卡上要显示的信息，不是筛选维度。
      位置（i.loc）则整套删掉了 —— 筛选、显示、编辑输入都没有了。 */
 
-/* 消耗中那一档会把 #catRow 从 DOM 摘掉（用户要求：消耗品不要分类行）。
-   切回其他状态时用它把这一行插回原位 —— 紧跟状态行之后。 */
+/* 消耗中那一档会把 #catRow 从 DOM 摘掉（消耗品就是日用品，不用再按分类挑）。
+   切回其他状态时用它把这一行插回抽屉的 .catdrawer-in 里。
+
+   ★ 这里改成了「事件委托」的写法配合：重建出来的节点是新对象，
+     原来直接绑在 #catChips 上的 click 监听会跟着旧节点一起消失。
+     所以点击监听现在绑在 #tabbar 上（见下方 on('#tabbar', ...)），
+     这个函数只负责把 DOM 放回去。 */
 function ensureCatRow(){
   if ($('#catRow')) return;
-  const over = document.querySelector('.hero .over');
-  const stRow = over && over.querySelector('.chipRow.master');
-  if (!over || !stRow) return;
+  const host = document.getElementById('catDrawer');
+  if (!host) return;
   const div = document.createElement('div');
   div.className = 'chipRow branch';
   div.id = 'catRow';
   div.innerHTML = '<div class="chips center" id="catChips"></div>';
-  stRow.insertAdjacentElement('afterend', div);
+  // 插在空态提示**之前**：分类行要在上、空态文字在下
+  const empty = document.getElementById('catEmpty');
+  if (empty) host.insertBefore(div, empty);
+  else host.appendChild(div);
+}
+
+/* ---- 分类抽屉：展开 / 收起 ----
+   ★ 触发方式是「再点一次当前已选中的状态 tab」，不是点别的 tab。
+     因为点任何一个状态 tab 都会把分类重置成「该状态下第一个有物品的分类」，
+     若靠点状态唤出抽屉，就永远没法从「在用中·衣物」直接跳到「在用中·数码」——
+     中间会被悄悄重置一次。 */
+function catDrawerOpen(){ return $('#catDrawer')?.classList.contains('open'); }
+
+function setCatDrawer(open, opts){
+  const bar = $('#tabbar');
+  const dr = $('#catDrawer');
+  if (!bar || !dr) return;
+  // 「消耗中」没有分类维度，抽屉无从展开 → 强制收起
+  if (open && state.st === 'consuming') open = false;
+  // 没有分类可展开时也把把手藏掉，不给假提示
+  bar.classList.toggle('nocat', state.st === 'consuming');
+  const was = dr.classList.contains('open');
+  // ★ 抽屉是 .phone 的直接子元素，不挂在 .tabbar 下面（见 HTML 注释：
+  //   否则折行后超出父级边界的 chip 点不动），所以开合状态记在它自己身上。
+  bar.classList.toggle('catopen', !!open);   // 只用于把手/样式的联动
+  dr.classList.toggle('open', !!open);
+
+  syncTabPad();
+  if (open !== was && !(opts && opts.silent)){
+    if (open) requestAnimationFrame(() => syncChipInd($('#catChips'), false));
+  }
+}
+
+function toggleCatDrawer(){ setCatDrawer(!catDrawerOpen()); }
+
+/* 滚动区底部留白：至少让最后一条物品能滚到固定底栏上方。
+   抽屉是浮在底栏之上的（position:absolute），展开时会盖住列表底部，
+   所以展开时把抽屉高度也算进留白里。 */
+function syncTabPad(){
+  const bar = $('#tabbar');
+  const home = $('#scr-home');
+  if (!bar || !home) return;
+  const dr = $('#catDrawer');
+  const open = !!(dr && dr.classList.contains('open'));
+  const extra = open ? dr.offsetHeight + 7 : 0;   // 7 = 抽屉与胶囊之间的间隙
+  home.style.paddingBottom = (bar.offsetHeight + extra + 16) + 'px';
 }
 
 function renderItems(){
@@ -1524,8 +1761,13 @@ function renderItems(){
   //   其他状态会把分类行插回来（如果上一帧刚被摘掉）。
   if (state.st === 'consuming'){
     state.cat = 'all';
+    setCatDrawer(false, { silent: true });   // 没有分类维度 → 抽屉也收起来
   } else {
     ensureCatRow();
+    // ★ 从「消耗中」切回来时必须把 nocat 复位，否则抽屉把手一直藏着。
+    //   这里只同步 nocat，不动展开状态（用户手动的收/放要保留）。
+    const barEl = $('#tabbar');
+    if (barEl) barEl.classList.remove('nocat');
   }
   // 底部两张大卡（添加物品 + 设置）只在「消耗中」出现（用户要求）
   const bar = $('#bottombar');
@@ -1550,6 +1792,9 @@ function renderItems(){
   const stName = state.st === 'all' ? '' : ` · ${ST_TEXT[state.st]}`;
   $('#resTitle').textContent = catName + stName;
   $('#resCnt').textContent = `${rows.length} 条 · ${qty} 件`;
+  // 底栏（含展开的抽屉）高度会变 → 滚动区底部留白跟着改，
+  // 否则最后一条物品会被压在栏底下点不到。
+  syncTabPad();
   // ★ 原来这里还给 #listTitle / #listCnt 赋值，但那个 .page-head 已删（和 count-row 重复），
   //   保留赋值会 TypeError 打断 renderItems。
 
@@ -1727,11 +1972,11 @@ function newItemModal(){
     </div>
     <div class="fld">
       <label>分类</label>
-      <div class="chips" id="niCat" style="padding-bottom:2px">${catChips()}</div>
+      <div class="chips round" id="niCat" style="padding-bottom:2px">${catChips()}</div>
     </div>
     <div class="fld">
       <label>状态</label>
-      <div class="chips" id="niSt" style="padding-bottom:2px">${stChips()}</div>
+      <div class="chips round" id="niSt" style="padding-bottom:2px">${stChips()}</div>
     </div>
     <div class="fld">
       <label>数量</label>
@@ -2141,6 +2386,12 @@ on('#stBody', 'click', e => {
   const rm = e.target.closest('[data-delcat]');
   if (rm){ delCatModal(rm.dataset.delcat); return; }
   if (e.target.closest('#stAddCat')){ newCatModal(); return; }
+
+  // 数据管理三行（导出 / 导入 / 清空）之前只画了界面、没绑事件，
+  // 点了完全没反应。这里补上，和上面的分类操作共用同一个委托监听。
+  if (e.target.closest('#stExport')){ exportBackup(); return; }
+  if (e.target.closest('#stImport')){ importBackup(); return; }
+  if (e.target.closest('#stClear')){ clearAllModal(); return; }
 });
 
 /* --- 分类删除（条目归入未分类） --- */
@@ -2179,29 +2430,81 @@ function delCatModal(id){
 
 
 /* --- 导出备份 --- */
-function exportBackup(){
-  const data = {
+function exportJSONText(){
+  return JSON.stringify({
     version: 1,
     exportedAt: new Date().toISOString(),
     cats: CATS,
     items: ITEMS,
-  };
+  }, null, 2);
+}
+
+function backupStamp(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+/* 「下载」这条路在电脑上最顺，但在 iPhone 从主屏（standalone）打开时
+   Safari 会直接忽略 a.download —— 点了毫无反应，也没有任何提示。
+   所以这里不把宝全押在下载上：
+     1) 先试着下载；
+     2) 同时把内容摆到一个可全选、可长按复制的文本框里，并说明「没出现文件就用它」。
+   用户至少总有一条能走通，不会像之前那样点完一片安静。 */
+function exportBackup(){
+  const text = exportJSONText();
+  const name = `收纳备份-${backupStamp()}.json`;
+
+  let downloaded = false;
   try {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([text], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const d = new Date();
-    const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     a.href = url;
-    a.download = `收纳备份-${stamp}.json`;
+    a.download = name;
+    a.rel = 'noopener';
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    toast(`已导出 ${ITEMS.length} 条物品`);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    downloaded = true;
   } catch (err) {
-    toast('导出失败，换个浏览器试试');
+    downloaded = false;
   }
+
+  openModal(`
+    <h3>备份已生成</h3>
+    <p class="mhint">${ITEMS.length} 条物品 · ${CATS.length} 个分类，含照片<br>
+      电脑上应已弹出下载；<b>手机上没看到文件</b>，就点下面的框全选复制，粘到备忘录或发给自己留存。</p>
+    <div class="fld">
+      <label>备份内容（${name}）</label>
+      <textarea id="bkText" rows="7" readonly
+        style="width:100%;border:2.1px solid var(--ink);background:#fff;border-radius:12px 5px 13px 6px/6px 13px 5px 12px;padding:10px 12px;font-family:monospace;font-size:11px;line-height:1.4;color:var(--ink2);outline:none;resize:none;-webkit-user-select:text;user-select:text"></textarea>
+    </div>
+    <div class="mrow">
+      <button class="btn" id="bkCopy">全选复制</button>
+      <button class="btn pri" id="bkDone">完成</button>
+    </div>
+  `);
+  // 内容用 value 灌进去而不是拼进模板，避免 JSON 里的引号/反引号打断 HTML
+  const ta = $('#bkText');
+  ta.value = text;
+  toast(downloaded ? `已导出 ${ITEMS.length} 条物品` : `备份已生成，请复制下方内容`);
+
+  $('#bkDone').addEventListener('click', closeModal);
+  $('#bkCopy').addEventListener('click', () => {
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    if (!ok && navigator.clipboard){
+      navigator.clipboard.writeText(ta.value)
+        .then(() => toast('已复制，去找个地方粘贴保存'))
+        .catch(() => toast('请长按文本框手动全选复制'));
+      return;
+    }
+    toast(ok ? '已复制，去找个地方粘贴保存' : '请长按文本框手动全选复制');
+  });
 }
 
 /* --- 导入备份（可选 覆盖 / 合并） --- */
@@ -2350,9 +2653,12 @@ function clearAllModal(){
   $('#caCancel').addEventListener('click', closeModal);
   ok.addEventListener('click', () => {
     ITEMS.length = 0;
-        closeModal();
+    closeModal();
     renderSettings(); renderCatChips();
     renderItems();
+    // ★ 之前这里只清了内存没落盘：IndexedDB 里还留着旧数据，
+    //   用户一刷新物品就全「复活」了。清空也必须立刻写回库。
+    if (db && !suppressSave){ clearTimeout(saveTimer); saveNow(); }
     toast('已清空全部数据');
   });
 }
@@ -2432,6 +2738,12 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && db && !suppressSave){
     clearTimeout(saveTimer);
     saveNow();
+  }
+  // ★ 从后台切回前台时，把 chip 指示块强制对齐到当前位置。
+  //   页面在后台时 rAF 会被浏览器暂停，弹簧动画会停在半路（回到前台才继续跑，
+  //   但也有极小概率因为长时间不推进而卡住）。这里补一次静态对齐兜底。
+  if (document.visibilityState === 'visible'){
+    requestAnimationFrame(() => syncAllChipInds(false));
   }
 });
 window.addEventListener('pagehide', () => {
@@ -2565,48 +2877,77 @@ document.addEventListener('click', e => {
 
 // 分类网格 #catGrid、#qAddItem、#qAddApp、#backHome 都已随总览页/软件页删除，绑定一并去掉
 
-// 列表页筛选
+// 列表页筛选 · 底部 Tab 栏 + 分类抽屉
 /* ★ 关键：选中态的 class 切换必须发生在 chipsReflow 的 mutate 回调**里面** ——
    FLIP 靠「改之前量一次、改之后再量一次」求位移，如果切换放在回调外面，
-   after 会和 before 完全一样，算出的位移是 0，动画就不会播。 */
-on('#catChips', 'click', e => {
-  const chip = e.target.closest('[data-cat]'); if (!chip) return;
-  const k = chip.dataset.cat;
-  chipsReflow($('#catChips'), '.chip', () => {
-    // 再点一次已选中的分类 = 取消筛选（代替原来的「全部」按钮）
-    state.cat = (state.cat === k) ? 'all' : k;
-    $$('#catChips .chip').forEach(c => c.classList.toggle('on', c.dataset.cat === state.cat));
-  });
-  renderCatChips(); renderItems();
+   after 会和 before 完全一样，算出的位移是 0，动画就不会播。
+
+   ★ 为什么委托在 document 上，而不是 #tabbar：
+     1) 「消耗中」会把 #catRow 整个从 DOM 摘掉，切回来时 ensureCatRow() 重建的
+        是全新节点 —— 绑在旧 #catChips 上的监听会随之失效（分类点了没反应）。
+     2) 分类抽屉为了不受 pointer-events:none 和边界裁切影响，已经挪到
+        .tabbar 外面（见 HTML 注释）—— 绑在 #tabbar 上就收不到抽屉的点击了。
+     document 级委托两种情况都能覆盖，一次绑定、永远有效。 */
+document.addEventListener('click', e => {
+  // --- 分类 chip ---
+  const catChip = e.target.closest('[data-cat]');
+  if (catChip){
+    const k = catChip.dataset.cat;
+    const wasOn = state.cat === k;
+    // ★ 头部那个「清除筛选」按钮去掉后，「再点一次已选中的分类」就成了
+    //   唯一的取消出口，必须让它真的取消（保持 cat='all'），
+    //   不能被 renderCatChips 的兜底逻辑又改回第一个分类。
+    catShowAll = wasOn;
+    chipsReflow($('#catChips'), '.chip', () => {
+      state.cat = wasOn ? 'all' : k;
+      $$('#catChips .chip').forEach(c => c.classList.toggle('on', c.dataset.cat === state.cat));
+    });
+    renderCatChips(); renderItems();
+    return;
+  }
+
+  // --- 状态 tab ---
+  const stChip = e.target.closest('[data-st]');
+  if (stChip){
+    const k = stChip.dataset.st;
+    // ★ 再点一次**已经选中**的状态 tab → 展开/收起分类抽屉，而不是取消筛选。
+    //   底部一行只有三个 tab，取消筛选会让"一个都没选中"，看起来像坏了；
+    //   而且它是这几档状态里唯一能唤出分类层的动作（见 setCatDrawer 的注释）。
+    if (state.st === k){
+      toggleCatDrawer();
+      return;
+    }
+    chipsReflow($('#stChips'), '.chip', () => {
+      state.st = k;
+      catShowAll = false;
+      // ★ 每次点状态行都重新选「该状态下第一个有物品的分类」（用户明确要求）。
+      //   不这么做的话：进过「消耗中」之后再切回任何一档，分类行都没有选中项 ——
+      //   因为 renderCatChips 只在「选中的分类在新状态下为空」时才换，
+      //   而 'all' 永远不会被判成空。
+      //   「消耗中」没有分类维度，所以 cat 归 'all' 显示全部消耗品。
+      state.cat = (state.st === 'consuming') ? 'all' : firstCatWithItems(state.st);
+      $$('#stChips .chip').forEach(c => c.classList.toggle('on', c.dataset.st === state.st));
+    });
+    // 切到「消耗中」时抽屉必须收起来（那一档没有分类可言）
+    if (state.st === 'consuming') setCatDrawer(false, { silent: true });
+    syncFilterGroup();
+    renderItems();
+    return;
+  }
 });
 // 位置行 / 季节行的点击处理已删除（那两行筛选已按用户要求移除）
-
-on('#stChips', 'click', e => {
-  const chip = e.target.closest('[data-st]'); if (!chip) return;
-  const k = chip.dataset.st;
-  chipsReflow($('#stChips'), '.chip', () => {
-    state.st = (state.st === k) ? 'all' : k;       // 再点一次取消
-    // ★ 每次点状态行都重新选「该状态下第一个有物品的分类」（用户明确要求）。
-    //   不这么做的话：进过「消耗中」之后再切回任何一档，分类行都没有选中项 ——
-    //   因为 renderCatChips 只在「选中的分类在新状态下为空」时才换，
-    //   而 'all' 永远不会被判成空。用户实测就报了这个。
-    //   「消耗中」没有分类行（那一行会被摘掉），所以 cat 归 'all' 显示全部消耗品。
-    state.cat = (state.st === 'consuming' || state.st === 'all')
-      ? 'all' : firstCatWithItems(state.st);
-    $$('#stChips .chip').forEach(c => c.classList.toggle('on', c.dataset.st === state.st));
-  });
-  syncFilterGroup();
-  renderItems();
-});
-// 搜索框已删除（用户要求）——state.q 保留但恒为空，筛选逻辑不再读它
 // 物品卡：照片 / 归类 / 删除 / 进详情
 on('#igrid', 'click', e => {
   // 空状态里的「添加物品」（底部两张卡只在消耗中出现，其他档位空列表靠这个入口）
   if (e.target.closest('#emptyAdd')){ newItemModal(); return; }
-  // 空状态里的「显示全部」：清掉分类/状态筛选，把物品都找回来
+  // 空状态里的「显示全部」：清掉筛选，把物品都找回来
   if (e.target.closest('#itemShowAll')){
+    // ★ 底部只有三个状态 tab，没有「全部」这一档 ——
+    //   把 state.st 设成 'all' 会让三个 tab 全不亮，看起来像坏了。
+    //   所以状态回落到「第一个有物品的档位」，只清掉分类筛选。
+    catShowAll = true;
+    state.st = ST_KEYS.find(k => itemsInSt(k).length) || ST_KEYS[0];
     state.cat = 'all';
-    state.st = 'all';
     renderCatChips(); renderStChips(); renderItems();
     toast('已显示全部物品');
     return;
@@ -2996,6 +3337,9 @@ function renderAll(){
   syncAllChipInds(false);
   requestAnimationFrame(() => syncAllChipInds(false));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncAllChipInds(false));
+  // 底栏高度（含安全区）要等布局稳定才量得准 → 这里补一次留白同步
+  syncTabPad();
+  requestAnimationFrame(syncTabPad);
 }
 
 async function boot(){
@@ -3028,6 +3372,22 @@ async function boot(){
   } catch (e) {
     suppressSave = false;
     console.warn('[极简] 读取本地数据失败，使用当前数据', e);
+  }
+
+  // 调试用：地址带 #cat 时自动展开分类抽屉（方便截图/排查布局，
+  // 正式使用时没人会带这个 hash，不影响正常体验）
+  if (location.hash === '#cat'){
+    setTimeout(() => {
+      setCatDrawer(true);
+      // headless 截图时动画不会推进（页面在后台会冻结过渡），
+      // 这里直接把终态写成内联样式，保证截到的是展开后的真实样子。
+      const dr = $('#catDrawer');
+      if (dr){
+        dr.style.transition = 'none';
+        dr.style.opacity = '1';
+        dr.style.transform = 'translateY(0) scaleY(1)';
+      }
+    }, 120);
   }
 }
 boot();
